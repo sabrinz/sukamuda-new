@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- SISTEM ARTIKEL (CRUD & INTERAKSI) ---
     Route::get('/articles', [ArticleController::class, 'index']);           
+    Route::get('/articles/list/{category}', [ArticleController::class, 'listByCategory']);
     Route::post('/articles', [ArticleController::class, 'store']);          // Simpan artikel baru
     
     // PERBAIKAN: Menggunakan PUT/PATCH untuk update. Jangan gunakan POST dengan URL yang sama dengan create.

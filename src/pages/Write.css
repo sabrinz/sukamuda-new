@@ -175,6 +175,22 @@ input[type="file"].form-input:focus {
   flex-wrap: wrap;
 }
 
+.related-button {
+  background: #1e76d0;
+  color: #000000;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 19px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.related-button:hover {
+  background: #155a9d;
+}
+
 .editor-body {
   background: white;
   min-height: 280px;
@@ -405,6 +421,56 @@ input[type="file"].form-input:focus {
   background: #1662ad;
 }
 
+.related-modal-container {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 28px 28px 20px;
+  max-width: 640px;
+  width: 100%;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.16);
+}
+
+.modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.related-article-list {
+  display: grid;
+  gap: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.related-article-item {
+  width: 100%;
+  background: #f8fbff;
+  border: 1px solid #e5ecf6;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  color: #111;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.related-article-item:hover {
+  transform: translateY(-1px);
+  border-color: #c8d7ee;
+}
+
+.related-article-item strong {
+  color: #1e76d0;
+  font-size: 14px;
+}
+
 /* ================= THUMBNAIL UPLOAD ================= */
 .hidden-file-input {
   display: none;
@@ -481,46 +547,39 @@ input[type="file"].form-input:focus {
   background: rgba(255, 0, 0, 0.8);
 }
 
-/* ================= RESPONSIVE ================= */
-@media (max-width: 768px) {
-  .menulis-form-page .content {
-    padding: 30px 16px 60px;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .form-label {
-    font-size: 14px;
-  }
-
-  .form-select {
-    max-width: 100%;
-  }
-
-  .thumbnail-input {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  input[type="file"].form-input {
-    max-width: 100%;
-  }
-
-  .form-actions {
-    flex-direction: column-reverse;
-  }
-
-  .btn-draft, .btn-submit {
-    width: 100%;
-    text-align: center;
-    justify-content: center;
-  }
+/* ================= CUSTOM IMAGE BLOT & CAPTION (DIPERBARUI) ================= */
+/* Memaksa figure selalu rata tengah dan memblokir efek rata kiri/kanan dari Quill */
+.menulis-form-page .ql-editor .ql-image-caption {
+  text-align: center !important;
+  margin: 24px auto !important;
+  display: block !important;
 }
 
+.ql-image-caption img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: inline-block; /* Agar terpengaruh text-align: center dari parent */
+  margin: 0;
+}
+
+.ql-image-caption figcaption {
+  font-family: inherit;
+  font-size: 13px;
+  font-style: italic;
+  color: #6B7280;
+  margin-top: 4px; /* Dikecilkan agar tulisan lebih mepet/dempet ke gambar */
+  line-height: 1.5;
+  display: block;
+  text-align: center !important; /* Memaksa teks selalu di tengah */
+}
+
+/* Memastikan elemen figure tidak merusak layout list/paragraf Quill */
+.menulis-form-page .ql-editor figure {
+  clear: both;
+}
+
+/* ================= RESPONSIVE ================= */
 @media (max-width: 768px) {
   .menulis-form-page .content {
     padding: 20px 16px 80px;

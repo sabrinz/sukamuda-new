@@ -61,6 +61,17 @@ class ArticleController extends Controller
         return response()->json($this->transformArticles($articles));
     }
 
+    public function listByCategory(Request $request, $category)
+    {
+        $articles = Article::where('category', $category)
+            ->where('status', 'approved')
+            ->select('id', 'title')
+            ->latest()
+            ->get();
+
+        return response()->json($articles);
+    }
+
     public function getPublicArticles(Request $request)
     {
         $user = $request->user('sanctum');

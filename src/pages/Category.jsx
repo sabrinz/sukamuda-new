@@ -22,6 +22,37 @@ const displayLabelMap = {
   music: 'Music & Film',
 };
 
+const getYoutubeThumbnailUrl = (url) => {
+  if (!url) return '';
+  try {
+    const normalized = url.trim();
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+    let videoId = '';
+
+    if (host.includes('youtu.be')) {
+      videoId = parsed.pathname.slice(1);
+    } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+      if (parsed.pathname.startsWith('/watch')) {
+        videoId = parsed.searchParams.get('v');
+      } else if (parsed.pathname.startsWith('/embed/')) {
+        videoId = parsed.pathname.split('/embed/')[1];
+      } else if (parsed.pathname.startsWith('/shorts/')) {
+        videoId = parsed.pathname.split('/shorts/')[1];
+      } else if (parsed.pathname.startsWith('/live')) {
+        videoId = parsed.searchParams.get('v');
+      } else {
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        videoId = parts[parts.length - 1] || '';
+      }
+    }
+
+    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+  } catch {
+    return '';
+  }
+};
+
 const Category = () => {
   const { slug } = useParams();
   const [articles, setArticles] = useState([]);
@@ -85,7 +116,9 @@ const Category = () => {
                     <img
                       src={article.image
                         ? (article.image.startsWith('http') ? article.image : `${baseUrl}/storage/${article.image}`)
-                        : "https://via.placeholder.com/400x250?text=SukaMuda"}
+                        : (normalizeCategory(article.category) === 'podcast'
+                          ? getYoutubeThumbnailUrl(article.video_link) || "https://via.placeholder.com/400x250?text=SukaMuda"
+                          : "https://via.placeholder.com/400x250?text=SukaMuda")}
                       alt={article.title}
                       onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/400x250?text=Image+Error"; }}
                     />
@@ -95,32 +128,39 @@ const Category = () => {
                     <span className="badge-category">{article.category}</span>
                     <h3>{article.title}</h3>
 
-                    <div
-                      className="article-excerpt"
-                      dangerouslySetInnerHTML={{ __html: article.content.substring(0, 100) + '...' }}
-                    />
+                    <p className="article-excerpt">
+                      {(article.content || '')
+                        .replace(/<[^>]*>/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .substring(0, 100) + '...'}
+                    </p>
 
                     <div className="article-author">
-                      <div className="author-avatar-wrap">
-                        {authorPhotoUrl ? (
-                          <img
-                            src={authorPhotoUrl}
-                            alt={authorName}
-                            className="author-avatar-img"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <span
-                          className="author-avatar-initials"
-                          style={{ display: authorPhotoUrl ? 'none' : 'flex' }}
-                        >
-                          {getInitials(authorName)}
-                        </span>
-                      </div>
-                      <span className="author-name">{authorName}</span>
+                      {normalizeCategory(article.category) !== 'podcast' ? (
+                        <>
+                          <div className="author-avatar-wrap">
+                            {authorPhotoUrl ? (
+                              <img
+                                src={authorPhotoUrl}
+                                alt={authorName}
+                                className="author-avatar-img"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <span
+                              className="author-avatar-initials"
+                              style={{ display: authorPhotoUrl ? 'none' : 'flex' }}
+                            >
+                              {getInitials(authorName)}
+                            </span>
+                          </div>
+                          <span className="author-name">{authorName}</span>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 </Link>

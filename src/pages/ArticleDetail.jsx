@@ -9,6 +9,8 @@ import "./ArticleDetail.css";
 
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+const normalizeCategory = (value) => (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '');
+
 // ─── Ganti angka ini untuk mengatur jumlah paragraf per load ───
 const PARAGRAPHS_PER_LOAD = 20;
 
@@ -27,38 +29,101 @@ const getVisibleHtml = (html, count) => {
 
 const getTotalParagraphs = (html) => splitHtmlByParagraph(html).length;
 
+const extractRelatedIdsFromContent = (html) => {
+  const ids = [];
+  const regex = /\[related:(\d+)\]/g;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    ids.push(match[1]);
+  }
+  return [...new Set(ids)];
+};
+
 const getSpotifyEmbedUrl = (url) => {
   if (!url) return '';
   try {
-    const parsed = new URL(url);
-    if (!parsed.hostname.includes('spotify.com')) return url;
+    const normalized = url.trim();
+    if (normalized.startsWith('spotify:')) {
+      const parts = normalized.split(':').filter(Boolean);
+      if (parts.length >= 3) {
+        return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
+      }
+      return '';
+    }
+    const parsed = new URL(normalized);
+    if (!parsed.hostname.includes('spotify.com')) return '';
     const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts[0] === 'embed') {
+      parts.shift();
+    }
     if (parts.length >= 2) {
       return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
     }
-    return url;
+    return '';
   } catch {
-    return url;
+    return '';
   }
 };
 
 const getYoutubeEmbedUrl = (url) => {
   if (!url) return '';
   try {
-    const parsed = new URL(url);
+    const normalized = url.trim();
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
     let videoId = '';
-    if (parsed.hostname.includes('youtu.be')) {
+
+    if (host.includes('youtu.be')) {
       videoId = parsed.pathname.slice(1);
-    } else if (parsed.pathname.includes('/watch')) {
-      videoId = parsed.searchParams.get('v');
-    } else if (parsed.pathname.startsWith('/embed/')) {
-      videoId = parsed.pathname.split('/embed/')[1];
-    } else if (parsed.pathname.startsWith('/shorts/')) {
-      videoId = parsed.pathname.split('/shorts/')[1];
+    } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+      if (parsed.pathname.startsWith('/watch')) {
+        videoId = parsed.searchParams.get('v');
+      } else if (parsed.pathname.startsWith('/embed/')) {
+        videoId = parsed.pathname.split('/embed/')[1];
+      } else if (parsed.pathname.startsWith('/shorts/')) {
+        videoId = parsed.pathname.split('/shorts/')[1];
+      } else if (parsed.pathname.startsWith('/live')) {
+        videoId = parsed.searchParams.get('v');
+      } else {
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        videoId = parts[parts.length - 1] || '';
+      }
     }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
   } catch {
-    return url;
+    return '';
+  }
+};
+
+const getYoutubeThumbnailUrl = (url) => {
+  if (!url) return '';
+  try {
+    const normalized = url.trim();
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+    let videoId = '';
+
+    if (host.includes('youtu.be')) {
+      videoId = parsed.pathname.slice(1);
+    } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+      if (parsed.pathname.startsWith('/watch')) {
+        videoId = parsed.searchParams.get('v');
+      } else if (parsed.pathname.startsWith('/embed/')) {
+        videoId = parsed.pathname.split('/embed/')[1];
+      } else if (parsed.pathname.startsWith('/shorts/')) {
+        videoId = parsed.pathname.split('/shorts/')[1];
+      } else if (parsed.pathname.startsWith('/live')) {
+        videoId = parsed.searchParams.get('v');
+      } else {
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        videoId = parts[parts.length - 1] || '';
+      }
+    }
+
+    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+  } catch {
+    return '';
   }
 };
 
@@ -243,18 +308,29 @@ const ArticleDetail = () => {
       </div>
     );
 
-  const categoryLabel = categories.find((item) => item.slug === article.category)?.label || article.category;
+  const isPodcast = normalizeCategory(article.category) === 'podcast';
+  const categoryLabel = categories.find((item) => item.slug === normalizeCategory(article.category))?.label || article.category;
+
+  const relatedShortcodeIds = extractRelatedIdsFromContent(article.content || "");
+  const relatedShortcodeArticles = relatedShortcodeIds
+    .map((articleId) => allArticles.find((item) => String(item.id) === String(articleId)))
+    .filter(Boolean);
+
   const relatedArticles = allArticles
-    .filter((item) => item.category === article.category && String(item.id) !== String(id))
+    .filter((item) => normalizeCategory(item.category) === normalizeCategory(article.category) && String(item.id) !== String(id))
     .slice(0, 3);
 
   const spotifyEmbedUrl = article.audio_link ? getSpotifyEmbedUrl(article.audio_link) : '';
   const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : '';
-  const showPodcastEmbed = article.category === 'podcast' && (spotifyEmbedUrl || youtubeEmbedUrl);
+  const showPodcastEmbed = isPodcast && (spotifyEmbedUrl || youtubeEmbedUrl);
+
+  const youtubeThumbnail = isPodcast && article.video_link
+    ? getYoutubeThumbnailUrl(article.video_link)
+    : '';
 
   const imageUrl = article.image
     ? article.image.startsWith("http") ? article.image : `${baseUrl}/storage/${article.image}`
-    : "http://via.placeholder.com/1200x600";
+    : (youtubeThumbnail || (isPodcast ? "https://via.placeholder.com/1200x600?text=Podcast" : null));
 
   const tagsArray = article.tags
     ? typeof article.tags === "string"
@@ -391,13 +467,8 @@ const ArticleDetail = () => {
               </div>
             </header>
 
-            {/* Hero Image */}
+            {/* Hero Wrapper untuk Podcast Embeds */}
             <div className="hero-wrapper">
-              <img src={imageUrl} alt={article.title} className="hero-img" loading="lazy" />
-              {(article.image_caption || article.thumbnailCaption) && (
-                <p className="image-caption-text">{article.image_caption || article.thumbnailCaption}</p>
-              )}
-
               {showPodcastEmbed && (
                 <div className="podcast-embed-section" style={{ marginBottom: '24px' }}>
                   {spotifyEmbedUrl && (
@@ -408,7 +479,6 @@ const ArticleDetail = () => {
                         height="232"
                         frameBorder="0"
                         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        loading="lazy"
                       ></iframe>
                     </div>
                   )}
@@ -421,7 +491,6 @@ const ArticleDetail = () => {
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
-                        loading="lazy"
                       ></iframe>
                     </div>
                   )}
@@ -459,6 +528,35 @@ const ArticleDetail = () => {
                       Muat Lebih Banyak
                     </button>
                   </div>
+                )}
+
+                {relatedShortcodeArticles.length > 0 && (
+                  <section className="related-section-new" style={{ marginTop: '32px' }}>
+                    <div className="section-header">
+                      <h2 className="section-title">Baca Juga</h2>
+                    </div>
+                    <div className="related-grid-new">
+                      {relatedShortcodeArticles.map((item) => {
+                        const itemImage = item.image
+                          ? item.image.startsWith('http')
+                            ? item.image
+                            : `${baseUrl}/storage/${item.image}`
+                          : 'http://via.placeholder.com/400x220';
+                        return (
+                          <Link className="related-card" key={item.id} to={`/article/${item.id}`}>
+                            <div className="related-img-wrap">
+                              <img src={itemImage} alt={item.title} loading="lazy" />
+                              <span className="related-cat">{categories.find((c) => c.slug === item.category)?.label || item.category}</span>
+                            </div>
+                            <div className="related-text">
+                              <h4>{item.title}</h4>
+                              <span className="related-date">Baca Juga</span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </section>
                 )}
 
                 {/* Tags */}

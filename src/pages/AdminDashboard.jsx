@@ -4,6 +4,7 @@ import axios from '../utils/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import RejectionModal from '../components/RejectionModal';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -23,11 +24,23 @@ const AdminDashboard = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const [activeView, setActiveView] = useState('articles'); // 'articles', 'reports', or 'trash'
+    const [activeView, setActiveView] = useState('articles'); // 'articles', 'reports', 'trash', or 'stats'
     const [reports, setReports] = useState([]);
     const [reportsLoading, setReportsLoading] = useState(false);
     const [trash, setTrash] = useState([]);
     const [trashLoading, setTrashLoading] = useState(false);
+    
+    // State tambahan untuk statistik grafik
+    const [chartData, setChartData] = useState([]);
+    const [statsLoading, setStatsLoading] = useState(false);
+
+    // 13 Warna untuk 13 kategori SukaMuda
+    const COLORS = [
+        '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', 
+        '#FF19A3', '#19FF5A', '#FFCE19', '#19D4FF', '#FF3333',
+        '#8A2BE2', '#32CD32', '#FF4500'
+    ];
+
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
         type: '',
@@ -137,13 +150,51 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchChartStats = async () => {
+        setStatsLoading(true);
+        try {
+            const response = await axios.get('/api/articles', {
+                params: { status: 'approved', per_page: 1000 } 
+            });
+            
+            const allApproved = response.data.data || [];
+            const categoryCounts = {};
+            let totalApproved = 0;
+
+            allApproved.forEach(art => {
+                if (art.status === 'approved') {
+                    categoryCounts[art.category] = (categoryCounts[art.category] || 0) + 1;
+                    totalApproved++;
+                }
+            });
+
+            const formattedData = Object.keys(categoryCounts).map(key => {
+                const count = categoryCounts[key];
+                const percentage = totalApproved > 0 ? ((count / totalApproved) * 100).toFixed(1) : 0;
+                return {
+                    name: getCategoryLabel(key),
+                    value: count,
+                    percentage: parseFloat(percentage)
+                };
+            });
+
+            setChartData(formattedData);
+        } catch (error) {
+            console.error("Gagal mengambil data statistik:", error);
+        } finally {
+            setStatsLoading(false);
+        }
+    };
+
     // Untuk ganti halaman & filter dropdown (boleh ada loading singkat)
     useEffect(() => {
         if (isLoggedIn && user?.role === 'admin') {
             if (activeView === 'trash') {
                 fetchTrash();
             } else if (activeView === 'reports') {
-                // no pagination for reports currently
+                fetchReports();
+            } else if (activeView === 'stats') {
+                fetchChartStats();
             } else {
                 fetchArticles(false);
             }
@@ -160,10 +211,12 @@ const AdminDashboard = () => {
                 setCurrentPage(1);
                 const fetcher = activeView === 'trash' ? fetchTrash : fetchArticles;
 
-                fetcher(true).then(() => {
-                    // Kembalikan posisi scroll setelah data selesai di-fetch
-                    window.scrollTo(0, scrollY);
-                });
+                if (activeView !== 'stats' && activeView !== 'reports') {
+                    fetcher(true).then(() => {
+                        // Kembalikan posisi scroll setelah data selesai di-fetch
+                        window.scrollTo(0, scrollY);
+                    });
+                }
             }
         }, 600);
 
@@ -336,7 +389,19 @@ const AdminDashboard = () => {
         return cat ? cat.label : slug.charAt(0).toUpperCase() + slug.slice(1);
     };
 
-    if (loading && articles.length === 0) {
+    const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+        const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+        const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+
+        return (
+            <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
+                {`${(percent * 100).toFixed(0)}%`}
+            </text>
+        );
+    };
+
+    if (loading && articles.length === 0 && activeView === 'articles') {
         return (
             <div className="admin-loading-full">
                 <div className="admin-spinner" />
@@ -360,6 +425,12 @@ const AdminDashboard = () => {
                     </div>
                 </div>
                 <div className="admin-header-right">
+                    <button 
+                        className={`btn-view-toggle ${activeView === 'stats' ? 'active' : ''}`}
+                        onClick={() => { setActiveView('stats'); }}
+                    >
+                        Statistik
+                    </button>
                     <button 
                         className={`btn-view-toggle ${activeView === 'articles' ? 'active' : ''}`}
                         onClick={() => { setActiveView('articles'); setCurrentPage(1); }}
@@ -435,6 +506,7 @@ const AdminDashboard = () => {
                                 <th>Kategori</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
+                                <th>Dilihat</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -471,7 +543,8 @@ const AdminDashboard = () => {
                                             {art.status === 'approved' && (
                                                 <button className="btn-action" onClick={() => handleUpdateStatus(art.id, 'pending')} disabled={actionLoading === art.id} title="Tarik ke Pending">↩️</button>
                                             )}
-                                            <button className="btn-action" onClick={() => handleMoveToTrash(art.id)} disabled={actionLoading === art.id} title="Pindahkan ke Sampah">🗑️</button>
+                                            {/* Perbaikan tombol sampah agar memicu modal konfirmasi */}
+                                            <button className="btn-action" onClick={() => openConfirmModal('trash', art)} disabled={actionLoading === art.id} title="Pindahkan ke Sampah">🗑️</button>
                                             <button
                                                 className={`btn-action ${art.is_trending ? 'active-trending' : ''}`}
                                                 onClick={() => openTrendingConfirm(art)}
@@ -481,10 +554,15 @@ const AdminDashboard = () => {
                                             </button>
                                         </div>
                                     </td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#555', fontWeight: '500' }}>
+                                            👁️ {art.views || 0}x
+                                        </div>
+                                    </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan="6" className="empty-state">Data tidak ditemukan.</td>
+                                    <td colSpan="7" className="empty-state">Data tidak ditemukan.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -528,7 +606,8 @@ const AdminDashboard = () => {
                                     <td>
                                         <div className="action-group">
                                             <button className="btn-action" onClick={() => setPreviewArticle(report.article)} title="Lihat Artikel">👁️</button>
-                                            <button className="btn-action" onClick={() => handleMoveToTrash(report.article.id)} disabled={actionLoading === report.article.id} title="Pindahkan artikel ke sampah">🗑️</button>
+                                            {/* Perbaikan tombol sampah di halaman laporan */}
+                                            <button className="btn-action" onClick={() => openConfirmModal('trash', report.article)} disabled={actionLoading === report.article.id} title="Pindahkan artikel ke sampah">🗑️</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -592,7 +671,48 @@ const AdminDashboard = () => {
                 </div>
             )}
 
-            {totalPages > 1 && (
+            {/* RENDER VIEW STATISTIK / GRAFIK LINGKARAN (PIE CHART) */}
+            {activeView === 'stats' && (
+                <div className="admin-table-wrapper" style={{ padding: '30px', minHeight: '400px' }}>
+                    <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>
+                        Statistik Artikel
+                    </h2>
+                    
+                    {statsLoading ? (
+                        <div className="admin-spinner" style={{ margin: '0 auto' }} />
+                    ) : chartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={450}>
+                            <PieChart>
+                                <Pie
+                                    data={chartData}
+                                    cx="50%" 
+                                    cy="50%"
+                                    labelLine={false} 
+                                    label={renderCustomizedLabel} 
+                                    outerRadius={160}
+                                    fill="#8884d8"
+                                    dataKey="value"
+                                >
+                                    {chartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value, name, props) => [`${value} Artikel (${props.payload.percentage}%)`, name]} />
+                                <Legend 
+                                    layout="vertical" 
+                                    verticalAlign="middle" 
+                                    align="left" 
+                                    iconType="circle" 
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="empty-state">Belum ada data artikel yang di-approve.</div>
+                    )}
+                </div>
+            )}
+
+            {totalPages > 1 && activeView !== 'stats' && activeView !== 'reports' && (
                 <div className="admin-pagination">
                     <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Sebelumnya</button>
                     <span className="page-info">Halaman {currentPage} dari {totalPages}</span>

@@ -7,6 +7,46 @@ import axios from '../utils/axiosConfig';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 
+// ==========================================
+// 1. CUSTOM BLOT UNTUK IMAGE + CAPTION
+// ==========================================
+const BlockEmbed = Quill.import('blots/block/embed');
+
+class ImageCaptionBlot extends BlockEmbed {
+  static create(value) {
+    let node = super.create();
+    
+    // Elemen Gambar
+    let img = document.createElement('img');
+    img.setAttribute('src', value.url);
+    node.appendChild(img);
+    
+    // Elemen Caption (Jika ada)
+    if (value.caption) {
+      let caption = document.createElement('figcaption');
+      caption.innerText = value.caption;
+      node.appendChild(caption);
+    }
+    
+    return node;
+  }
+
+  static value(node) {
+    let img = node.querySelector('img');
+    let caption = node.querySelector('figcaption');
+    return {
+      url: img ? img.getAttribute('src') : '',
+      caption: caption ? caption.innerText : ''
+    };
+  }
+}
+
+ImageCaptionBlot.blotName = 'imageCaption';
+ImageCaptionBlot.tagName = 'figure';
+ImageCaptionBlot.className = 'ql-image-caption';
+Quill.register(ImageCaptionBlot);
+// ==========================================
+
 const categories = [
   { slug: 'school', label: 'School' },
   { slug: 'college', label: 'College' },
@@ -20,13 +60,8 @@ const categories = [
   { slug: 'science', label: 'Science' },
   { slug: 'health', label: 'Health' },
   { slug: 'tech', label: 'Tech' },
+  { slug: 'podcast', label: 'Podcast' },
 ];
-
-const MIN_IMAGE_WIDTH = 800;
-const MIN_IMAGE_HEIGHT = 450;
-
-const MAX_IMAGE_WIDTH = 1280;
-const MAX_IMAGE_HEIGHT = 720;
 
 const initialState = {
   title: "",
@@ -50,35 +85,88 @@ function formReducer(state, action) {
 const getSpotifyEmbedUrl = (url) => {
   if (!url) return '';
   try {
-    const parsed = new URL(url);
-    if (!parsed.hostname.includes('spotify.com')) return url;
+    const normalized = url.trim();
+    if (normalized.startsWith('spotify:')) {
+      const parts = normalized.split(':').filter(Boolean);
+      if (parts.length >= 3) {
+        return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
+      }
+      return '';
+    }
+    const parsed = new URL(normalized);
+    if (!parsed.hostname.includes('spotify.com')) return '';
     const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts[0] === 'embed') {
+      parts.shift();
+    }
     if (parts.length >= 2) {
       return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
     }
-    return url;
+    return '';
   } catch {
-    return url;
+    return '';
   }
 };
 
 const getYoutubeEmbedUrl = (url) => {
   if (!url) return '';
   try {
-    const parsed = new URL(url);
+    const normalized = url.trim();
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
     let videoId = '';
-    if (parsed.hostname.includes('youtu.be')) {
+
+    if (host.includes('youtu.be')) {
       videoId = parsed.pathname.slice(1);
-    } else if (parsed.pathname.includes('/watch')) {
-      videoId = parsed.searchParams.get('v');
-    } else if (parsed.pathname.startsWith('/embed/')) {
-      videoId = parsed.pathname.split('/embed/')[1];
-    } else if (parsed.pathname.startsWith('/shorts/')) {
-      videoId = parsed.pathname.split('/shorts/')[1];
+    } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+      if (parsed.pathname.startsWith('/watch')) {
+        videoId = parsed.searchParams.get('v');
+      } else if (parsed.pathname.startsWith('/embed/')) {
+        videoId = parsed.pathname.split('/embed/')[1];
+      } else if (parsed.pathname.startsWith('/shorts/')) {
+        videoId = parsed.pathname.split('/shorts/')[1];
+      } else if (parsed.pathname.startsWith('/live')) {
+        videoId = parsed.searchParams.get('v');
+      } else {
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        videoId = parts[parts.length - 1] || '';
+      }
     }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
   } catch {
-    return url;
+    return '';
+  }
+};
+
+const getYoutubeThumbnailUrl = (url) => {
+  if (!url) return '';
+  try {
+    const normalized = url.trim();
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+    let videoId = '';
+
+    if (host.includes('youtu.be')) {
+      videoId = parsed.pathname.slice(1);
+    } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+      if (parsed.pathname.startsWith('/watch')) {
+        videoId = parsed.searchParams.get('v');
+      } else if (parsed.pathname.startsWith('/embed/')) {
+        videoId = parsed.pathname.split('/embed/')[1];
+      } else if (parsed.pathname.startsWith('/shorts/')) {
+        videoId = parsed.pathname.split('/shorts/')[1];
+      } else if (parsed.pathname.startsWith('/live')) {
+        videoId = parsed.searchParams.get('v');
+      } else {
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        videoId = parts[parts.length - 1] || '';
+      }
+    }
+
+    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+  } catch {
+    return '';
   }
 };
 
@@ -144,7 +232,48 @@ function Write() {
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [relatedModalOpen, setRelatedModalOpen] = useState(false);
+  const [relatedArticles, setRelatedArticles] = useState([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+  const [relatedError, setRelatedError] = useState(null);
   const isAdmin = user?.role === 'admin';
+
+  // ─── STATE & REF BARU UNTUK MODAL IMAGE QUILL ───
+  const [insertImageModalOpen, setInsertImageModalOpen] = useState(false);
+  const [insertImageBase64, setInsertImageBase64] = useState(null);
+  const [insertImageCaption, setInsertImageCaption] = useState("");
+  const currentSelectionRef = useRef(null);
+
+  // ─── POSISI FUNGSI YANG BENAR (Di dalam Write) ───
+  const handleModalFileChange = (e) => {
+    const file = e.target.files?.[0];
+    
+    // Jika user batal memilih file
+    if (!file) {
+      setInsertImageBase64(null);
+      return;
+    }
+
+    // Batasan maksimal size file 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran file maksimal 5MB.");
+      e.target.value = ""; // Reset input
+      setInsertImageBase64(null);
+      return;
+    }
+
+    // Konversi file ke base64 agar bisa dimasukkan ke Quill
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const base64 = evt.target.result;
+      setInsertImageBase64(base64); // Simpan ke state
+    };
+    reader.onerror = () => {
+      alert("Terjadi kesalahan saat membaca file gambar.");
+    };
+    
+    reader.readAsDataURL(file);
+  };
 
   // ─── Proses file thumbnail (tanpa validasi resolusi) ───
   const processFile = (file) => {
@@ -159,6 +288,38 @@ function Write() {
     reader.readAsDataURL(file);
   };
 
+  // ─── FUNGSI BARU: INSERT GAMBAR & CAPTION KE QUILL ───
+  const handleInsertCustomImage = () => {
+    if (!insertImageBase64) {
+      alert("Silakan pilih gambar terlebih dahulu.");
+      return;
+    }
+
+    const quill = quillRef.current;
+    if (!quill) return;
+
+    const range = currentSelectionRef.current || quill.getSelection(true) || { index: quill.getLength() - 1, length: 0 };
+    const alignValue = quill.getFormat(range)?.align || null;
+
+    // Masukkan Custom Blot
+    quill.insertEmbed(range.index, 'imageCaption', {
+      url: insertImageBase64,
+      caption: insertImageCaption
+    }, 'user');
+
+    // Terapkan alignment jika ada
+    quill.setSelection(range.index + 1, 0, 'silent');
+    if (alignValue) {
+      quill.formatLine(range.index, 1, 'align', alignValue, 'user');
+    }
+
+    // Reset dan tutup modal
+    setInsertImageModalOpen(false);
+    setInsertImageBase64(null);
+    setInsertImageCaption("");
+  };
+
+
   useEffect(() => {
     if (!quillRef.current) {
       quillRef.current = new Quill(editorRef.current, {
@@ -171,68 +332,12 @@ function Write() {
               undo() { this.quill.history.undo(); },
               redo() { this.quill.history.redo(); },
 
-              // ─── Custom image handler: validasi resolusi + ikuti alignment ───
+              // ─── Custom image handler: Membuka Modal Custom ───
               image() {
-                const quill = this.quill;
-                const input = document.createElement('input');
-                input.setAttribute('type', 'file');
-                input.setAttribute('accept', 'image/*');
-                input.click();
-
-                input.onchange = () => {
-                  const file = input.files?.[0];
-                  if (!file) return;
-
-                  if (file.size > 5 * 1024 * 1024) {
-                    alert("Ukuran file maksimal 5MB.");
-                    return;
-                  }
-
-                  // Step 1: baca file jadi base64 dulu
-                  const reader = new FileReader();
-                  reader.onload = (e) => {
-                    const base64 = e.target.result;
-
-                    // Step 2: validasi dimensi dari base64 (bukan dari objectURL)
-                    const checkImg = new Image();
-                    checkImg.onload = () => {
-                      const width = checkImg.width;
-const height = checkImg.height;
-
-const isTooSmall =
-  width < MIN_IMAGE_WIDTH ||
-  height < MIN_IMAGE_HEIGHT;
-
-const isTooLarge =
-  width > MAX_IMAGE_WIDTH ||
-  height > MAX_IMAGE_HEIGHT;
-
-if (isTooSmall || isTooLarge) {
-  alert(
-    `Ukuran gambar tidak didukung (${width}×${height} px).\n\n` +
-    `Minimal: 800×450 px\n` +
-    `Maksimal: 1920×1080 px`
-  );
-  return;
-}
-
-                      // Step 3: ambil posisi kursor & alignment sebelum insert
-                      const range = quill.getSelection(true);
-                      const alignValue = quill.getFormat(range)?.align || null;
-
-                      // Step 4: insert gambar
-                      quill.insertEmbed(range.index, 'image', base64, 'user');
-
-                      // Step 5: terapkan alignment ke baris gambar setelah insert
-                      quill.setSelection(range.index + 1, 0, 'silent');
-                      if (alignValue) {
-                        quill.formatLine(range.index, 1, 'align', alignValue, 'user');
-                      }
-                    };
-                    checkImg.src = base64;
-                  };
-                  reader.readAsDataURL(file);
-                };
+                // Simpan posisi kursor terakhir
+                currentSelectionRef.current = this.quill.getSelection(true);
+                // Buka Modal
+                setInsertImageModalOpen(true);
               },
             },
           },
@@ -260,6 +365,13 @@ if (isTooSmall || isTooLarge) {
   const handleInputChange = (field, value) => {
     dispatch({ type: 'SET_FIELD', field, value });
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+    // Jika admin memasukkan video link untuk podcast, coba ekstrak thumbnail otomatis
+    if (field === 'videoLink' && isAdmin && !thumbnailFile) {
+      const thumb = getYoutubeThumbnailUrl(value || "");
+      if (thumb) {
+        setThumbnailPreview(thumb);
+      }
+    }
   };
 
   const availableCategories = categories.filter((item) => item.slug !== 'podcast' || isAdmin || form.category === 'podcast');
@@ -269,6 +381,52 @@ if (isTooSmall || isTooLarge) {
     const currentScrollY = window.scrollY;
     handleInputChange('category', e.target.value);
     requestAnimationFrame(() => { window.scrollTo(0, currentScrollY); });
+  };
+
+  const openRelatedModal = async () => {
+    if (!form.category) {
+      setErrors(prev => ({ ...prev, category: 'Pilih kategori terlebih dahulu untuk menambahkan Baca Juga.' }));
+      return;
+    }
+
+    setRelatedError(null);
+    setRelatedLoading(true);
+    setRelatedModalOpen(true);
+
+    try {
+      const response = await axios.get(`/api/articles/list/${form.category}`);
+      const related = response.data || [];
+      const filtered = related.filter((item) => item.id !== editData?.id);
+      setRelatedArticles(filtered);
+    } catch (error) {
+      console.error('Gagal memuat daftar artikel terkait:', error);
+      setRelatedError('Tidak dapat memuat daftar artikel. Coba lagi.');
+      setRelatedArticles([]);
+    } finally {
+      setRelatedLoading(false);
+    }
+  };
+
+  const insertRelatedShortcode = (articleId, articleTitle) => {
+    const quill = quillRef.current;
+    if (!quill) return;
+
+    const range = quill.getSelection(true) || { index: quill.getLength() - 1, length: 0 };
+    
+    // Insert teks yang terlihat user = judul artikel
+    // Tapi simpan shortcode di akhir sebagai "marker" tersembunyi
+    const displayText = `Baca Juga: ${articleTitle}`;
+    
+    quill.insertText(range.index, '\n', 'user');
+    quill.insertText(range.index + 1, displayText, {
+      bold: true,
+      color: '#c0392b',
+      link: `/article/${articleId}`   // ← sesuaikan dengan routing kamu
+    }, 'user');
+    quill.insertText(range.index + 1 + displayText.length, '\n', 'user');
+    
+    quill.setSelection(range.index + displayText.length + 2, 0, 'silent');
+    setRelatedModalOpen(false);
   };
 
   const handleThumbnailChange = (e) => {
@@ -289,13 +447,14 @@ if (isTooSmall || isTooLarge) {
       newErrors.tags = "Tag minimal 2 dan maksimal 10.";
     }
 
+    if (!isPodcast && !thumbnailFile && !thumbnailPreview) newErrors.image = "Thumbnail wajib diunggah.";
+
     if (isPodcast) {
       if (modalType === 'publish' && !form.audioLink.trim() && !form.videoLink.trim()) {
         newErrors.audioLink = "Masukkan link Spotify atau YouTube untuk podcast.";
         newErrors.videoLink = "Masukkan link Spotify atau YouTube untuk podcast.";
       }
     } else {
-      if (!thumbnailFile && !thumbnailPreview) newErrors.image = "Thumbnail wajib diunggah.";
       if (modalType === 'publish') {
         const content = quillRef.current?.root?.innerHTML || "";
         if (!content || content === '<p><br></p>') newErrors.content = "Isi berita tidak boleh kosong.";
@@ -304,6 +463,24 @@ if (isTooSmall || isTooLarge) {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // ─── HELPER: Download YouTube thumbnail and convert to File ───
+  const downloadThumbnailAsFile = async (videoLink) => {
+    try {
+      const thumbnailUrl = getYoutubeThumbnailUrl(videoLink);
+      if (!thumbnailUrl) return null;
+      
+      const response = await fetch(thumbnailUrl);
+      if (!response.ok) return null;
+      
+      const blob = await response.blob();
+      const fileName = `thumbnail-${Date.now()}.jpg`;
+      return new File([blob], fileName, { type: 'image/jpeg' });
+    } catch (error) {
+      console.error('Failed to download thumbnail:', error);
+      return null;
+    }
   };
 
   const handleFinalSubmit = async () => {
@@ -331,7 +508,13 @@ if (isTooSmall || isTooLarge) {
     } else if (!editData?.id) {
       formData.append('status', 'review');
     }
-    if (!isPodcast && thumbnailFile) formData.append('image', thumbnailFile);
+    
+    // Handle thumbnail file: prioritize custom upload, then extract from YouTube
+    let finalThumbnailFile = thumbnailFile;
+    if (!finalThumbnailFile && isPodcast && form.videoLink.trim()) {
+      finalThumbnailFile = await downloadThumbnailAsFile(form.videoLink.trim());
+    }
+    if (finalThumbnailFile) formData.append('image', finalThumbnailFile);
     if (editData?.id) {
       formData.append('id', editData.id);
       formData.append('_method', 'PUT');
@@ -440,8 +623,74 @@ if (isTooSmall || isTooLarge) {
               </div>
 
               <div className="form-row">
+                <label className="form-label">Thumbnail (opsional)</label>
+                <div className="thumbnail-upload-row">
+                  <div
+                    className="thumbnail-drop-mini"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file && file.type.startsWith("image/")) {
+                        processFile(file);
+                      }
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      className="hidden-file-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleThumbnailChange}
+                    />
+                    <span>Choose File</span>
+                  </div>
+
+                  {thumbnailPreview && (
+                    <div className="thumbnail-preview-box">
+                      <img
+                        className="thumbnail-preview-mini"
+                        src={thumbnailPreview}
+                        alt="Preview"
+                      />
+                      <button
+                        type="button"
+                        className="remove-thumbnail-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setThumbnailPreview(null);
+                          setThumbnailFile(null);
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
+                          }
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {errors.image && (
+                  <small style={{ color: "red", marginTop: 4, display: "block" }}>
+                    {errors.image}
+                  </small>
+                )}
+              </div>
+
+              <div className="form-row">
+                <label className="form-label">Caption Thumbnail (opsional)</label>
+                <input
+                  className="form-input"
+                  placeholder="Tulis caption thumbnail jika ingin"
+                  value={form.thumbnailCaption}
+                  onChange={(e) => handleInputChange('thumbnailCaption', e.target.value)}
+                />
+              </div>
+
+              <div className="form-row">
                 <p style={{ color: '#555', margin: '0 0 16px' }}>
-                  Podcast hanya bisa dibuat oleh admin. Kamu dapat memasukkan link Spotify audio dan/atau YouTube video.
+                  Podcast hanya bisa dibuat oleh admin. Masukkan link Spotify audio dan/atau YouTube video. Jika YouTube thumbnail gagal, upload thumbnail untuk tampilan preview sebelum klik; di dalam artikel hanya audio/video.
                 </p>
               </div>
             </>
@@ -523,7 +772,6 @@ if (isTooSmall || isTooLarge) {
                 </div>
               </div>
 
-              {/* Quill Editor */}
               <div className="editor-wrapper">
                 <div id="quill-toolbar" className="editor-toolbar">
               <button className="ql-undo" type="button">
@@ -544,26 +792,25 @@ if (isTooSmall || isTooLarge) {
               <button className="ql-align" value="right" type="button" />
               <button className="ql-link" type="button" />
               <button className="ql-image" type="button" />
+              <button className="related-button" type="button" onClick={openRelatedModal}>+ Baca Juga</button>
             </div>
             <div ref={editorRef} className="editor-body" />
             {errors.content && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.content}</small>}
           </div>
-        </>
-      )}
 
-          {/* Description */}
-          <div className="form-row">
-            <label className="form-label">Description</label>
-            <input
-              className="form-input"
-              placeholder="Write Here"
-              value={form.teaser}
-              onChange={(e) => handleInputChange('teaser', e.target.value)}
-              maxLength={300}
-            />
-          </div>
+              <div className="form-row">
+                <label className="form-label">Description</label>
+                <input
+                  className="form-input"
+                  placeholder="Write Here"
+                  value={form.teaser}
+                  onChange={(e) => handleInputChange('teaser', e.target.value)}
+                  maxLength={300}
+                />
+              </div>
+            </>
+          )}
 
-          {/* Tags */}
           <div className="form-row">
             <label className="form-label">Tag</label>
             <input
@@ -586,7 +833,7 @@ if (isTooSmall || isTooLarge) {
         </section>
       </main>
 
-      {/* Modal */}
+      {/* Modal Submit */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-container">
@@ -609,6 +856,94 @@ if (isTooSmall || isTooLarge) {
                 {loading ? 'Menyimpan...' : modalType === 'draft' ? 'Simpan Draft' : 'Kirim ke Admin'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL BARU: INSERT GAMBAR & CAPTION (QUILL) ─── */}
+      {insertImageModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <h2 className="modal-title" style={{ marginBottom: '24px' }}>Sisipkan Gambar</h2>
+            
+            <div className="form-row" style={{ gridTemplateColumns: '1fr', textAlign: 'left', gap: '8px', marginBottom: '16px' }}>
+              <label className="form-label" style={{ marginBottom: '0' }}>Pilih Gambar</label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="form-input" 
+                onChange={handleModalFileChange} 
+                style={{ padding: '10px' }} 
+              />
+              {insertImageBase64 && <p style={{ fontSize: '12px', color: 'green', margin: 0 }}>Gambar berhasil dipilih dan divalidasi.</p>}
+            </div>
+
+            <div className="form-row" style={{ gridTemplateColumns: '1fr', textAlign: 'left', gap: '8px', marginBottom: '28px' }}>
+              <label className="form-label" style={{ marginBottom: '0' }}>Keterangan Gambar (Opsional)</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Ilustrasi - Keterangan gambar..." 
+                value={insertImageCaption} 
+                onChange={(e) => setInsertImageCaption(e.target.value)} 
+              />
+            </div>
+
+            <div className="modal-buttons">
+              <button 
+                className="btn-batal" 
+                onClick={() => {
+                  setInsertImageModalOpen(false);
+                  setInsertImageBase64(null);
+                  setInsertImageCaption("");
+                }}
+              >
+                Batal
+              </button>
+              <button 
+                className="btn-konfirmasi-hapus" 
+                style={{ backgroundColor: '#1e76d0' }} 
+                onClick={handleInsertCustomImage}
+              >
+                Sisipkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Baca Juga */}
+      {relatedModalOpen && (
+        <div className="modal-overlay">
+          <div className="related-modal-container">
+            <div className="modal-header-row">
+              <div>
+                <h2 className="modal-title">Pilih Artikel Baca Juga</h2>
+                <p className="modal-subtitle">Menampilkan artikel dengan kategori yang sama: {form.category || 'Belum dipilih'}</p>
+              </div>
+              <button className="btn-batal" onClick={() => setRelatedModalOpen(false)}>Tutup</button>
+            </div>
+            {relatedLoading ? (
+              <p style={{ textAlign: 'center', marginTop: 18 }}>Memuat artikel...</p>
+            ) : relatedError ? (
+              <p style={{ color: '#d83a34', textAlign: 'center', marginTop: 18 }}>{relatedError}</p>
+            ) : relatedArticles.length === 0 ? (
+              <p style={{ textAlign: 'center', marginTop: 18 }}>Tidak ada artikel dalam kategori ini.</p>
+            ) : (
+              <div className="related-article-list">
+                {relatedArticles.map((item) => (
+                  <button
+                    key={item.id}
+                    className="related-article-item"
+                    type="button"
+                    onClick={() => insertRelatedShortcode(item.id, item.title)}
+                  >
+                    <span>{item.title}</span>
+                    <strong>[related:{item.id}]</strong>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

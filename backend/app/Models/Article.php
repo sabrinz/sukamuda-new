@@ -32,6 +32,8 @@ class Article extends Model
         'rejection_reason',
         'views',
         'is_trending', // Tambahkan
+        'audio_link',  // Untuk podcast Spotify link
+        'video_link',  // Untuk podcast YouTube link
     ];
 
     /**

@@ -51,6 +51,102 @@ function Home() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
+  const normalizeCategory = (value) => (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+  const getSpotifyEmbedUrl = (url) => {
+    if (!url) return '';
+    try {
+      const normalized = url.trim();
+      if (normalized.startsWith('spotify:')) {
+        const parts = normalized.split(':').filter(Boolean);
+        if (parts.length >= 3) {
+          return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
+        }
+        return '';
+      }
+      const parsed = new URL(normalized);
+      if (!parsed.hostname.includes('spotify.com')) return '';
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'embed') {
+        parts.shift();
+      }
+      if (parts.length >= 2) {
+        return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
+  const getYoutubeEmbedUrl = (url) => {
+    if (!url) return '';
+    try {
+      const normalized = url.trim();
+      const parsed = new URL(normalized);
+      const host = parsed.hostname.toLowerCase();
+      let videoId = '';
+
+      if (host.includes('youtu.be')) {
+        videoId = parsed.pathname.slice(1);
+      } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+        if (parsed.pathname.startsWith('/watch')) {
+          videoId = parsed.searchParams.get('v');
+        } else if (parsed.pathname.startsWith('/embed/')) {
+          videoId = parsed.pathname.split('/embed/')[1];
+        } else if (parsed.pathname.startsWith('/shorts/')) {
+          videoId = parsed.pathname.split('/shorts/')[1];
+        } else if (parsed.pathname.startsWith('/live')) {
+          videoId = parsed.searchParams.get('v');
+        } else {
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          videoId = parts[parts.length - 1] || '';
+        }
+      }
+
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+    } catch {
+      return '';
+    }
+  };
+
+  const getYoutubeThumbnailUrl = (url) => {
+    if (!url) return '';
+    try {
+      const normalized = url.trim();
+      const parsed = new URL(normalized);
+      const host = parsed.hostname.toLowerCase();
+      let videoId = '';
+
+      if (host.includes('youtu.be')) {
+        videoId = parsed.pathname.slice(1);
+      } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+        if (parsed.pathname.startsWith('/watch')) {
+          videoId = parsed.searchParams.get('v');
+        } else if (parsed.pathname.startsWith('/embed/')) {
+          videoId = parsed.pathname.split('/embed/')[1];
+        } else if (parsed.pathname.startsWith('/shorts/')) {
+          videoId = parsed.pathname.split('/shorts/')[1];
+        } else if (parsed.pathname.startsWith('/live')) {
+          videoId = parsed.searchParams.get('v');
+        } else {
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          videoId = parts[parts.length - 1] || '';
+        }
+      }
+
+      return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+    } catch {
+      return '';
+    }
+  };
+
+  const [activePodcastId, setActivePodcastId] = React.useState(null);
+
+  const togglePodcastPlayer = (articleId) => {
+    setActivePodcastId((prev) => (prev === articleId ? null : articleId));
+  };
+
   const renderTrendingItem = (article, index) => {
     if (!article) return null;
 
@@ -95,15 +191,23 @@ function Home() {
   const renderCard = (article, index) => {
     if (!article) return null;
 
+    const isPodcast = normalizeCategory(article.category) === 'podcast';
+    const videoThumbnail = !article.image && isPodcast
+      ? getYoutubeThumbnailUrl(article.video_link)
+      : '';
+
     const imageUrl = article.image
       ? (article.image.startsWith('http') ? article.image : `${baseUrl}/storage/${article.image}`)
-      : "https://via.placeholder.com/600x400?text=SukaMuda";
+      : (videoThumbnail || "https://via.placeholder.com/600x400?text=SukaMuda");
 
-    const authorPhoto = resolveImageUrl(article.user?.avatar || article.user?.profile_photo_url);
+    const authorPhoto = isPodcast ? null : resolveImageUrl(article.user?.avatar || article.user?.profile_photo_url);
     const authorName = article.user?.name || 'Anonim';
+    const spotifyEmbedUrl = article.audio_link ? getSpotifyEmbedUrl(article.audio_link) : '';
+    const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : '';
+    const showPodcastPlayer = isPodcast && activePodcastId === article.id;
 
-    return (
-      <Link className="article-card" key={article.id || index} to={`/article/${article.id}`}>
+    const cardInner = (
+      <>
         <div className="article-image-wrapper">
           <img
             src={imageUrl}
@@ -116,17 +220,82 @@ function Home() {
           <h3>{article.title || "Judul tidak tersedia"}</h3>
           <div className="card-meta">
             <div className="card-author">
-              <div className="card-author-avatar-wrap">
-                {authorPhoto ? (
+              {authorPhoto ? (
+                <div className="card-author-avatar-wrap">
                   <img src={authorPhoto} alt={authorName} className="card-author-avatar" />
-                ) : (
+                </div>
+              ) : !isPodcast ? (
+                <div className="card-author-avatar-wrap">
                   <span className="card-author-initials">{getInitials(authorName)}</span>
-                )}
-              </div>
+                </div>
+              ) : null}
               <span className="card-author-name">{authorName}</span>
             </div>
           </div>
+          {isPodcast && <span className="podcast-badge">Podcast</span>}
+          {isPodcast && (
+            <button
+              type="button"
+              className="podcast-toggle-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePodcastPlayer(article.id);
+              }}
+            >
+              {showPodcastPlayer ? 'Tutup Podcast' : 'Putar Podcast'}
+            </button>
+          )}
+          {showPodcastPlayer && (
+            <div className="podcast-player-panel">
+              {spotifyEmbedUrl && (
+                <div className="podcast-embed podcast-audio">
+                  <iframe
+                    src={spotifyEmbedUrl}
+                    width="100%"
+                    height="232"
+                    frameBorder="0"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  ></iframe>
+                </div>
+              )}
+              {youtubeEmbedUrl && (
+                <div className="podcast-embed podcast-video">
+                  <iframe
+                    src={youtubeEmbedUrl}
+                    width="100%"
+                    height="240"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              )}
+              {!spotifyEmbedUrl && !youtubeEmbedUrl && (
+                <p className="podcast-player-placeholder">Tidak ada embed podcast tersedia untuk artikel ini.</p>
+              )}
+            </div>
+          )}
         </div>
+      </>
+    );
+
+    if (isPodcast) {
+      return (
+        <div
+          className={`article-card article-card--podcast ${index === 0 ? 'article-card--hero' : ''}`}
+          key={article.id || index}
+        >
+          {cardInner}
+        </div>
+      );
+    }
+
+    return (
+      <Link 
+        className={`article-card ${index === 0 ? 'article-card--hero' : ''}`}
+        key={article.id || index} 
+        to={`/article/${article.id}`}>
+        {cardInner}
       </Link>
     );
   };
@@ -200,9 +369,9 @@ function Home() {
               .filter((item) =>
                 item?.category && group.categorySlugs?.some(
                   (slug) => slug.toLowerCase() === item.category.toLowerCase()
-                )
+                ) && normalizeCategory(item.category) !== 'podcast'
               )
-              .slice(0, 3);
+              .slice(0, 5);
 
             if (groupArticles.length === 0 && !articleLoading) return null;
 
