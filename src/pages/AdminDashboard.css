@@ -237,19 +237,24 @@
     text-transform: uppercase;
 }
 
-.status-pending { background: #fef3c7; color: #92400e; }
+.status-pending  { background: #fef3c7; color: #92400e; }
 .status-approved { background: #d1fae5; color: #065f46; }
 .status-rejected { background: #fee2e2; color: #991b1b; }
 
 /* ---- Action Buttons ---- */
 .action-group {
     display: flex;
-    gap: 8px;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
+/* BASE — ukuran kotak, icon terlihat */
 .btn-action {
     width: 32px;
     height: 32px;
+    min-width: 32px;      /* ← cegah melebar */
+    padding: 0;           /* ← hapus padding bawaan browser */
     border-radius: 6px;
     border: 1px solid #d1d5db;
     background: #fff;
@@ -257,17 +262,53 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: 0.2s;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    color: #6b7280;       /* ← warna icon default ABU */
+    font-size: 13px;      /* ← ukuran icon */
+    line-height: 1;
 }
 
 .btn-action:hover {
-    background: #f3f4f6;
+    background: #fff7ed;
     border-color: #f97316;
+    color: #f97316;
 }
 
+/* Approve → hijau */
+.btn-action.btn-approve {
+    color: #10b981;
+    border-color: #a7f3d0;
+}
+.btn-action.btn-approve:hover {
+    background: #ecfdf5;
+    border-color: #10b981;
+    color: #059669;
+}
+
+/* Reject / Hapus → merah */
+.btn-action.btn-reject {
+    color: #ef4444;
+    border-color: #fecaca;
+}
 .btn-action.btn-reject:hover {
-    background: #fee;
-    border-color: #e74c3c;
+    background: #fff1f1;
+    border-color: #ef4444;
+    color: #dc2626;
+}
+
+/* Trending aktif → orange gradient, TETAP 32x32 */
+.btn-action.active-trending {
+    background: linear-gradient(135deg, #ff7b00, #ff3d00);
+    color: #fff !important;
+    border: none;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+}
+.btn-action.active-trending:hover {
+    background: linear-gradient(135deg, #ff9500, #ff4d00);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(255, 102, 0, 0.35);
 }
 
 /* ---- Pagination ---- */
@@ -281,15 +322,21 @@
 
 .page-btn {
     padding: 8px 16px;
-    background: #000;
+    background: #fff;
+    color: #374151;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: #f3f4f6;
 }
 
 .page-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
 }
 
@@ -314,7 +361,6 @@
     overflow-y: auto;
 }
 
-/* Container Modal Utama */
 .trending-modal {
     max-width: 450px;
     width: 90%;
@@ -330,13 +376,6 @@
     color: #333;
 }
 
-.trending-article-title {
-    margin-top: 10px;
-    color: #555;
-    line-height: 1.5;
-}
-
-/* Merapihkan Tombol Aksi */
 .trending-modal-actions {
     display: flex;
     justify-content: flex-end;
@@ -344,33 +383,35 @@
     margin-top: 30px;
 }
 
+/* Tombol Batal di modal */
 .btn-action2 {
     padding: 10px 20px;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    border: 1px solid #ddd;
-    background: #ff3d00;
+    border: 1px solid #d1d5db;
+    background: #f3f4f6;
+    color: #374151;
 }
+.btn-action2:hover {
+    background: #e5e7eb;
+}
+
+/* Tombol konfirmasi merah di dalam modal */
 .trending-modal-actions .btn-action.btn-reject {
-    background: #ff3d00;
+    width: auto;
+    min-width: 100px;
+    padding: 0 16px;
+    background: #ef4444;
     color: white;
     border-color: #ef4444;
 }
 
-
-.active-trending {
-    background: linear-gradient(135deg, #ff7b00, #ff3d00);
-    color: white;
-    border: none;
+/* Tombol trending di dalam modal (teks panjang) */
+.trending-modal-actions .btn-action.active-trending {
+    width: auto;
+    min-width: 160px;
+    padding: 0 16px;
     height: 40px;
-    min-width: 160px; /* Menghindari teks terpotong */
-}
-
-.active-trending:hover {
-    background: linear-gradient(135deg, #ff9500, #ff4d00);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px rgba(255, 102, 0, 0.3);
 }

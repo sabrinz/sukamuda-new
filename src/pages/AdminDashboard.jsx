@@ -6,6 +6,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import RejectionModal from '../components/RejectionModal';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './AdminDashboard.css';
+import {
+    FaEye,
+    FaPen,
+    FaCheck,
+    FaTimes,
+    FaUndo,
+    FaTrash,
+    FaFire
+} from 'react-icons/fa';
 
 const AdminDashboard = () => {
     const queryClient = useQueryClient();
@@ -24,19 +33,17 @@ const AdminDashboard = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const [activeView, setActiveView] = useState('articles'); // 'articles', 'reports', 'trash', or 'stats'
+    const [activeView, setActiveView] = useState('articles');
     const [reports, setReports] = useState([]);
     const [reportsLoading, setReportsLoading] = useState(false);
     const [trash, setTrash] = useState([]);
     const [trashLoading, setTrashLoading] = useState(false);
-    
-    // State tambahan untuk statistik grafik
+
     const [chartData, setChartData] = useState([]);
     const [statsLoading, setStatsLoading] = useState(false);
 
-    // 13 Warna untuk 13 kategori SukaMuda
     const COLORS = [
-        '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', 
+        '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF',
         '#FF19A3', '#19FF5A', '#FFCE19', '#19D4FF', '#FF3333',
         '#8A2BE2', '#32CD32', '#FF4500'
     ];
@@ -49,7 +56,6 @@ const AdminDashboard = () => {
         description: ''
     });
 
-    // Rejection modal state
     const [rejectionModal, setRejectionModal] = useState({
         isOpen: false,
         articleId: null,
@@ -57,17 +63,13 @@ const AdminDashboard = () => {
         isLoading: false
     });
 
-    // 1. SINKRONISASI KATEGORI LENGKAP SESUAI NAVBAR (NEWS, LIFESTYLE & LAINNYA)
     const categoryList = [
-        // News Dropdown
         { slug: 'school', label: 'School' },
         { slug: 'college', label: 'College' },
         { slug: 'general', label: 'General' },
-        // Lifestyle Dropdown
         { slug: 'style', label: 'Style' },
         { slug: 'culinary', label: 'Culinary' },
         { slug: 'traveling', label: 'Traveling' },
-        // Menu Utama
         { slug: 'sport', label: 'Sport & E-Sport' },
         { slug: 'music', label: 'Music & Film' },
         { slug: 'otomotif', label: 'Otomotif' },
@@ -85,7 +87,6 @@ const AdminDashboard = () => {
 
     const fetchArticles = async (isSearch = false) => {
         try {
-            // Jangan set loading true jika ini pencarian, supaya tabel tidak berkedip/menghilang
             if (!isSearch) setLoading(true);
 
             const response = await axios.get(`/api/articles`, {
@@ -154,9 +155,9 @@ const AdminDashboard = () => {
         setStatsLoading(true);
         try {
             const response = await axios.get('/api/articles', {
-                params: { status: 'approved', per_page: 1000 } 
+                params: { status: 'approved', per_page: 1000 }
             });
-            
+
             const allApproved = response.data.data || [];
             const categoryCounts = {};
             let totalApproved = 0;
@@ -186,7 +187,6 @@ const AdminDashboard = () => {
         }
     };
 
-    // Untuk ganti halaman & filter dropdown (boleh ada loading singkat)
     useEffect(() => {
         if (isLoggedIn && user?.role === 'admin') {
             if (activeView === 'trash') {
@@ -201,11 +201,9 @@ const AdminDashboard = () => {
         }
     }, [currentPage, filterStatus, filterCategory, activeView]);
 
-    // KHUSUS UNTUK SEARCH: Anti scroll ke atas saat mengetik
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             if (isLoggedIn && user?.role === 'admin') {
-                // Simpan posisi scroll sebelum fetch
                 const scrollY = window.scrollY;
 
                 setCurrentPage(1);
@@ -213,7 +211,6 @@ const AdminDashboard = () => {
 
                 if (activeView !== 'stats' && activeView !== 'reports') {
                     fetcher(true).then(() => {
-                        // Kembalikan posisi scroll setelah data selesai di-fetch
                         window.scrollTo(0, scrollY);
                     });
                 }
@@ -223,7 +220,6 @@ const AdminDashboard = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery]);
 
-    // Fetch reports when view changes
     useEffect(() => {
         if (isLoggedIn && user?.role === 'admin' && activeView === 'reports') {
             fetchReports();
@@ -425,25 +421,25 @@ const AdminDashboard = () => {
                     </div>
                 </div>
                 <div className="admin-header-right">
-                    <button 
+                    <button
                         className={`btn-view-toggle ${activeView === 'stats' ? 'active' : ''}`}
                         onClick={() => { setActiveView('stats'); }}
                     >
                         Statistik
                     </button>
-                    <button 
+                    <button
                         className={`btn-view-toggle ${activeView === 'articles' ? 'active' : ''}`}
                         onClick={() => { setActiveView('articles'); setCurrentPage(1); }}
                     >
                         Artikel
                     </button>
-                    <button 
+                    <button
                         className={`btn-view-toggle ${activeView === 'reports' ? 'active' : ''}`}
                         onClick={() => { setActiveView('reports'); setCurrentPage(1); }}
                     >
                         Laporan ({reports.length})
                     </button>
-                    <button 
+                    <button
                         className={`btn-view-toggle ${activeView === 'trash' ? 'active' : ''}`}
                         onClick={() => { setActiveView('trash'); setCurrentPage(1); }}
                     >
@@ -484,7 +480,6 @@ const AdminDashboard = () => {
                             <option value="rejected">Rejected</option>
                         </select>
 
-                        {/* DROPDOWN KATEGORI UPDATE: SEMUA KATEGORI NAVBAR ADA DISINI */}
                         <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="filter-select">
                             <option value="all">Semua Kategori</option>
                             {categoryList.map(cat => (
@@ -526,37 +521,70 @@ const AdminDashboard = () => {
                                     <td><span className={`status-badge status-${art.status}`}>{art.status.toUpperCase()}</span></td>
                                     <td>
                                         <div className="action-group">
-                                            <button className="btn-action" onClick={() => setPreviewArticle(art)} title="Preview">👁️</button>
+                                            <button
+                                                className="btn-action"
+                                                onClick={() => setPreviewArticle(art)}
+                                                title="Preview"
+                                            >
+                                                <FaEye />
+                                            </button>
                                             <button
                                                 className="btn-action"
                                                 onClick={() => navigate('/write', { state: { draft: art, returnPath: '/admin' } })}
                                                 title="Edit"
                                             >
-                                                ✏️
+                                                <FaPen />
                                             </button>
                                             {art.status === 'pending' && (
                                                 <>
-                                                    <button className="btn-action" onClick={() => handleUpdateStatus(art.id, 'approved')} disabled={actionLoading === art.id} title="Approve">✅</button>
-                                                    <button className="btn-action btn-reject" onClick={() => handleRejectArticle(art.id, art.title)} disabled={actionLoading === art.id} title="Reject">❌</button>
+                                                    <button
+                                                        className="btn-action"
+                                                        onClick={() => handleUpdateStatus(art.id, 'approved')}
+                                                        disabled={actionLoading === art.id}
+                                                        title="Approve"
+                                                    >
+                                                        <FaCheck />
+                                                    </button>
+                                                    <button
+                                                        className="btn-action btn-reject"
+                                                        onClick={() => handleRejectArticle(art.id, art.title)}
+                                                        disabled={actionLoading === art.id}
+                                                        title="Reject"
+                                                    >
+                                                        <FaTimes />
+                                                    </button>
                                                 </>
                                             )}
                                             {art.status === 'approved' && (
-                                                <button className="btn-action" onClick={() => handleUpdateStatus(art.id, 'pending')} disabled={actionLoading === art.id} title="Tarik ke Pending">↩️</button>
+                                                <button
+                                                    className="btn-action"
+                                                    onClick={() => handleUpdateStatus(art.id, 'pending')}
+                                                    disabled={actionLoading === art.id}
+                                                    title="Tarik ke Pending"
+                                                >
+                                                    <FaUndo />
+                                                </button>
                                             )}
-                                            {/* Perbaikan tombol sampah agar memicu modal konfirmasi */}
-                                            <button className="btn-action" onClick={() => openConfirmModal('trash', art)} disabled={actionLoading === art.id} title="Pindahkan ke Sampah">🗑️</button>
+                                            <button
+                                                className="btn-action"
+                                                onClick={() => openConfirmModal('trash', art)}
+                                                disabled={actionLoading === art.id}
+                                                title="Pindahkan ke Sampah"
+                                            >
+                                                <FaTrash />
+                                            </button>
                                             <button
                                                 className={`btn-action ${art.is_trending ? 'active-trending' : ''}`}
                                                 onClick={() => openTrendingConfirm(art)}
                                                 title="Trending"
                                             >
-                                                🔥
+                                                <FaFire />
                                             </button>
                                         </div>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#555', fontWeight: '500' }}>
-                                            👁️ {art.views || 0}x
+                                            <FaEye /> {art.views || 0}x
                                         </div>
                                     </td>
                                 </tr>
@@ -605,9 +633,21 @@ const AdminDashboard = () => {
                                     <td>{new Date(report.created_at).toLocaleDateString('id-ID')}</td>
                                     <td>
                                         <div className="action-group">
-                                            <button className="btn-action" onClick={() => setPreviewArticle(report.article)} title="Lihat Artikel">👁️</button>
-                                            {/* Perbaikan tombol sampah di halaman laporan */}
-                                            <button className="btn-action" onClick={() => openConfirmModal('trash', report.article)} disabled={actionLoading === report.article.id} title="Pindahkan artikel ke sampah">🗑️</button>
+                                            <button
+                                                className="btn-action"
+                                                onClick={() => setPreviewArticle(report.article)}
+                                                title="Lihat Artikel"
+                                            >
+                                                <FaEye />
+                                            </button>
+                                            <button
+                                                className="btn-action"
+                                                onClick={() => openConfirmModal('trash', report.article)}
+                                                disabled={actionLoading === report.article.id}
+                                                title="Pindahkan artikel ke sampah"
+                                            >
+                                                <FaTrash />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -655,9 +695,29 @@ const AdminDashboard = () => {
                                     <td>{new Date(art.deleted_at).toLocaleDateString('id-ID')}</td>
                                     <td>
                                         <div className="action-group">
-                                            <button className="btn-action" onClick={() => setPreviewArticle(art)} title="Preview">👁️</button>
-                                            <button className="btn-action" onClick={() => openConfirmModal('restore', art)} disabled={actionLoading === art.id} title="Restore">↩️</button>
-                                            <button className="btn-action btn-reject" onClick={() => openConfirmModal('permanent', art)} disabled={actionLoading === art.id} title="Hapus Permanen">❌</button>
+                                            <button
+                                                className="btn-action"
+                                                onClick={() => setPreviewArticle(art)}
+                                                title="Preview"
+                                            >
+                                                <FaEye />
+                                            </button>
+                                            <button
+                                                className="btn-action"
+                                                onClick={() => openConfirmModal('restore', art)}
+                                                disabled={actionLoading === art.id}
+                                                title="Restore"
+                                            >
+                                                <FaUndo />
+                                            </button>
+                                            <button
+                                                className="btn-action btn-reject"
+                                                onClick={() => openConfirmModal('permanent', art)}
+                                                disabled={actionLoading === art.id}
+                                                title="Hapus Permanen"
+                                            >
+                                                <FaTimes />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -671,13 +731,12 @@ const AdminDashboard = () => {
                 </div>
             )}
 
-            {/* RENDER VIEW STATISTIK / GRAFIK LINGKARAN (PIE CHART) */}
             {activeView === 'stats' && (
                 <div className="admin-table-wrapper" style={{ padding: '30px', minHeight: '400px' }}>
                     <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>
                         Statistik Artikel
                     </h2>
-                    
+
                     {statsLoading ? (
                         <div className="admin-spinner" style={{ margin: '0 auto' }} />
                     ) : chartData.length > 0 ? (
@@ -685,10 +744,10 @@ const AdminDashboard = () => {
                             <PieChart>
                                 <Pie
                                     data={chartData}
-                                    cx="50%" 
+                                    cx="50%"
                                     cy="50%"
-                                    labelLine={false} 
-                                    label={renderCustomizedLabel} 
+                                    labelLine={false}
+                                    label={renderCustomizedLabel}
                                     outerRadius={160}
                                     fill="#8884d8"
                                     dataKey="value"
@@ -698,11 +757,11 @@ const AdminDashboard = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip formatter={(value, name, props) => [`${value} Artikel (${props.payload.percentage}%)`, name]} />
-                                <Legend 
-                                    layout="vertical" 
-                                    verticalAlign="middle" 
-                                    align="left" 
-                                    iconType="circle" 
+                                <Legend
+                                    layout="vertical"
+                                    verticalAlign="middle"
+                                    align="left"
+                                    iconType="circle"
                                 />
                             </PieChart>
                         </ResponsiveContainer>

@@ -689,9 +689,9 @@ function Write() {
               </div>
 
               <div className="form-row">
-                <p style={{ color: '#555', margin: '0 0 16px' }}>
+                {/* <p style={{ color: '#555', margin: '0 0 16px' }}>
                   Podcast hanya bisa dibuat oleh admin. Masukkan link Spotify audio dan/atau YouTube video. Jika YouTube thumbnail gagal, upload thumbnail untuk tampilan preview sebelum klik; di dalam artikel hanya audio/video.
-                </p>
+                </p> */}
               </div>
             </>
           ) : (
