@@ -4,6 +4,7 @@ import './Navbar.css';
 import logoSukaMuda from '../assets/logo.png';
 import { IoNotificationsSharp, IoCreateOutline, IoMenu, IoClose } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
+import { FaSearch } from 'react-icons/fa';
 
 const Navbar = () => {
   const { isLoggedIn, logout, user } = useAuth();
@@ -65,15 +66,15 @@ const Navbar = () => {
           </div>
 
           {/* --- SEARCH SECTION --- */}
-          <div className="search-section">
-            <div className="search-bar">
-              <span
-                className="search-icon"
-                onClick={handleSearch}
-                style={{ cursor: 'pointer' }}
-              >
-                🔍
-              </span>
+         <div className="search-section">
+  <div className="search-bar">
+    <span
+      className="search-icon"
+      onClick={handleSearch}
+      style={{ cursor: 'pointer' }}
+    >
+      <FaSearch />
+    </span>
               <input
                 type="text"
                 placeholder="Pencarian"

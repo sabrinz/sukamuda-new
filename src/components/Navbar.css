@@ -55,6 +55,17 @@
   width: 480px;
 }
 
+.search-icon {
+    color: #6b7280;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon:hover {
+    color: black;
+}
+
 .search-bar input {
   border: none;
   outline: none;

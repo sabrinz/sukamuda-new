@@ -339,8 +339,8 @@ figure.ql-image-caption.ql-align-left {
   width: 100%;
   max-width: 100%;
   border-radius: 12px;
-  background: #000;
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
+  background: transparent;
   display: block;
   margin-bottom: 0;
 }
@@ -358,11 +358,13 @@ figure.ql-image-caption.ql-align-left {
 }
 
 .podcast-embed iframe {
+    transform: translateZ(0);   /* force GPU layer baru */
+  -webkit-transform: translateZ(0);
   width: 100%;
   height: 100%;
   display: block;
   border: 0;
-  background: transparent;
+  background: #fff;
   min-height: inherit;
 }
 
