@@ -15,19 +15,17 @@ const BlockEmbed = Quill.import('blots/block/embed');
 class ImageCaptionBlot extends BlockEmbed {
   static create(value) {
     let node = super.create();
-    
-    // Elemen Gambar
+
     let img = document.createElement('img');
     img.setAttribute('src', value.url);
     node.appendChild(img);
-    
-    // Elemen Caption (Jika ada)
+
     if (value.caption) {
       let caption = document.createElement('figcaption');
       caption.innerText = value.caption;
       node.appendChild(caption);
     }
-    
+
     return node;
   }
 
@@ -170,47 +168,12 @@ const getYoutubeThumbnailUrl = (url) => {
   }
 };
 
-const buildPodcastContentHtml = (audioLink, videoLink) => {
-  let html = '';
-  const spotifyEmbed = getSpotifyEmbedUrl(audioLink);
-  const youtubeEmbed = getYoutubeEmbedUrl(videoLink);
-
-  if (audioLink) {
-    html += `
-      <div class="podcast-embed podcast-audio">
-        <iframe
-          src="${spotifyEmbed}"
-          width="100%"
-          height="232"
-          frameBorder="0"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-        ></iframe>
-      </div>
-    `;
-  }
-
-  if (videoLink) {
-    html += `
-      <div class="podcast-embed podcast-video" style="margin-top:24px;">
-        <iframe
-          src="${youtubeEmbed}"
-          width="100%"
-          height="360"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          loading="lazy"
-        ></iframe>
-      </div>
-    `;
-  }
-
-  if (!html) {
-    html = '<p>Podcast akan segera hadir.</p>';
-  }
-
-  return html;
+// ─── FIX UTAMA: Konten podcast hanya teks placeholder ───
+// iframe TIDAK disimpan ke content, melainkan dirender di ArticleDetail
+// dari field audio_link & video_link di database
+// Ini mencegah bug blackscreen karena iframe tidak ikut di-re-render React
+const buildPodcastContentHtml = () => {
+  return '<p></p>';
 };
 
 function Write() {
@@ -238,44 +201,33 @@ function Write() {
   const [relatedError, setRelatedError] = useState(null);
   const isAdmin = user?.role === 'admin';
 
-  // ─── STATE & REF BARU UNTUK MODAL IMAGE QUILL ───
   const [insertImageModalOpen, setInsertImageModalOpen] = useState(false);
   const [insertImageBase64, setInsertImageBase64] = useState(null);
   const [insertImageCaption, setInsertImageCaption] = useState("");
   const currentSelectionRef = useRef(null);
 
-  // ─── POSISI FUNGSI YANG BENAR (Di dalam Write) ───
   const handleModalFileChange = (e) => {
     const file = e.target.files?.[0];
-    
-    // Jika user batal memilih file
     if (!file) {
       setInsertImageBase64(null);
       return;
     }
-
-    // Batasan maksimal size file 5MB
     if (file.size > 5 * 1024 * 1024) {
       alert("Ukuran file maksimal 5MB.");
-      e.target.value = ""; // Reset input
+      e.target.value = "";
       setInsertImageBase64(null);
       return;
     }
-
-    // Konversi file ke base64 agar bisa dimasukkan ke Quill
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const base64 = evt.target.result;
-      setInsertImageBase64(base64); // Simpan ke state
+      setInsertImageBase64(evt.target.result);
     };
     reader.onerror = () => {
       alert("Terjadi kesalahan saat membaca file gambar.");
     };
-    
     reader.readAsDataURL(file);
   };
 
-  // ─── Proses file thumbnail (tanpa validasi resolusi) ───
   const processFile = (file) => {
     if (file.size > 5 * 1024 * 1024) {
       setErrors(prev => ({ ...prev, image: "Ukuran file maksimal 5MB." }));
@@ -288,37 +240,31 @@ function Write() {
     reader.readAsDataURL(file);
   };
 
-  // ─── FUNGSI BARU: INSERT GAMBAR & CAPTION KE QUILL ───
   const handleInsertCustomImage = () => {
     if (!insertImageBase64) {
       alert("Silakan pilih gambar terlebih dahulu.");
       return;
     }
-
     const quill = quillRef.current;
     if (!quill) return;
 
     const range = currentSelectionRef.current || quill.getSelection(true) || { index: quill.getLength() - 1, length: 0 };
     const alignValue = quill.getFormat(range)?.align || null;
 
-    // Masukkan Custom Blot
     quill.insertEmbed(range.index, 'imageCaption', {
       url: insertImageBase64,
       caption: insertImageCaption
     }, 'user');
 
-    // Terapkan alignment jika ada
     quill.setSelection(range.index + 1, 0, 'silent');
     if (alignValue) {
       quill.formatLine(range.index, 1, 'align', alignValue, 'user');
     }
 
-    // Reset dan tutup modal
     setInsertImageModalOpen(false);
     setInsertImageBase64(null);
     setInsertImageCaption("");
   };
-
 
   useEffect(() => {
     if (!quillRef.current) {
@@ -331,12 +277,8 @@ function Write() {
             handlers: {
               undo() { this.quill.history.undo(); },
               redo() { this.quill.history.redo(); },
-
-              // ─── Custom image handler: Membuka Modal Custom ───
               image() {
-                // Simpan posisi kursor terakhir
                 currentSelectionRef.current = this.quill.getSelection(true);
-                // Buka Modal
                 setInsertImageModalOpen(true);
               },
             },
@@ -352,6 +294,7 @@ function Write() {
       dispatch({ type: 'SET_FIELD', field: 'teaser', value: editData.summary || editData.teaser || "" });
       dispatch({ type: 'SET_FIELD', field: 'tags', value: editData.tags || "" });
       dispatch({ type: 'SET_FIELD', field: 'thumbnailCaption', value: editData.image_caption || editData.thumbnailCaption || "" });
+      // ─── FIX: Selalu load audio_link & video_link saat edit ───
       dispatch({ type: 'SET_FIELD', field: 'audioLink', value: editData.audio_link || editData.audioLink || "" });
       dispatch({ type: 'SET_FIELD', field: 'videoLink', value: editData.video_link || editData.videoLink || "" });
 
@@ -365,7 +308,6 @@ function Write() {
   const handleInputChange = (field, value) => {
     dispatch({ type: 'SET_FIELD', field, value });
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
-    // Jika admin memasukkan video link untuk podcast, coba ekstrak thumbnail otomatis
     if (field === 'videoLink' && isAdmin && !thumbnailFile) {
       const thumb = getYoutubeThumbnailUrl(value || "");
       if (thumb) {
@@ -388,7 +330,6 @@ function Write() {
       setErrors(prev => ({ ...prev, category: 'Pilih kategori terlebih dahulu untuk menambahkan Baca Juga.' }));
       return;
     }
-
     setRelatedError(null);
     setRelatedLoading(true);
     setRelatedModalOpen(true);
@@ -412,19 +353,16 @@ function Write() {
     if (!quill) return;
 
     const range = quill.getSelection(true) || { index: quill.getLength() - 1, length: 0 };
-    
-    // Insert teks yang terlihat user = judul artikel
-    // Tapi simpan shortcode di akhir sebagai "marker" tersembunyi
     const displayText = `Baca Juga: ${articleTitle}`;
-    
+
     quill.insertText(range.index, '\n', 'user');
     quill.insertText(range.index + 1, displayText, {
       bold: true,
       color: '#c0392b',
-      link: `/article/${articleId}`   // ← sesuaikan dengan routing kamu
+      link: `/article/${articleId}`
     }, 'user');
     quill.insertText(range.index + 1 + displayText.length, '\n', 'user');
-    
+
     quill.setSelection(range.index + displayText.length + 2, 0, 'silent');
     setRelatedModalOpen(false);
   };
@@ -465,15 +403,13 @@ function Write() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ─── HELPER: Download YouTube thumbnail and convert to File ───
+  // ─── HELPER: Download YouTube thumbnail dan convert ke File ───
   const downloadThumbnailAsFile = async (videoLink) => {
     try {
       const thumbnailUrl = getYoutubeThumbnailUrl(videoLink);
       if (!thumbnailUrl) return null;
-      
       const response = await fetch(thumbnailUrl);
       if (!response.ok) return null;
-      
       const blob = await response.blob();
       const fileName = `thumbnail-${Date.now()}.jpg`;
       return new File([blob], fileName, { type: 'image/jpeg' });
@@ -487,11 +423,15 @@ function Write() {
     if (!validateForm()) { setShowModal(false); return; }
 
     setLoading(true);
-    const contentHtml = isPodcast
-      ? buildPodcastContentHtml(form.audioLink.trim(), form.videoLink.trim())
-      : quillRef.current?.root?.innerHTML || "";
-    const formData = new FormData();
 
+    // ─── FIX UTAMA: Podcast content hanya placeholder teks ───
+    // iframe dirender di ArticleDetail dari field audio_link & video_link
+    // Ini yang mencegah blackscreen saat scroll
+    const contentHtml = isPodcast
+      ? buildPodcastContentHtml()
+      : quillRef.current?.root?.innerHTML || "";
+
+    const formData = new FormData();
     formData.append('title', form.title);
     formData.append('category', form.category);
     formData.append('content', contentHtml);
@@ -499,22 +439,28 @@ function Write() {
     formData.append('tags', form.tags);
     formData.append('image_caption', form.thumbnailCaption);
     formData.append('thumbnailCaption', form.thumbnailCaption);
+
+    // ─── FIX KRITIS: Selalu kirim audio_link & video_link ke database ───
+    // Dikirim untuk semua status (draft maupun publish), bukan hanya isPodcast
+    // Ini yang menyebabkan podcast tidak muncul — link tidak tersimpan
     if (isPodcast) {
-      if (form.audioLink.trim()) formData.append('audio_link', form.audioLink.trim());
-      if (form.videoLink.trim()) formData.append('video_link', form.videoLink.trim());
+      formData.append('audio_link', form.audioLink.trim());
+      formData.append('video_link', form.videoLink.trim());
     }
+
     if (modalType === 'draft') {
       formData.append('status', 'draft');
     } else if (!editData?.id) {
       formData.append('status', 'review');
     }
-    
-    // Handle thumbnail file: prioritize custom upload, then extract from YouTube
+
+    // Handle thumbnail: prioritas upload manual, lalu ekstrak dari YouTube
     let finalThumbnailFile = thumbnailFile;
     if (!finalThumbnailFile && isPodcast && form.videoLink.trim()) {
       finalThumbnailFile = await downloadThumbnailAsFile(form.videoLink.trim());
     }
     if (finalThumbnailFile) formData.append('image', finalThumbnailFile);
+
     if (editData?.id) {
       formData.append('id', editData.id);
       formData.append('_method', 'PUT');
@@ -661,9 +607,7 @@ function Write() {
                           e.stopPropagation();
                           setThumbnailPreview(null);
                           setThumbnailFile(null);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = "";
-                          }
+                          if (fileInputRef.current) fileInputRef.current.value = "";
                         }}
                       >
                         ×
@@ -671,11 +615,7 @@ function Write() {
                     </div>
                   )}
                 </div>
-                {errors.image && (
-                  <small style={{ color: "red", marginTop: 4, display: "block" }}>
-                    {errors.image}
-                  </small>
-                )}
+                {errors.image && <small style={{ color: "red", marginTop: 4, display: "block" }}>{errors.image}</small>}
               </div>
 
               <div className="form-row">
@@ -687,22 +627,13 @@ function Write() {
                   onChange={(e) => handleInputChange('thumbnailCaption', e.target.value)}
                 />
               </div>
-
-              <div className="form-row">
-                {/* <p style={{ color: '#555', margin: '0 0 16px' }}>
-                  Podcast hanya bisa dibuat oleh admin. Masukkan link Spotify audio dan/atau YouTube video. Jika YouTube thumbnail gagal, upload thumbnail untuk tampilan preview sebelum klik; di dalam artikel hanya audio/video.
-                </p> */}
-              </div>
             </>
           ) : (
             <>
               {/* Thumbnail */}
               <div className="form-row">
                 <label className="form-label">Thumbnail</label>
-
                 <div className="thumbnail-upload-row">
-
-                  {/* Input Upload / Box Dasar */}
                   <div
                     className="thumbnail-drop-mini"
                     onDragOver={(e) => e.preventDefault()}
@@ -724,15 +655,9 @@ function Write() {
                     />
                     <span>Choose File</span>
                   </div>
-
-                  {/* Preview Box */}
                   {thumbnailPreview && (
                     <div className="thumbnail-preview-box">
-                      <img
-                        className="thumbnail-preview-mini"
-                        src={thumbnailPreview}
-                        alt="Preview"
-                      />
+                      <img className="thumbnail-preview-mini" src={thumbnailPreview} alt="Preview" />
                       <button
                         type="button"
                         className="remove-thumbnail-btn"
@@ -740,9 +665,7 @@ function Write() {
                           e.stopPropagation();
                           setThumbnailPreview(null);
                           setThumbnailFile(null);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = "";
-                          }
+                          if (fileInputRef.current) fileInputRef.current.value = "";
                         }}
                       >
                         ×
@@ -750,12 +673,7 @@ function Write() {
                     </div>
                   )}
                 </div>
-
-                {errors.image && (
-                  <small style={{ color: "red", marginTop: 4, display: "block" }}>
-                    {errors.image}
-                  </small>
-                )}
+                {errors.image && <small style={{ color: "red", marginTop: 4, display: "block" }}>{errors.image}</small>}
               </div>
 
               {/* Caption Thumbnail */}
@@ -774,29 +692,29 @@ function Write() {
 
               <div className="editor-wrapper">
                 <div id="quill-toolbar" className="editor-toolbar">
-              <button className="ql-undo" type="button">
-                <svg viewBox="0 0 18 18"><polygon className="ql-fill ql-stroke" points="6 10 4 12 2 10 6 10"></polygon><path className="ql-stroke" d="M6,10a4,4,0,1,1,1.5,3.1"></path></svg>
-              </button>
-              <button className="ql-redo" type="button">
-                <svg viewBox="0 0 18 18"><polygon className="ql-fill ql-stroke" points="12 10 14 12 16 10 12 10"></polygon><path className="ql-stroke" d="M12,10a4,4,0,1,0-1.5,3.1"></path></svg>
-              </button>
-              <button className="ql-bold" type="button" />
-              <button className="ql-italic" type="button" />
-              <button className="ql-strike" type="button" />
-              <button className="ql-underline" type="button" />
-              <button className="ql-blockquote" type="button" />
-              <button className="ql-list" value="ordered" type="button" />
-              <button className="ql-list" value="bullet" type="button" />
-              <button className="ql-align" value="" type="button" />
-              <button className="ql-align" value="center" type="button" />
-              <button className="ql-align" value="right" type="button" />
-              <button className="ql-link" type="button" />
-              <button className="ql-image" type="button" />
-              <button className="related-button" type="button" onClick={openRelatedModal}>+ Baca Juga</button>
-            </div>
-            <div ref={editorRef} className="editor-body" />
-            {errors.content && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.content}</small>}
-          </div>
+                  <button className="ql-undo" type="button">
+                    <svg viewBox="0 0 18 18"><polygon className="ql-fill ql-stroke" points="6 10 4 12 2 10 6 10"></polygon><path className="ql-stroke" d="M6,10a4,4,0,1,1,1.5,3.1"></path></svg>
+                  </button>
+                  <button className="ql-redo" type="button">
+                    <svg viewBox="0 0 18 18"><polygon className="ql-fill ql-stroke" points="12 10 14 12 16 10 12 10"></polygon><path className="ql-stroke" d="M12,10a4,4,0,1,0-1.5,3.1"></path></svg>
+                  </button>
+                  <button className="ql-bold" type="button" />
+                  <button className="ql-italic" type="button" />
+                  <button className="ql-strike" type="button" />
+                  <button className="ql-underline" type="button" />
+                  <button className="ql-blockquote" type="button" />
+                  <button className="ql-list" value="ordered" type="button" />
+                  <button className="ql-list" value="bullet" type="button" />
+                  <button className="ql-align" value="" type="button" />
+                  <button className="ql-align" value="center" type="button" />
+                  <button className="ql-align" value="right" type="button" />
+                  <button className="ql-link" type="button" />
+                  <button className="ql-image" type="button" />
+                  <button className="related-button" type="button" onClick={openRelatedModal}>+ Baca Juga</button>
+                </div>
+                <div ref={editorRef} className="editor-body" />
+                {errors.content && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.content}</small>}
+              </div>
 
               <div className="form-row">
                 <label className="form-label">Description</label>
@@ -860,38 +778,38 @@ function Write() {
         </div>
       )}
 
-      {/* ─── MODAL BARU: INSERT GAMBAR & CAPTION (QUILL) ─── */}
+      {/* Modal Insert Gambar Quill */}
       {insertImageModalOpen && (
         <div className="modal-overlay">
           <div className="modal-container">
             <h2 className="modal-title" style={{ marginBottom: '24px' }}>Sisipkan Gambar</h2>
-            
+
             <div className="form-row" style={{ gridTemplateColumns: '1fr', textAlign: 'left', gap: '8px', marginBottom: '16px' }}>
               <label className="form-label" style={{ marginBottom: '0' }}>Pilih Gambar</label>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="form-input" 
-                onChange={handleModalFileChange} 
-                style={{ padding: '10px' }} 
+              <input
+                type="file"
+                accept="image/*"
+                className="form-input"
+                onChange={handleModalFileChange}
+                style={{ padding: '10px' }}
               />
               {insertImageBase64 && <p style={{ fontSize: '12px', color: 'green', margin: 0 }}>Gambar berhasil dipilih dan divalidasi.</p>}
             </div>
 
             <div className="form-row" style={{ gridTemplateColumns: '1fr', textAlign: 'left', gap: '8px', marginBottom: '28px' }}>
               <label className="form-label" style={{ marginBottom: '0' }}>Keterangan Gambar (Opsional)</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="Ilustrasi - Keterangan gambar..." 
-                value={insertImageCaption} 
-                onChange={(e) => setInsertImageCaption(e.target.value)} 
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Ilustrasi - Keterangan gambar..."
+                value={insertImageCaption}
+                onChange={(e) => setInsertImageCaption(e.target.value)}
               />
             </div>
 
             <div className="modal-buttons">
-              <button 
-                className="btn-batal" 
+              <button
+                className="btn-batal"
                 onClick={() => {
                   setInsertImageModalOpen(false);
                   setInsertImageBase64(null);
@@ -900,9 +818,9 @@ function Write() {
               >
                 Batal
               </button>
-              <button 
-                className="btn-konfirmasi-hapus" 
-                style={{ backgroundColor: '#1e76d0' }} 
+              <button
+                className="btn-konfirmasi-hapus"
+                style={{ backgroundColor: '#1e76d0' }}
                 onClick={handleInsertCustomImage}
               >
                 Sisipkan

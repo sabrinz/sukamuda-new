@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "../utils/axiosConfig";
@@ -11,10 +11,8 @@ const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const normalizeCategory = (value) => (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '');
 
-// ─── Ganti angka ini untuk mengatur jumlah paragraf per load ───
 const PARAGRAPHS_PER_LOAD = 20;
 
-// ─── Helper: pecah HTML jadi array elemen per "paragraf" ───
 const splitHtmlByParagraph = (html) => {
   if (!html) return [];
   const parser = new DOMParser();
@@ -127,6 +125,21 @@ const getYoutubeThumbnailUrl = (url) => {
   }
 };
 
+// ─── FIX BUG BLACKSCREEN: Melindungi innerHTML dari re-render React ───
+// Dengan ini, iframe di dalam konten artikel TIDAK akan di-destroy saat scroll
+// karena React tidak menyentuh DOM di dalam komponen ini
+const StableHtmlRenderer = React.memo(({ html, className }) => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (ref.current && ref.current.innerHTML !== html) {
+      ref.current.innerHTML = html;
+    }
+  }, [html]);
+
+  return <div className={className} ref={ref} />;
+});
+
 const ArticleDetail = () => {
   const { id } = useParams();
   const { isLoggedIn, user } = useAuth();
@@ -148,7 +161,6 @@ const ArticleDetail = () => {
   const [hasAwardedRead, setHasAwardedRead] = useState(false);
   const hasAwardedReadRef = useRef(false);
 
-  // ─── State untuk load more ───
   const [visibleParagraphs, setVisibleParagraphs] = useState(PARAGRAPHS_PER_LOAD);
 
   const contentRef = useRef(null);
@@ -172,7 +184,6 @@ const ArticleDetail = () => {
       setIsBookmarked(found.is_bookmarked_by_user || false);
       setViewCount(found.views_count || found.views || 0);
     }
-    // Reset ke paragraf awal dan status pembacaan setiap ganti artikel
     setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
     setHasAwardedRead(false);
     hasAwardedReadRef.current = false;
@@ -198,28 +209,35 @@ const ArticleDetail = () => {
 
   const totalParagraphs = getTotalParagraphs(article?.content || "");
   const hasMore = visibleParagraphs < totalParagraphs;
-  const visibleHtml = getVisibleHtml(article?.content || "", visibleParagraphs);
+
+  // ─── useMemo: visibleHtml tidak dihitung ulang saat scroll ───
+  const visibleHtml = useMemo(
+    () => getVisibleHtml(article?.content || "", visibleParagraphs),
+    [article?.content, visibleParagraphs]
+  );
+
+  // ─── useCallback: scroll handler stabil, tidak trigger re-render ───
+  const handleScroll = useCallback(() => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    setReadProgress(Math.min(progress, 100));
+    setShowBackTop(scrollTop > 600);
+    setShowShareFloat(scrollTop > 400);
+
+    if (!hasMore && !hasAwardedRead) {
+      const scrollBottom = scrollTop + window.innerHeight;
+      const pageHeight = document.documentElement.scrollHeight;
+      if (scrollBottom >= pageHeight - 24) {
+        awardReadPoint();
+      }
+    }
+  }, [hasMore, hasAwardedRead, id]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-      setReadProgress(Math.min(progress, 100));
-      setShowBackTop(scrollTop > 600);
-      setShowShareFloat(scrollTop > 400);
-
-      if (!hasMore && !hasAwardedRead) {
-        const scrollBottom = scrollTop + window.innerHeight;
-        const pageHeight = document.documentElement.scrollHeight;
-        if (scrollBottom >= pageHeight - 24) {
-          awardReadPoint();
-        }
-      }
-    };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [hasMore, hasAwardedRead, id]);
+  }, [handleScroll]);
 
   const getReadingTime = (text) => {
     if (!text) return "< 1 menit baca";
@@ -320,6 +338,8 @@ const ArticleDetail = () => {
     .filter((item) => normalizeCategory(item.category) === normalizeCategory(article.category) && String(item.id) !== String(id))
     .slice(0, 3);
 
+  // ─── FIX PODCAST: Baca dari field database audio_link & video_link ───
+  // Bukan dari article.content, sehingga iframe tidak ikut di-re-render React
   const spotifyEmbedUrl = article.audio_link ? getSpotifyEmbedUrl(article.audio_link) : '';
   const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : '';
   const showPodcastEmbed = isPodcast && (spotifyEmbedUrl || youtubeEmbedUrl);
@@ -369,7 +389,7 @@ const ArticleDetail = () => {
         </svg>
       </button>
 
-      {/* ===== LAYOUT WRAPPER: Iklan Kiri | Konten | Iklan Kanan ===== */}
+      {/* ===== LAYOUT WRAPPER ===== */}
       <div className="article-layout-wrapper">
 
         {/* Iklan Vertikal Kiri */}
@@ -382,7 +402,6 @@ const ArticleDetail = () => {
         {/* ===== KONTEN UTAMA ===== */}
         <div className="article-main-content">
 
-          {/* Iklan Horizontal - Atas Artikel */}
           <div className="ad-center">
             <AdSlot type="horizontal" label="Iklan" />
           </div>
@@ -467,30 +486,36 @@ const ArticleDetail = () => {
               </div>
             </header>
 
-            {/* Hero Wrapper untuk Podcast Embeds */}
+            {/* Hero Wrapper */}
             <div className="hero-wrapper">
+              {/* ─── Podcast embed dari field audio_link & video_link ─── */}
+              {/* key={url} memastikan iframe hanya di-mount ulang saat URL benar-benar berubah */}
               {showPodcastEmbed && (
                 <div className="podcast-embed-section" style={{ marginBottom: '24px' }}>
                   {spotifyEmbedUrl && (
                     <div className="podcast-embed podcast-audio" style={{ marginBottom: '24px' }}>
                       <iframe
+                        key={spotifyEmbedUrl}
                         src={spotifyEmbedUrl}
                         width="100%"
                         height="232"
                         frameBorder="0"
                         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                        title="Spotify podcast"
                       ></iframe>
                     </div>
                   )}
                   {youtubeEmbedUrl && (
                     <div className="podcast-embed podcast-video">
                       <iframe
+                        key={youtubeEmbedUrl}
                         src={youtubeEmbedUrl}
                         width="100%"
                         height="360"
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
+                        title="YouTube video"
                       ></iframe>
                     </div>
                   )}
@@ -512,10 +537,11 @@ const ArticleDetail = () => {
                   </div>
                 )}
 
-                {/* ─── Konten artikel dengan load more ─── */}
-                <div
+                {/* ─── StableHtmlRenderer mencegah re-render DOM saat scroll ─── */}
+                {/* Menggantikan dangerouslySetInnerHTML yang menjadi penyebab blackscreen */}
+                <StableHtmlRenderer
                   className="text-render"
-                  dangerouslySetInnerHTML={{ __html: visibleHtml }}
+                  html={visibleHtml}
                 />
 
                 {/* Tombol Muat Lebih Banyak */}
@@ -572,7 +598,7 @@ const ArticleDetail = () => {
                   </div>
                 )}
 
-                {/* Interactions — hanya tampil kalau semua konten sudah dimuat */}
+                {/* Interactions */}
                 {!hasMore && (
                   <div className="interactions-section">
                     <div className="interactions-left">
@@ -651,7 +677,7 @@ const ArticleDetail = () => {
                   </div>
                 )}
 
-                {/* Author Bio — hanya tampil kalau semua konten sudah dimuat */}
+                {/* Author Bio */}
                 {!hasMore && article.user && (
                   <div className="author-bio-card">
                     <div className="author-bio-avatar">
@@ -674,14 +700,14 @@ const ArticleDetail = () => {
               </article>
             </div>
 
-            {/* Iklan Horizontal - Di tengah (setelah konten artikel) */}
+            {/* Iklan Horizontal tengah */}
             {!hasMore && (
               <div className="ad-center" style={{ margin: '32px 0' }}>
                 <AdSlot type="horizontal" label="Iklan" />
               </div>
             )}
 
-            {/* Related Articles — hanya tampil kalau semua konten sudah dimuat */}
+            {/* Related Articles */}
             {!hasMore && relatedArticles.length > 0 && (
               <section className="related-section-new">
                 <div className="section-header">
@@ -722,7 +748,7 @@ const ArticleDetail = () => {
       </div>
       {/* ===== END LAYOUT WRAPPER ===== */}
 
-      {/* Iklan Horizontal sebelum Footer */}
+      {/* Iklan sebelum Footer */}
       <div className="ad-before-footer">
         <AdSlot type="horizontal" label="Iklan" />
       </div>

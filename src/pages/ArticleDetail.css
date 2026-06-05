@@ -352,9 +352,10 @@ figure.ql-image-caption.ql-align-left {
 }
 
 .podcast-embed.podcast-video {
-  aspect-ratio: auto / 360;
-  min-height: 360px;
-  height: auto;
+  width: 100%;
+  aspect-ratio: 16 / 9; 
+  height: 300px; /* Fallback untuk browser yang tidak mendukung aspect-ratio */
+  min-height: unset;
 }
 
 .podcast-embed iframe {
@@ -364,7 +365,7 @@ figure.ql-image-caption.ql-align-left {
   height: 100%;
   display: block;
   border: 0;
-  background: #fff;
+  background: #0000;
   min-height: inherit;
 }
 
@@ -1315,4 +1316,11 @@ figure.ql-image-caption.ql-align-left {
     width: 40px;
     height: 40px;
   }
+
+  .podcast-embed.podcast-video {
+  width: 100%;
+  aspect-ratio: 16 / 9; 
+  height: auto; /* Fallback untuk browser yang tidak mendukung aspect-ratio */
+  min-height: unset;
+}
 }

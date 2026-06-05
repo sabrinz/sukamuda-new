@@ -2,11 +2,9 @@
   width: 100%;
   font-family: Arial, sans-serif;
   border-bottom: 1px solid #ddd;
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 9999;
   background-color: white;
-  position: relative;
 }
 
 .navbar-top {
@@ -14,6 +12,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 5%;
+  position: relative;
 }
 
 .logo-circle {
@@ -55,17 +54,6 @@
   width: 480px;
 }
 
-.search-icon {
-    color: #6b7280;
-    font-size: 15px;
-    display: flex;
-    align-items: center;
-}
-
-.search-icon:hover {
-    color: black;
-}
-
 .search-bar input {
   border: none;
   outline: none;
@@ -105,7 +93,7 @@
   background-color: black;
   padding: 10px 0;
   position: relative;
-  z-index :1000;
+  z-index: 1000;
 }
 
 .navbar-bottom::-webkit-scrollbar {
@@ -194,6 +182,110 @@
 
 .icon:hover {
   color: black;
+}
+
+.notif-icon-button {
+  position: relative;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -7px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  line-height: 1;
+}
+
+.notif-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 360px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #111;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  z-index: 10004;
+  cursor: pointer;
+  animation: notif-toast-in 0.2s ease-out;
+}
+
+.notif-toast-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f97316;
+  color: #111;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notif-toast-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notif-toast-message {
+  font-size: 12px;
+  color: #d1d5db;
+}
+
+.notif-toast-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+@keyframes notif-toast-in {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .notif-toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: none;
+  }
 }
 
 .profile-icon {
@@ -370,15 +462,13 @@
 }
 
 .dropdown-menu {
-    position: fixed; 
-    top: auto;     
-    left: auto;
-
-    background-color: #222;
-    min-width: 150px;
-    border-radius: 0 0 5px 5px;
-    box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
-
-    z-index: 99999;
-    overflow: visible;
-  }
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #222;
+  min-width: 150px;
+  border-radius: 0 0 5px 5px;
+  box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+  z-index: 2000;
+  overflow: visible;
+}

@@ -99,7 +99,9 @@ class ArticleController extends Controller
             'summary'       => 'nullable|string|max:500',
             'content'       => 'required|string',
             'image'         => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:5120',
-            'image_caption' => 'nullable|string|max:255', // TAMBAHKAN INI
+            'image_caption' => 'nullable|string|max:255',
+            'audio_link'    => 'nullable|string|max:500',
+            'video_link'    => 'nullable|string|max:500',
             'status'        => 'nullable|string|in:draft,review,published,approved,pending'
         ]);
 
@@ -119,7 +121,9 @@ class ArticleController extends Controller
             'summary'       => $request->summary,
             'content'       => $request->content,
             'image'         => $imagePath,
-            'image_caption' => $request->image_caption, // TAMBAHKAN INI
+            'image_caption' => $request->image_caption,
+            'audio_link'    => $request->audio_link,
+            'video_link'    => $request->video_link,
             'status'        => $finalStatus,
             'tags'          => $request->tags,
             'views'         => 0
@@ -151,7 +155,9 @@ class ArticleController extends Controller
             'summary'       => 'nullable|string|max:500',
             'content'       => 'required|string',
             'image'         => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:5120',
-            'image_caption' => 'nullable|string|max:255', // TAMBAHKAN INI
+            'image_caption' => 'nullable|string|max:255',
+            'audio_link'    => 'nullable|string|max:500',
+            'video_link'    => 'nullable|string|max:500',
             'status'        => 'nullable|string'
         ]);
 
@@ -167,7 +173,9 @@ class ArticleController extends Controller
         $article->summary = $request->summary;
         $article->content = $request->content;
         $article->tags = $request->tags;
-        $article->image_caption = $request->image_caption; // TAMBAHKAN INI
+        $article->image_caption = $request->image_caption;
+        $article->audio_link = $request->audio_link;
+        $article->video_link = $request->video_link;
         
         if ($request->has('status')) {
             $article->status = $request->status;
