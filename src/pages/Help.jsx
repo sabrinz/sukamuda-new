@@ -1,111 +1,46 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import './Help.css';
 
-const Help = () => {
-  const navigate = useNavigate();
-  
-  const [formData, setFormData] = useState({
-    perihal: '',
-    kategori: '',
-    nama: '',
-    email: '',
-    pesan: ''
-  });
+export default function Help() {
+  // Setup teks otomatis
+  const emailTujuan = "bantuan@sukamuda50.com";
+  const subjek = "Bantuan Layanan SukaMuda";
+  const isiPesan = "Halo Tim SukaMuda,\n\nSaya butuh bantuan/ingin bertanya mengenai:\n\n[Tulis pesanmu di sini...]";
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Validasi email di Frontend
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(formData.email)) {
-      alert("Format email salah! Gunakan contoh: nama@email.com");
-      return;
-    }
-
-    console.log("Data dikirim ke sistem:", formData);
-    alert("Pesan terkirim! Tim Sukamuda akan menghubungi email Anda.");
-  };
+  // Encode URL agar spasi dan enter terbaca dengan benar di link
+  const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailTujuan}&su=${encodeURIComponent(subjek)}&body=${encodeURIComponent(isiPesan)}`;
 
   return (
-    <div className="help-page-bg">
-      <div className="help-header-section">
-        <button className="help-back-icon" onClick={() => navigate(-1)}> ← </button>
-        <h1 className="help-main-title">HELP</h1>
-      </div>
-
-      <div className="help-content-wrapper">
-        <h2 className="help-question">Tidak menemukan bantuan yang Anda cari?</h2>
-        <p className="help-instruction">
-          Silakan isi formulir di bawah ini untuk menyampaikan pertanyaan, saran, atau kritik kepada Sukamuda.
+    <div className="help-section">
+      <div className="help-content">
+        <h3 className="help-title">Butuh Bantuan?</h3>
+        <p className="help-description">
+          Punya pertanyaan atau kendala seputar layanan SukaMuda? Tim kami siap membantu.
         </p>
-
-        <form onSubmit={handleSubmit} className="help-main-form">
-          
-          {/* PERIHAL (DI ATAS) */}
-          <label className="help-label-text">Perihal:</label>
-          <input 
-            type="text" 
-            name="perihal" 
-            placeholder="Alasan menghubungi kami..." 
-            className="help-input-field" 
-            onChange={handleChange} 
-            required 
-          />
-
-          {/* KATEGORI PILIHAN */}
-          <div className="help-category-list">
-            <label className="help-radio-box">
-              <input type="radio" name="kategori" value="Konten" onChange={handleChange} required />
-              <span className="radio-text">Konten</span>
-            </label>
-            <label className="help-radio-box">
-              <input type="radio" name="kategori" value="Kerjasama" onChange={handleChange} />
-              <span className="radio-text">Kerjasama Konten/Bisnis</span>
-            </label>
-            <label className="help-radio-box">
-              <input type="radio" name="kategori" value="Teknis" onChange={handleChange} />
-              <span className="radio-text">Teknis</span>
-            </label>
-          </div>
-
-          {/* INPUT FORM LAINNYA */}
-          <input 
-            type="text" 
-            name="nama" 
-            placeholder="Name" 
-            className="help-input-field" 
-            onChange={handleChange} 
-            required 
-          />
-
-          <textarea 
-            name="pesan" 
-            placeholder="Tulis pesan atau detail bantuan..." 
-            className="help-textarea-field" 
-            onChange={handleChange} 
-            required
-          ></textarea>
-
-          <input 
-            type="email" 
-            name="email" 
-            placeholder="Email (Alamat balasan)" 
-            className="help-input-field" 
-            onChange={handleChange} 
-            required 
-          />
-
-          <button type="submit" className="help-submit-btn">Kirim</button>
-        </form>
+        
+        <a 
+          href={gmailLink} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="help-link"
+        >
+          {/* Ikon Amplop */}
+          <svg 
+            className="help-envelope-icon" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
+            />
+          </svg>
+          bantuan@sukamuda50.com
+        </a>
       </div>
     </div>
   );
-};
-
-export default Help;
+}

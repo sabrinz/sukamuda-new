@@ -1,3 +1,4 @@
+import { useAuth } from '../context/AuthContext';
 import React, { useState, useRef, useEffect } from 'react';
 import axios from '../utils/axiosConfig';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -10,6 +11,7 @@ const VerifyOtp = () => {
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(60);
   const [mounted, setMounted] = useState(false);
+  const { login } = useAuth();
   const inputRefs = useRef([]);
 
   const navigate = useNavigate();
@@ -67,28 +69,29 @@ const VerifyOtp = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      await axios.post('/api/verify-otp', {
-        email: userData?.email,
-        name: userData?.name,
-        password: userData?.password,
-        otp: otp.join(""),
-      });
+  try {
+    const response = await axios.post('/api/verify-otp', {
+      email: userData?.email,
+      name: userData?.name,
+      password: userData?.password,
+      otp: otp.join(""),
+    });
 
-      alert("Verifikasi berhasil! Yuk pilih minatmu.");
+    // Langsung login pakai data & token dari response
+    login(response.data.user, response.data.token);
 
-      // ✅ BENERIN: lempar userData ke Interests
-      navigate('/interests', { state: userData });
+    alert("Verifikasi berhasil! Yuk pilih minatmu.");
+    navigate('/interests', { state: userData });
 
-    } catch (error) {
-      alert(error.response?.data?.message || "OTP Salah atau Expired!");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    alert(error.response?.data?.message || "OTP Salah atau Expired!");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // --- RENDER ---
   return (

@@ -102,6 +102,8 @@
   box-sizing: border-box;
   transition: border-color 0.2s ease;
   line-height: 1.5;
+  background-color: #ffffff;
+  color: #111111;
 }
 
 .rejection-reason-textarea:focus {

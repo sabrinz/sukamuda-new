@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Str;
 
 class Article extends Model
 {
@@ -35,6 +36,37 @@ class Article extends Model
         'audio_link',  // Untuk podcast Spotify link
         'video_link',  // Untuk podcast YouTube link
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Article $article) {
+            if (!$article->slug || $article->isDirty('title')) {
+                $article->slug = static::generateUniqueSlug(
+                    $article->title,
+                    $article->exists ? $article->id : null
+                );
+            }
+        });
+    }
+
+    public static function generateUniqueSlug(string $title, ?int $ignoreId = null): string
+    {
+        $baseSlug = Str::slug($title) ?: 'artikel';
+        $slug = $baseSlug;
+        $counter = 2;
+
+        while (
+            static::withTrashed()
+                ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+                ->where('slug', $slug)
+                ->exists()
+        ) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
 
     /**
      * Relasi: Artikel ini milik User siapa?

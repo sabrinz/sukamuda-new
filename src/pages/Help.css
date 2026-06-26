@@ -1,175 +1,60 @@
-/* Container Utama */
-.help-page-bg {
-  background-color: #ffffff; /* Putih Bersih */
-  min-height: 100vh;
-  padding: 50px 20px;
-  color: #000000; /* Tulisan Hitam */
-  font-family: 'Inter', sans-serif;
-}
-
-/* Header */
-.help-header-section {
+.help-section {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  max-width: 800px;
-  margin: 0 auto 40px;
+  justify-content: center; /* Memastikan konten berada di tengah secara horizontal */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 2rem 0;
+  padding: 1rem;
 }
 
-.help-back-icon {
-  position: absolute;
-  left: 0;
-  background: none;
-  border: none;
-  font-size: 28px;
-  cursor: pointer;
-  color: #000000;
-}
-
-.help-main-title {
-  font-weight: 900;
-  font-size: 26px;
-  letter-spacing: 2px;
-  margin: 0;
-}
-
-/* Wrapper Konten */
-.help-content-wrapper {
-  max-width: 550px;
-  margin: 0 auto;
-}
-
-.help-question {
-  font-size: 19px;
-  font-weight: 800;
-  margin-bottom: 10px;
-}
-
-.help-instruction {
-  font-size: 14px;
-  line-height: 1.6;
-  margin-bottom: 30px;
-  font-weight: 500;
-}
-
-/* Label & Input */
-.help-label-text {
-  display: block;
-  font-weight: 800;
-  font-size: 16px;
-  margin-bottom: 10px;
-}
-
-.help-input-field, 
-.help-textarea-field {
-  width: 100%;
-  padding: 14px 18px;
-  margin-bottom: 20px;
-  border: 2px solid #000000; /* Border Hitam Tebal */
-  border-radius: 12px;
-  font-size: 15px;
-  box-sizing: border-box;
-  outline: none;
-  background-color: #ffffff;
-  color: #000000;
-}
-
-.help-textarea-field {
-  height: 120px;
-  resize: none;
-}
-
-/* Kategori Radio */
-.help-category-list {
+.help-content {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-bottom: 25px;
+  align-items: center; /* Membuat semua elemen di dalamnya rata tengah */
+  text-align: center; /* Membuat teks rata tengah */
 }
 
-.help-radio-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
+.help-title {
+  font-size: 1.125rem; 
+  font-weight: 700;
+  color: #111827; 
+  margin: 0;
+  margin-bottom: 0.5rem; 
 }
 
-.help-radio-box input[type="radio"] {
-  width: 20px;
-  height: 20px;
-  accent-color: #000000; /* Warna Check Hitam */
-  cursor: pointer;
+.help-description {
+  font-size: 0.875rem; 
+  color: #4b5563; 
+  margin: 0;
+  margin-bottom: 1.25rem; /* Jarak sedikit diperlebar agar tombol tidak terlalu nempel */
+  max-width: 24rem; 
+  line-height: 1.6;
 }
 
-.radio-text {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-/* Tombol Kirim */
-.help-submit-btn {
-  background-color: #000000;
-  color: #ffffff;
-  border: 2px solid #000000;
-  padding: 14px 50px;
-  border-radius: 40px;
-  font-weight: 900;
-  font-size: 16px;
-  cursor: pointer;
-  display: block;
-  margin: 20px auto 0;
-  transition: all 0.2s ease-in-out;
-}
-
-.help-submit-btn:hover {
-  background-color: #ffffff;
-  color: #000000;
-}
-
-/* Sembunyikan radio button bawaan browser */
-.help-radio-box input[type="radio"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  border: 1px solid #000000; /* Lingkaran hitam tipis */
-  border-radius: 50%;
-  background-color: #ffffff; /* Warna putih polos awal */
-  cursor: pointer;
-  display: flex;
+.help-link {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-/* Tampilan saat radio button dipilih (Checked) */
-.help-radio-box input[type="radio"]:checked {
-  background-color: #ffffff; /* Tetap putih dasarnya */
-  border: 2px solid #000000; /* Border sedikit lebih tegas saat dipilih */
-}
-
-/* Membuat titik hitam di tengah saat dipilih */
-.help-radio-box input[type="radio"]:checked::after {
-  content: "";
-  width: 12px;
-  height: 12px;
-  background-color: #000000; /* Titik hitam pekat di tengah */
-  border-radius: 50%;
-  display: block;
-}
-
-/* Efek hover supaya lebih interaktif */
-.help-radio-box input[type="radio"]:hover {
-  border-color: #666;
-  background-color: #f9f9f9;
-}
-
-/* Pastikan teks di sampingnya tetap rapi */
-.radio-text {
-  font-size: 15px;
+  color: #2563eb; 
   font-weight: 600;
-  color: #000000;
-  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+  background-color: #ffffff;
+  padding: 0.6rem 1.2rem;
+  border-radius: 9999px; 
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.help-link:hover {
+  color: #1d4ed8; 
+  border-color: #d1d5db;
+  background-color: #f9fafb;
+}
+
+.help-envelope-icon {
+  height: 1.25rem; 
+  width: 1.25rem; 
+  margin-right: 0.6rem; 
+  color: #2563eb; 
 }

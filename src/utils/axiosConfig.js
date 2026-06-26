@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 1. Konfigurasi Dasar (Wajib agar Session & Cookie sinkron)
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'; // DIPERBAIKI DINAMIS
+axios.defaults.baseURL = 'https://sukamuda.co.id';
 axios.defaults.headers.common['Accept'] = 'application/json';
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
@@ -64,7 +64,7 @@ axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.warn("Sesi kamu habis Bi, silakan login ulang.");
+      console.warn("Sesi kamu habis, silakan login ulang.");
       // localStorage.removeItem('token'); // Bisa hapus token kalau mau
       // window.location.href = '/login';  // Bisa redirect otomatis kalau mau
     }

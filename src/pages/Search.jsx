@@ -3,7 +3,7 @@ import { useLocation, Link } from "react-router-dom";
 import axios from "../utils/axiosConfig";
 import "./Category.css"; // Kita pakai CSS category biar tampilannya konsisten
 
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
 
 const Search = () => {
   const [articles, setArticles] = useState([]);
@@ -47,7 +47,7 @@ const Search = () => {
         <div className="article-grid">
           {articles.length > 0 ? (
             articles.map((article) => (
-              <Link className="article-card" key={article.id} to={`/article/${article.id}`}>
+              <Link className="article-card" key={article.id} to={`/article/${article.slug}`}>
                 <div className="article-image-wrapper">
                   <img
                     src={article.image

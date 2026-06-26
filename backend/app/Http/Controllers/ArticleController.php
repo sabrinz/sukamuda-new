@@ -65,7 +65,7 @@ class ArticleController extends Controller
     {
         $articles = Article::where('category', $category)
             ->where('status', 'approved')
-            ->select('id', 'title')
+            ->select('id', 'title', 'slug')
             ->latest()
             ->get();
 
@@ -116,7 +116,7 @@ class ArticleController extends Controller
         $article = Article::create([
             'user_id'       => $user->id,
             'title'         => $request->title,
-            'slug'          => Str::slug($request->title) . '-' . time(),
+            'slug'          => Article::generateUniqueSlug($request->title),
             'category'      => $request->category,
             'summary'       => $request->summary,
             'content'       => $request->content,
@@ -135,6 +135,40 @@ class ArticleController extends Controller
 
         Cache::flush();
         return response()->json(['message' => 'Berita berhasil dibuat!', 'data' => $article], 201);
+    }
+
+    public function showBySlug(Request $request, string $slug)
+    {
+        $user = $request->user('sanctum');
+
+        $article = $this->buildArticleDetailQuery($user)->where('slug', $slug)->first();
+
+        if (!$article && ctype_digit($slug)) {
+            $article = $this->buildArticleDetailQuery($user)->where('id', (int) $slug)->first();
+        }
+
+        if (!$article) {
+            return response()->json(['message' => 'Artikel tidak ditemukan'], 404);
+        }
+
+        if ($article->image && !filter_var($article->image, FILTER_VALIDATE_URL)) {
+            $article->image = asset('storage/' . $article->image);
+        }
+
+        return response()->json(['data' => $article]);
+    }
+
+    private function buildArticleDetailQuery($user)
+    {
+        $query = Article::with('user')->withCount('likes');
+
+        if ($user) {
+            $query->withExists(['likes as is_liked_by_user' => function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            }]);
+        }
+
+        return $query;
     }
 
     /**
@@ -176,7 +210,7 @@ class ArticleController extends Controller
         $article->image_caption = $request->image_caption;
         $article->audio_link = $request->audio_link;
         $article->video_link = $request->video_link;
-        
+        $article->slug = Article::generateUniqueSlug($request->title, $article->id);
         if ($request->has('status')) {
             $article->status = $request->status;
         }

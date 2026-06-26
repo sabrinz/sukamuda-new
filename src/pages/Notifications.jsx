@@ -55,7 +55,8 @@ const Notifications = () => {
     
     // Navigate to article detail if needed
     if (notification.article_id) {
-      navigate(`/article/${notification.article_id}`);
+      const articleSlug = notification.article?.slug || notification.article_id;
+      navigate(`/article/${articleSlug}`);
     }
   };
 

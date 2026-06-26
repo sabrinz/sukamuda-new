@@ -289,7 +289,7 @@ input[type="file"].form-input:focus {
   border-color: #9ca3af;
 }
 
-.btn-submit {
+.btn-submit-write {
   background: #1e76d0;
   color: #ffffff;
   border: none;

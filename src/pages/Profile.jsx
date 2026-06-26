@@ -552,7 +552,7 @@ const ArticleCard = ({ data, type, userName, onDelete, onEdit, onReport }) => {
               {type === 'rejected' ? 'Revisi' : 'Lanjutkan Menulis'}
             </button>
           ) : (
-            <Link to={`/article/${data.id}`} className="pp-btn pp-btn-link">
+            <Link to={`/article/${data.slug}`} className="pp-btn pp-btn-link">
               Selengkapnya &rarr;
             </Link>
           )}

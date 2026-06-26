@@ -348,7 +348,7 @@ function Write() {
     }
   };
 
-  const insertRelatedShortcode = (articleId, articleTitle) => {
+  const insertRelatedShortcode = (articleId, articleTitle, articleSlug) => {
     const quill = quillRef.current;
     if (!quill) return;
 
@@ -359,7 +359,7 @@ function Write() {
     quill.insertText(range.index + 1, displayText, {
       bold: true,
       color: '#c0392b',
-      link: `/article/${articleId}`
+      link: `/article/${articleSlug}`
     }, 'user');
     quill.insertText(range.index + 1 + displayText.length, '\n', 'user');
 
@@ -743,7 +743,7 @@ function Write() {
           {/* Action buttons */}
           <div className="form-actions">
             <button className="btn-draft" type="button" onClick={() => openModal('draft')} disabled={loading}>Draft</button>
-            <button className="btn-submit" type="button" onClick={() => openModal('publish')} disabled={loading}>
+            <button className="btn-submit-write" type="button" onClick={() => openModal('publish')} disabled={loading}>
               {loading ? 'Mengirim...' : 'Kirim'}
             </button>
           </div>
@@ -854,7 +854,7 @@ function Write() {
                     key={item.id}
                     className="related-article-item"
                     type="button"
-                    onClick={() => insertRelatedShortcode(item.id, item.title)}
+                    onClick={() => insertRelatedShortcode(item.id, item.title, item.slug)}
                   >
                     <span>{item.title}</span>
                     <strong>[related:{item.id}]</strong>

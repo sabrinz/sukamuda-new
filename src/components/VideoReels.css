@@ -1,0 +1,123 @@
+/* Container Scroll Menyamping */
+.video-reels-grid.horizontal-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 20px;
+  padding-bottom: 20px; /* Ruang untuk scrollbar */
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory; /* Biar scrollnya nge-snap halus */
+}
+
+/* Kotak Kartu Individual */
+.video-reel-item {
+  /* Memaksa selalu muat 5 item per baris (100% dibagi 5 dikurangi jarak gap) */
+  flex: 0 0 calc(20% - 16px); 
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  min-width: 220px; /* Antisipasi untuk layar HP biar nggak terlalu kecil */
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Memaksa kotak setinggi container */
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+
+.video-reel-item:hover {
+  /* Memperbesar kotak sedikit (1.03 kali lipat dari ukuran asli) */
+  transform: scale(1.03);
+
+  /* (Opsional, tapi direkomendasikan) Menambah bayangan agar kotak terlihat "mengambang" */
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+/* Area Gambar */
+.reel-thumbnail {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5; /* Membuat rasio gambar jadi pas memanjang ke bawah seperti HP */
+  background-color: #f1f1f1;
+}
+
+.reel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Agar gambar tidak gepeng */
+}
+
+/* Info Text Area (Mendorong konten ke bawah agar rata) */
+.reel-info {
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  flex-grow: 1; /* Mendorong info pembuat video ke area paling bawah */
+}
+
+/* Badge Kotak Putih Tanpa Teks */
+.platform-badge-white {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #ffffff;
+  padding: 8px;
+  border-radius: 8px; /* Atau pakai 50% kalau mau bulat sempurna */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 2;
+}
+
+/* Mempercantik Scrollbar */
+.horizontal-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.horizontal-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+.horizontal-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+.horizontal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* ============ MOBILE: REELS LEBIH KECIL & RAPI ============ */
+@media (max-width: 768px) {
+  .video-reels-grid.horizontal-scroll {
+    gap: 12px;
+    padding-bottom: 14px;
+  }
+
+  .video-reel-item {
+    flex: 0 0 38%;       /* biar keliatan ~2.5 kartu sekaligus */
+    min-width: 130px;    /* dikecilin jauh dari 220px */
+    border-radius: 10px;
+  }
+
+  .reel-info {
+    padding: 10px;
+  }
+
+  .platform-badge-white {
+    top: 6px;
+    right: 6px;
+    padding: 6px;
+    border-radius: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-reel-item {
+    flex: 0 0 42%;       /* di layar lebih sempit, sedikit dibesarin biar gak kepenyet */
+    min-width: 120px;
+  }
+
+  .reel-info {
+    padding: 8px;
+  }
+}

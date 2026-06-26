@@ -7,7 +7,7 @@ import { categories } from "../data/articles";
 import AdSlot from '../components/AdSlot';
 import "./ArticleDetail.css";
 
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
 
 const normalizeCategory = (value) => (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '');
 
@@ -141,7 +141,7 @@ const StableHtmlRenderer = React.memo(({ html, className }) => {
 });
 
 const ArticleDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const { isLoggedIn, user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -164,7 +164,20 @@ const ArticleDetail = () => {
   const [visibleParagraphs, setVisibleParagraphs] = useState(PARAGRAPHS_PER_LOAD);
 
   const contentRef = useRef(null);
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const shareUrl = useMemo(() => {
+    const articleSlug = article?.slug || slug;
+
+    if (!articleSlug) {
+      return typeof window !== "undefined" ? window.location.href : "";
+    }
+
+    try {
+      const apiOrigin = new URL(baseUrl).origin;
+      return `${apiOrigin}/article/${articleSlug}`;
+    } catch {
+      return typeof window !== "undefined" ? window.location.origin + `/article/${articleSlug}` : `/${articleSlug}`;
+    }
+  }, [article?.slug, slug]);
 
   const { data: allArticles = [], isLoading: articleLoading } = useQuery({
     queryKey: ['publicArticles'],
@@ -175,26 +188,40 @@ const ArticleDetail = () => {
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: articleDetail, isLoading: articleDetailLoading } = useQuery({
+    queryKey: ['articleBySlug', slug],
+    queryFn: async () => {
+      const res = await axios.get(`/api/articles/${slug}`);
+      return res.data.data;
+    },
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+
   useEffect(() => {
-    const found = allArticles.find((item) => String(item.id) === String(id));
-    setArticle(found || null);
-    if (found) {
-      setLikeCount(found.likes_count || 0);
-      setIsLiked(found.is_liked_by_user || false);
-      setIsBookmarked(found.is_bookmarked_by_user || false);
-      setViewCount(found.views_count || found.views || 0);
+    const source = articleDetail
+      || allArticles.find((item) => String(item.slug) === String(slug) || String(item.id) === String(slug))
+      || null;
+
+    setArticle(source);
+    if (source) {
+      setLikeCount(source.likes_count || 0);
+      setIsLiked(source.is_liked_by_user || false);
+      setIsBookmarked(source.is_bookmarked_by_user || false);
+      setViewCount(source.views_count || source.views || 0);
     }
     setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
     setHasAwardedRead(false);
     hasAwardedReadRef.current = false;
     window.scrollTo(0, 0);
-  }, [id, allArticles]);
+  }, [slug, allArticles, articleDetail]);
 
   const awardReadPoint = async () => {
-    if (hasAwardedReadRef.current) return;
+    if (hasAwardedReadRef.current || !article?.id) return;
     hasAwardedReadRef.current = true;
     try {
-      const res = await axios.get(`/api/articles/${id}/view`);
+      const res = await axios.get(`/api/articles/${article.id}/view`);
       if (res?.data?.views !== undefined) {
         setViewCount(res.data.views);
       } else {
@@ -232,7 +259,7 @@ const ArticleDetail = () => {
         awardReadPoint();
       }
     }
-  }, [hasMore, hasAwardedRead, id]);
+  }, [hasMore, hasAwardedRead, article?.id]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -246,19 +273,20 @@ const ArticleDetail = () => {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    navigator.clipboard.writeText(shareUrl);
     setCopyText("Tersalin!");
     setTimeout(() => setCopyText("Salin"), 2000);
   };
 
   const handleLike = async () => {
     if (!isLoggedIn) return alert("Kamu harus login dulu untuk menyukai artikel ini.");
+    if (!article?.id) return;
     const prevLiked = isLiked;
     const prevCount = likeCount;
     try {
       setIsLiked(!prevLiked);
       setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1);
-      const res = await axios.post(`/api/articles/${id}/like`);
+      const res = await axios.post(`/api/articles/${article.id}/like`);
       setLikeCount(res.data.likes_count);
       setIsLiked(res.data.status === 'liked');
       queryClient.invalidateQueries(['publicArticles']);
@@ -270,10 +298,11 @@ const ArticleDetail = () => {
 
   const handleBookmark = async () => {
     if (!isLoggedIn) return alert("Kamu harus login dulu untuk menyimpan artikel ini.");
+    if (!article?.id) return;
     const prev = isBookmarked;
     setIsBookmarked(!prev);
     try {
-      await axios.post(`/api/articles/${id}/bookmark`);
+      await axios.post(`/api/articles/${article.id}/bookmark`);
       queryClient.invalidateQueries(['publicArticles']);
     } catch (error) {
       setIsBookmarked(prev);
@@ -291,7 +320,7 @@ const ArticleDetail = () => {
     setReportStatus(null);
     try {
       await axios.post('/api/reports', {
-        article_id: id,
+        article_id: article?.id,
         reason: reportReason.trim(),
       });
       setReportStatus({ success: true, message: 'Laporan berhasil dikirim.' });
@@ -309,7 +338,9 @@ const ArticleDetail = () => {
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
-  if (articleLoading)
+  const isPageLoading = articleDetailLoading || (articleLoading && !articleDetail);
+
+  if (isPageLoading)
     return (
       <div className="loading-container">
         <div className="spinner"></div>
@@ -317,7 +348,7 @@ const ArticleDetail = () => {
       </div>
     );
 
-  if (!article)
+  if (!article && !articleDetailLoading && !articleLoading)
     return (
       <div className="error-container">
         <h2>Waduh!</h2>
@@ -335,7 +366,7 @@ const ArticleDetail = () => {
     .filter(Boolean);
 
   const relatedArticles = allArticles
-    .filter((item) => normalizeCategory(item.category) === normalizeCategory(article.category) && String(item.id) !== String(id))
+    .filter((item) => normalizeCategory(item.category) === normalizeCategory(article.category) && String(item.id) !== String(article.id))
     .slice(0, 3);
 
   // ─── FIX PODCAST: Baca dari field database audio_link & video_link ───
@@ -395,7 +426,12 @@ const ArticleDetail = () => {
         {/* Iklan Vertikal Kiri */}
         <div className="ad-sidebar ad-sidebar-left">
           <div className="ad-sidebar-sticky">
-            <AdSlot type="vertical" label="Iklan" />
+            <AdSlot
+              type="vertical"
+              mode="adsense"
+              adClient="ca-pub-XXXXXXXXX"
+              adSlot="99999991"
+            />
           </div>
         </div>
 
@@ -403,7 +439,12 @@ const ArticleDetail = () => {
         <div className="article-main-content">
 
           <div className="ad-center">
-            <AdSlot type="horizontal" label="Iklan" />
+            <AdSlot
+              type="horizontal"
+              mode="adsense"
+              adClient="ca-pub-XXXXXXXXX"
+              adSlot="99999993"
+            />
           </div>
 
           <div className="article-container">
@@ -488,6 +529,16 @@ const ArticleDetail = () => {
 
             {/* Hero Wrapper */}
             <div className="hero-wrapper">
+              {/* ─── Hero Image untuk artikel non-podcast ─── */}
+              {imageUrl && !isPodcast && (
+                <>
+                  <img src={imageUrl} alt={article.title} className="hero-img" loading="lazy" />
+                  {article.image_caption && (
+                    <p className="image-caption-text">{article.image_caption}</p>
+                  )}
+                </>
+              )}
+
               {/* ─── Podcast embed dari field audio_link & video_link ─── */}
               {/* key={url} memastikan iframe hanya di-mount ulang saat URL benar-benar berubah */}
               {showPodcastEmbed && (
@@ -569,7 +620,7 @@ const ArticleDetail = () => {
                             : `${baseUrl}/storage/${item.image}`
                           : 'http://via.placeholder.com/400x220';
                         return (
-                          <Link className="related-card" key={item.id} to={`/article/${item.id}`}>
+                          <Link className="related-card" key={item.id} to={`/article/${item.slug}`}>
                             <div className="related-img-wrap">
                               <img src={itemImage} alt={item.title} loading="lazy" />
                               <span className="related-cat">{categories.find((c) => c.slug === item.category)?.label || item.category}</span>
@@ -627,6 +678,11 @@ const ArticleDetail = () => {
                       </button>
                       <button onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`, "_blank")} className="soc-btn x" title="X (Twitter)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                      </button>
+                      <button onClick={() => window.open(`https://www.threads.net/intent/post?text=${encodedTitle}%20${encodedUrl}`, "_blank")} className="soc-btn threads" title="Threads">
+                        <svg width="16" height="16" viewBox="2 2 20 20" fill="#fff" stroke="none" fillRule="nonzero">
+                          <path d="M14.017 12.392c.033-1.614-.85-2.888-2.28-2.888-1.39 0-2.26 1.24-2.26 2.888 0 1.637.86 2.87 2.26 2.87 1.44 0 2.247-1.233 2.28-2.87zm4.184-1.18c0 4.607-3.342 7.74-7.85 7.74-4.516 0-7.848-3.133-7.848-7.74 0-4.6 3.332-7.73 7.848-7.73 3.63 0 6.45 2.06 7.42 5.16h-2.14c-.81-1.9-2.86-3.15-5.28-3.15-3.23 0-5.63 2.14-5.63 5.72 0 3.57 2.4 5.73 5.63 5.73 3.24 0 5.64-2.16 5.64-5.73V11c0-1.85-1.28-3.25-3.1-3.25-1.23 0-2.29.62-2.81 1.66h-.06v-1.52h-2v5.71c0 2.2 1.48 3.82 3.56 3.82 1.68 0 2.92-.93 3.32-2.42h.06v1.17h2v-4.96z" />
+                        </svg>
                       </button>
                       <button onClick={() => window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`, "_blank")} className="soc-btn tg" title="Telegram">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
@@ -703,7 +759,12 @@ const ArticleDetail = () => {
             {/* Iklan Horizontal tengah */}
             {!hasMore && (
               <div className="ad-center" style={{ margin: '32px 0' }}>
-                <AdSlot type="horizontal" label="Iklan" />
+                <AdSlot
+                  type="horizontal"
+                  mode="adsense"
+                  adClient="ca-pub-XXXXXXXXX"
+                  adSlot="99999993"
+                />
               </div>
             )}
 
@@ -719,7 +780,7 @@ const ArticleDetail = () => {
                 </div>
                 <div className="related-grid-new">
                   {relatedArticles.map((item) => (
-                    <Link className="related-card" key={item.id} to={`/article/${item.id}`}>
+                    <Link className="related-card" key={item.id} to={`/article/${item.slug}`}>
                       <div className="related-img-wrap">
                         <img src={item.image?.startsWith("http") ? item.image : `${baseUrl}/storage/${item.image}`} alt={item.title} loading="lazy" />
                         <span className="related-cat">{categories.find((c) => c.slug === item.category)?.label || item.category}</span>
@@ -741,7 +802,12 @@ const ArticleDetail = () => {
         {/* Iklan Vertikal Kanan */}
         <div className="ad-sidebar ad-sidebar-right">
           <div className="ad-sidebar-sticky">
-            <AdSlot type="vertical" label="Iklan" />
+            <AdSlot
+              type="vertical"
+              mode="adsense"
+              adClient="ca-pub-XXXXXXXXX"
+              adSlot="99999992"
+            />
           </div>
         </div>
 
@@ -750,7 +816,14 @@ const ArticleDetail = () => {
 
       {/* Iklan sebelum Footer */}
       <div className="ad-before-footer">
-        <AdSlot type="horizontal" label="Iklan" />
+        <div className="ad-before-footer">
+          <AdSlot
+            type="horizontal"
+            mode="adsense"
+            adClient="ca-pub-XXXXXXXXX"
+            adSlot="99999993"
+          />
+        </div>
       </div>
     </>
   );

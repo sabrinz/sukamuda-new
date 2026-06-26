@@ -8,14 +8,15 @@
   --transition-smooth: all 0.3s ease;
 }
 
-/* ===== CONTAINER ===== */
+/* ================================================= */
+/* ===== 1. CONTAINER & MAIN LAYOUT ===== */
+/* ================================================= */
 .home-container {
   width: 100%;
   background: white;
   color: var(--text-dark);
 }
 
-/* ===== MAIN LAYOUT ===== */
 .home-layout-wrapper {
   display: flex;
   gap: 16px;
@@ -41,7 +42,9 @@
   top: 80px;
 }
 
-/* ===== SECTION ===== */
+/* ================================================= */
+/* ===== 2. SECTIONS & HEADERS ===== */
+/* ================================================= */
 .home-section {
   margin-bottom: 40px;
 }
@@ -65,7 +68,9 @@
   font-weight: 600;
 }
 
-/* ===== TRENDING ===== */
+/* ================================================= */
+/* ===== 3. TRENDING SECTION ===== */
+/* ================================================= */
 .section-trending {
   margin-bottom: 40px;
 }
@@ -112,7 +117,6 @@
   font-size: 15px;
   line-height: 1.5;
   font-weight: 700;
-
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -147,35 +151,14 @@
 }
 
 /* ================================================= */
-/* ===== PORTAL NEWS LAYOUT ===== */
+/* ===== 4. GENERAL PORTAL NEWS CARDS ===== */
 /* ================================================= */
-
 .article-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
-/* ===== HERO ===== */
-.article-card--hero {
-  grid-column: 1 / -1;
-}
-
-.article-card--hero .article-image-wrapper {
-  height: 260px;
-}
-
-.article-card--hero .card-content {
-  padding: 14px;
-}
-
-.article-card--hero h3 {
-  font-size: 22px;
-  line-height: 1.4;
-  font-weight: 800;
-}
-
-/* ===== CARD ===== */
 .article-card {
   display: block;
   overflow: hidden;
@@ -202,42 +185,6 @@
   display: block;
 }
 
-/* ===== SMALL CARD ===== */
-.article-card:not(.article-card--hero) {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.article-card:not(.article-card--hero) .article-image-wrapper {
-  height: 160px;
-}
-
-.article-card:not(.article-card--hero) .card-content {
-  padding: 6px 8px 8px;
-}
-
-.article-card:not(.article-card--hero) h3 {
-  font-size: 11px;
-  line-height: 1.35;
-  margin-bottom: 4px;
-  font-weight: 700;
-
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.article-card:not(.article-card--hero) .card-author-name {
-  font-size: 9px;
-}
-
-.article-card:not(.article-card--hero) .card-author-avatar-wrap {
-  width: 15px;
-  height: 15px;
-}
-
-/* ===== CONTENT ===== */
 .card-content h3 {
   margin: 0 0 10px;
   color: #111;
@@ -273,6 +220,52 @@
   color: #777;
 }
 
+/* HERO CARD (Berita Utama Umum) */
+.article-card--hero {
+  grid-column: 1 / -1;
+}
+.article-card--hero .article-image-wrapper {
+  height: 260px;
+}
+.article-card--hero .card-content {
+  padding: 14px;
+}
+.article-card--hero h3 {
+  font-size: 22px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+/* SMALL CARD (Berita Kecil Umum) */
+.article-card:not(.article-card--hero) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.article-card:not(.article-card--hero) .article-image-wrapper {
+  height: 160px;
+}
+.article-card:not(.article-card--hero) .card-content {
+  padding: 6px 8px 8px;
+}
+.article-card:not(.article-card--hero) h3 {
+  font-size: 11px;
+  line-height: 1.35;
+  margin-bottom: 4px;
+  font-weight: 700;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.article-card:not(.article-card--hero) .card-author-name {
+  font-size: 9px;
+}
+.article-card:not(.article-card--hero) .card-author-avatar-wrap {
+  width: 15px;
+  height: 15px;
+}
+
+/* PODCAST STUFF */
 .podcast-badge {
   display: inline-block;
   margin-top: 10px;
@@ -284,7 +277,6 @@
   border-radius: 999px;
   text-transform: uppercase;
 }
-
 .podcast-toggle-btn {
   margin-top: 12px;
   padding: 10px 14px;
@@ -297,17 +289,14 @@
   cursor: pointer;
   transition: var(--transition-smooth);
 }
-
 .podcast-toggle-btn:hover {
   background: #1558a0;
 }
-
 .podcast-player-panel {
   margin-top: 14px;
   display: grid;
   gap: 12px;
 }
-
 .podcast-embed {
   width: 100%;
   overflow: hidden;
@@ -315,7 +304,6 @@
   box-shadow: 0 2px 14px rgba(0,0,0,0.08);
   background: #000;
 }
-
 .podcast-player-placeholder {
   margin: 0;
   padding: 16px;
@@ -325,134 +313,377 @@
   font-size: 14px;
 }
 
-/* ===== EMPTY ===== */
+/* EMPTY STATE */
 .empty-state {
   padding: 100px 20px;
   text-align: center;
   color: #888;
 }
 
-/* ===== RESPONSIVE ===== */
+/* ================================================= */
+/* ===== 5. TAMPILAN KHUSUS KATEGORI NEWS ===== */
+/* ================================================= */
+
+.news-section-special {
+  margin-bottom: 40px;
+}
+
+/* Grid Spesifik News & Pembungkus Iklan */
+.news-with-sidebar-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 300px; /* KUNCI: Artikel kiri luas, Iklan kanan fix 300px */
+  gap: 32px;
+  width: 100%;
+}
+
+.news-article-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 24px !important;
+  min-width: 0;
+  padding: 0;
+}
+
+/* Hero Full Width Khusus News */
+.news-article-grid .article-card--hero {
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+  box-shadow: none; 
+  border: 1px solid var(--border-color); 
+}
+.news-sidebar-static > div {
+  height: 100% !important;
+  width: 100% !important;
+}
+/* Berita Kecil Khusus News (Menyamping) */
+.article-card.article-card--news-small {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 16px !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important; 
+}
+.article-card.article-card--news-small:hover {
+  transform: none !important;
+}
+.article-card.article-card--news-small .article-image-wrapper {
+  width: 140px !important;
+  height: 90px !important;
+  flex-shrink: 0 !important;
+  border-radius: 8px !important;
+  margin: 0 !important;
+}
+.article-card.article-card--news-small .card-content {
+  flex: 1 !important;
+  padding: 0 !important;
+  text-align: left !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+}
+.article-card.article-card--news-small h3 {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  color: #111 !important;
+  margin: -2px 0 6px 0 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important; 
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+.article-card.article-card--news-small .card-author {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.article-card.article-card--news-small .card-author-avatar-wrap {
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+}
+.article-card.article-card--news-small .card-author-name {
+  font-size: 11px !important;
+  color: #888 !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+}
+
+/* Iklan Kanan Static (Sebelah News) */
+.news-sidebar-right {
+  width: 100%;
+}
+.news-sidebar-static {
+  position: relative !important; 
+  width: 100%;
+  height: 600px; 
+  background: transparent !important; 
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Margin untuk iklan horizontal bawah */
+.ad-news-horizontal, .ad-before-footer {
+  margin-top: 24px;
+  width: 100%;
+}
+/* ================================================= */
+/* ===== 7. TAMPILAN KHUSUS KATEGORI LIFESTYLE ===== */
+/* ================================================= */
+
+.lifestyle-section-special {
+  margin-bottom: 50px;
+}
+
+.lifestyle-article-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 20px !important;
+  align-items: start;
+}
+
+/* Hero Article Lifestyle (Elemen ke-7 / index 6) */
+.lifestyle-article-grid .article-card--hero {
+  grid-column: span 2; /* Tarik lebar jadi 2 kolom */
+  grid-row: span 3;    /* Tarik tinggi memakan area 3 baris ke bawah */
+  height: 100%;        /* Memastikan card putih merata ke bawah mensejajari artikel di kanannya */
+  
+  /* Kita tidak lagi menggunakan border: none atau background transparan di sini
+     agar otomatis menggunakan box putih, bayangan, dan ukuran gambar bawaan (260px) 
+     yang persis seperti kategori News */
+}
+
+/* Card horizontal (kecil) di dalam grid Lifestyle */
+.lifestyle-article-grid .article-card--news-small .article-image-wrapper {
+  width: 105px !important; 
+  height: 75px !important;
+}
+
+.lifestyle-article-grid .article-card--news-small h3 {
+  font-size: 13px !important;
+  -webkit-line-clamp: 2 !important; 
+}
+
+/* ================================================= */
+/* ===== 8. SECTION RANDOM (3 KOLOM) ===== */
+/* ================================================= */
+
+.random-section {
+  margin-top: 60px;
+  margin-bottom: 50px;
+  padding-top: 40px;
+  border-top: 2px solid var(--bg-subtle); /* Garis pemisah opsional */
+}
+
+.random-article-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* Membesarkan ukuran card khusus di section random */
+.random-article-grid .article-card {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.random-article-grid .article-image-wrapper {
+  height: 220px !important; /* Dibuat lebih besar dari artikel standar */
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.random-article-grid .card-content {
+  padding: 0 !important;
+}
+
+.random-article-grid h3 {
+  font-size: 18px !important; /* Font dibesarkan agar seimbang dengan gambar */
+  line-height: 1.4 !important;
+  font-weight: 800 !important;
+  -webkit-line-clamp: 3 !important; 
+}
+
+.random-article-grid > *:nth-child(4) {
+  display: none;
+}
+
+/* TABLET & SMALL DESKTOP */
 @media (max-width: 1100px) {
-  .ad-sidebar {
-    display: none;
+  /* Di Tablet, Lifestyle jadi 2 kolom */
+  .lifestyle-article-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .lifestyle-article-grid .article-card--hero {
+    grid-column: 1 / -1; /* Hero full width */
+    grid-row: auto;
+  }
+
+  /* FIX: Random section jadi 2 kolom di tablet */
+  .random-article-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+}
+
+/* MOBILE */
+/* ================================================= */
+/* ===== 9. LIFESTYLE: CARD VERTIKAL DI MOBILE ===== */
+/* ================================================= */
+@media (max-width: 768px) {
+  /* Khusus lifestyle: gambar di atas, judul di bawah (bukan menyamping) */
+
+  .random-article-grid > *:nth-child(4) {
+    display: block; /* atau flex, tergantung dari isi renderCard kamu */
+  }
+  .lifestyle-article-grid .article-card--news-small {
+    flex-direction: column !important;
+  }
+
+  .lifestyle-article-grid .article-card--news-small .article-image-wrapper {
+    width: 100% !important;
+    height: 160px !important;
+  }
+
+  .lifestyle-article-grid .article-card--news-small .card-content {
+    margin-top: 8px;
+  }
+
+  .lifestyle-article-grid .article-card--news-small h3 {
+    font-size: 14px !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .lifestyle-article-grid .article-card--news-small .card-author {
+    margin-top: auto;
   }
 }
 
 /* ================================================= */
-/* ===== MOBILE PORTAL NEWS ===== */
+/* ===== 6. RESPONSIVE MEDIA QUERIES ===== */
 /* ================================================= */
 
-@media (max-width: 768px) {
+/* TABLET & SMALL DESKTOP (Max 1100px) */
+@media (max-width: 1100px) {
+  .ad-sidebar {
+    display: none;
+  }
+  
+  /* Layout Khusus News Jadi Turun ke Bawah */
+  .news-with-sidebar-wrapper {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .news-sidebar-static {
+    height: 250px; 
+  }
+}
 
+/* MOBILE (Max 768px) */
+@media (max-width: 768px) {
   .home-layout-wrapper {
     padding: 0 10px;
   }
-
   .home-section {
     margin-bottom: 32px;
   }
-
   .section-header {
     margin-bottom: 12px;
   }
-
   .section-header h2 {
     font-size: 20px;
-    font-weight: 800;
   }
-
   .section-link {
     font-size: 12px;
   }
 
-  /* ===== GRID ===== */
+  /* Grid Standar diubah jadi 2 kolom menyempit */
   .article-grid {
     display: grid !important ;
     grid-template-columns: repeat(2, 1fr) !important ;
     gap: 10px !important;
   }
 
-  /* ===== HERO ===== */
-  .article-card--hero {
-    grid-column: 1 / -1;
-  }
-
+  /* Hero Standar Mobile */
   .article-card--hero .article-image-wrapper {
     height: 170px;
   }
-
   .article-card--hero .card-content {
     padding: 10px;
   }
-
   .article-card--hero h3 {
     font-size: 15px;
-    line-height: 1.4;
-    font-weight: 800;
   }
 
-  /* ===== SMALL CARD ===== */
-  .article-card:not(.article-card--hero) {
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
+  /* Small Card Standar Mobile */
   .article-card:not(.article-card--hero) .article-image-wrapper {
     height: 120px;
   }
-
   .article-card:not(.article-card--hero) .card-content {
     padding: 6px 8px 8px;
   }
-
   .article-card:not(.article-card--hero) h3 {
     font-size: 11px;
-    line-height: 1.35;
-    margin-bottom: 4px;
-
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
-
-  /* ===== AUTHOR ===== */
-  .card-author {
-    gap: 5px;
-  }
-
   .card-author-avatar-wrap {
     width: 15px;
     height: 15px;
   }
-
   .card-author-name {
     font-size: 9px;
   }
 
-  /* ===== TRENDING ===== */
+  /* FIX: News grid jadi 1 kolom di mobile (kalau tidak, card horizontal jadi kepepet) */
+  .news-article-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* FIX: Iklan sidebar news diperkecil lagi khusus HP */
+  .news-sidebar-static {
+    height: 200px;
+  }
+
+  /* Khusus Berita News (Horizontal) di Mobile */
+  .article-card.article-card--news-small {
+    gap: 12px !important;
+  }
+  .article-card.article-card--news-small .article-image-wrapper {
+    width: 110px !important;
+    height: 75px !important;
+  }
+  .article-card.article-card--news-small h3 {
+    font-size: 13px !important;
+  }
+
+  /* Trending Mobile */
   .trending-item {
     gap: 10px;
     padding: 12px 0;
   }
-
   .trending-thumb {
     width: 78px;
     height: 58px;
   }
-
   .trending-details h4 {
     font-size: 13px;
   }
-
   .trending-rank {
     width: 26px;
     font-size: 20px;
   }
 
-  /* ===== IKLAN ===== */
+  /* Iklan Mobile */
   .ad-before-footer {
     margin: 18px 0 10px;
   }
 }
+

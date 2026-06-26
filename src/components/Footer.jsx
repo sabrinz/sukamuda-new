@@ -20,7 +20,7 @@ const Footer = () => {
             <span>Follow us</span>
 
             <a
-              href="https://www.instagram.com/sukamudaid/"
+              href="https://www.instagram.com/sukamudacoid/"
               target="_blank"
               rel="noopener noreferrer"
             >

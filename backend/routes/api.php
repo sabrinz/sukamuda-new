@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DebugController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\VideoReelController;
 use App\Http\Middleware\CheckAdminRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -39,10 +40,16 @@ Route::middleware('throttle:5,60')->group(function () {
 // Konten Publik (Artikel)
 Route::get('/public-articles', [ArticleController::class, 'getPublicArticles']);
 Route::get('/trending-articles', [ArticleController::class, 'trending']);
+Route::get('/articles/{slug}', [ArticleController::class, 'showBySlug']);
 Route::get('/articles/{id}/view', [ArticleController::class, 'incrementView']);
 Route::get('/articles/{id}/comments', [ArticleController::class, 'getComments']);
 Route::patch('/articles/{id}/toggle-trending', [ArticleController::class, 'toggleTrending']);
 Route::get('/users/{id}', [ProfileController::class, 'showPublic']);
+
+// Konten Publik (Video Reels)
+Route::get('/video-reels', [VideoReelController::class, 'getPublicReels']);
+Route::get('/video-reels/homepage', [VideoReelController::class, 'getHomepageReels']);
+Route::get('/video-reels/platform/{platform}', [VideoReelController::class, 'getByPlatform']);
 
 
 // --- 2. PROTECTED ROUTES (Wajib Login/Sanctum) ---
@@ -67,7 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/account', [ProfileController::class, 'deleteAccount']);
     });
 
-    // --- SISTEM ARTIKEL (CRUD & INTERAKSI) ---
+    // --- SISTEM ARTIKEL (NOTIFIKASI) ---
     Route::prefix('notifications')->group(function () {
         Route::get('/', [NotificationController::class, 'index']);
         Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
@@ -77,7 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // --- SISTEM ARTIKEL (CRUD & INTERAKSI) ---
-    Route::get('/articles', [ArticleController::class, 'index']);           
+    Route::get('/articles', [ArticleController::class, 'index']);          
     Route::get('/articles/list/{category}', [ArticleController::class, 'listByCategory']);
     Route::post('/articles', [ArticleController::class, 'store']);          // Simpan artikel baru
     
@@ -95,6 +102,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reports
     Route::post('/reports', [ReportController::class, 'store']);
 
+    // --- VIDEO REELS MANAGEMENT ---
+    Route::get('/my-video-reels', [VideoReelController::class, 'getUserReels']);
+    Route::post('/video-reels', [VideoReelController::class, 'store']);
+    Route::put('/video-reels/{reel}', [VideoReelController::class, 'update']);
+    Route::delete('/video-reels/{reel}', [VideoReelController::class, 'destroy']);
+
     // --- 3. AREA ADMIN ---
     Route::middleware(CheckAdminRole::class)->group(function () {
         // Update status approved/rejected/pending
@@ -104,5 +117,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/articles/{id}/permanent', [ArticleController::class, 'forceDelete']);
         // Reports for admin
         Route::get('/reports', [ReportController::class, 'index']);
+
+        // --- VIDEO REELS ADMIN MANAGEMENT ---
+        Route::get('/video-reels/admin/all', [VideoReelController::class, 'index']);
+        Route::patch('/video-reels/{reel}/approve', [VideoReelController::class, 'approve']);
+        Route::patch('/video-reels/{reel}/reject', [VideoReelController::class, 'reject']);
     });
+});
+
+// === ROUTE UNTUK VIDEO REELS ===
+Route::prefix('video-reels')->group(function () {
+    // Tampilan Publik
+    Route::get('/homepage', [\App\Http\Controllers\VideoReelController::class, 'getHomepageReels']);
+    
+    // Tampilan Admin (Sesuai dengan axios di React)
+    Route::get('/admin/all', [\App\Http\Controllers\VideoReelController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\VideoReelController::class, 'store']);
+    Route::patch('/{reel}/approve', [\App\Http\Controllers\VideoReelController::class, 'approve']);
+    Route::patch('/{reel}/reject', [\App\Http\Controllers\VideoReelController::class, 'reject']);
+    Route::delete('/{reel}', [\App\Http\Controllers\VideoReelController::class, 'destroy']);
 });

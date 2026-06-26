@@ -4,6 +4,7 @@ import axios from '../utils/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import RejectionModal from '../components/RejectionModal';
+import AdminVideoReels from '../components/AdminVideoReels';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './AdminDashboard.css';
 import {
@@ -377,7 +378,7 @@ const AdminDashboard = () => {
 
     const getArticleImage = (art) => {
         if (!art.image) return "https://via.placeholder.com/150?text=SukaMuda";
-        return art.image.startsWith('http') ? art.image : `http://localhost:8000/storage/${art.image}`;
+        return art.image.startsWith('http') ? art.image : `https://sukamuda.co.id/storage/${art.image}`;
     };
 
     const getCategoryLabel = (slug) => {
@@ -444,6 +445,12 @@ const AdminDashboard = () => {
                         onClick={() => { setActiveView('trash'); setCurrentPage(1); }}
                     >
                         Sampah ({trash.length})
+                    </button>
+                    <button
+                        className={`btn-view-toggle ${activeView === 'video-reels' ? 'active' : ''}`}
+                        onClick={() => { setActiveView('video-reels'); }}
+                    >
+                        Video Reels
                     </button>
                     <Link to="/write" className="btn-create-new">
                         Tulis Artikel Baru
@@ -771,7 +778,14 @@ const AdminDashboard = () => {
                 </div>
             )}
 
-            {totalPages > 1 && activeView !== 'stats' && activeView !== 'reports' && (
+            {/* TAMPILAN MANAJEMEN VIDEO REELS */}
+            {activeView === 'video-reels' && (
+                <div style={{ marginTop: '20px' }}>
+                    <AdminVideoReels />
+                </div>
+            )}
+
+            {totalPages > 1 && activeView !== 'stats' && activeView !== 'reports' && activeView !== 'video-reels' && (
                 <div className="admin-pagination">
                     <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Sebelumnya</button>
                     <span className="page-info">Halaman {currentPage} dari {totalPages}</span>

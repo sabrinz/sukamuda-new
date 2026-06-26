@@ -73,7 +73,7 @@ function PublicProfile() {
                 <div className="author-articles-grid">
                     {author.articles?.length > 0 ? (
                         author.articles.map((article) => (
-                            <Link key={article.id} to={`/article/${article.id}`} className="author-article-card">
+                            <Link key={article.id} to={`/article/${article.slug}`} className="author-article-card">
                                 <div className="article-card-content">
                                     <h3>{article.title}</h3>
                                     <p>{article.summary || 'Artikel tanpa ringkasan singkat.'}</p>

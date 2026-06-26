@@ -25,14 +25,10 @@ const AdSlot = ({
   type = 'horizontal',
   mode = 'placeholder',  // 'placeholder' | 'image' | 'adsense'
   label = 'Iklan',
-
-  // Untuk mode="image"
   imageUrl = '',
   linkUrl = '#',
-
-  // Untuk mode="adsense"
-  adClient = '',   // Isi dengan: ca-pub-XXXXXXXXXX
-  adSlot = '',     // Isi dengan: slot ID dari AdSense
+  adClient = '',   
+  adSlot = '',     
 }) => {
 
   const adClass = type === 'vertical' ? 'ad-slot-box vertical' : 'ad-slot-box horizontal';
@@ -48,7 +44,7 @@ const AdSlot = ({
     }
   }, [mode]);
 
-  // MODE 1: Placeholder (kotak kosong bergaris putus-putus)
+  // MODE 1: Placeholder (kotak kosong)
   if (mode === 'placeholder') {
     return (
       <div className={adClass}>
@@ -58,35 +54,35 @@ const AdSlot = ({
   }
 
   // MODE 2: Banner gambar sendiri
-  // if (mode === 'image') {
-  //   return (
-  //     <div className={adClass} style={{ padding: 0, border: 'none' }}>
-  //       <a href={linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', height: '100%' }}>
-  //         <img
-  //           src={imageUrl}
-  //           alt="Iklan"
-  //           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
-  //         />
-  //       </a>
-  //     </div>
-  //   );
-  // }
+  if (mode === 'image') {
+    return (
+      <div className={adClass} style={{ padding: 0, border: 'none' }}>
+        <a href={linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', height: '100%' }}>
+          <img
+            src={imageUrl}
+            alt="Iklan"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+          />
+        </a>
+      </div>
+    );
+  }
 
   // MODE 3: Google AdSense
-  // if (mode === 'adsense') {
-  //   return (
-  //     <div className={adClass} style={{ padding: 0, border: 'none', overflow: 'hidden' }}>
-  //       <ins
-  //         className="adsbygoogle"
-  //         style={{ display: 'block', width: '100%', height: '100%' }}
-  //         data-ad-client={adClient}
-  //         data-ad-slot={adSlot}
-  //         data-ad-format="auto"
-  //         data-full-width-responsive="true"
-  //       />
-  //     </div>
-  //   );
-  // }
+  if (mode === 'adsense') {
+    return (
+      <div className={adClass} style={{ padding: 0, border: 'none', overflow: 'hidden' }}>
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block', width: '100%', height: '100%' }}
+          data-ad-client={adClient}
+          data-ad-slot={adSlot}
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      </div>
+    );
+  }
 
   return null;
 };

@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import axios from "../utils/axiosConfig";
 import "./Category.css";
 
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
 
 const getInitials = (name) => {
   if (!name) return "?";
@@ -15,11 +15,20 @@ const normalizeCategory = (value) => (value || '').toString().toLowerCase().repl
 const slugCategoryMap = {
   sport: ['sport', 'sport & e-sport', 'sport-esport', 'sport e-sport'],
   music: ['music', 'music & film', 'music&film', 'music and film'],
+  
+  // Tambahkan mapping untuk news dan subkategorinya di sini
+  news: ['news', 'school', 'college', 'general'], 
+  
+  // Tambahkan mapping untuk lifestyle dan subkategorinya di sini
+  // (Sesuaikan array-nya jika nama subkategorinya berbeda)
+  lifestyle: ['lifestyle', 'style', 'health', 'food', 'travel'], 
 };
 
 const displayLabelMap = {
   sport: 'Sport & E-Sport',
   music: 'Music & Film',
+  news: 'News',
+  lifestyle: 'Lifestyle',
 };
 
 const getYoutubeThumbnailUrl = (url) => {
@@ -111,7 +120,7 @@ const Category = () => {
                 : null;
 
               return (
-                <Link className="article-card" key={article.id} to={`/article/${article.id}`}>
+                <Link className="article-card" key={article.id} to={`/article/${article.slug}`}>
                   <div className="article-image-wrapper">
                     <img
                       src={article.image

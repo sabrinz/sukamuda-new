@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "../utils/axiosConfig";
 import { categoryGroups } from "../data/articles";
+import VideoReels from '../components/VideoReels';
 import AdSlot from '../components/AdSlot';
 import "./home.css";
 
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
 
 const resolveImageUrl = (value) => {
   if (!value) return null;
@@ -23,12 +24,70 @@ const fetchTrending = async () => {
   return Array.isArray(response.data) ? response.data : [];
 };
 
+const fetchVideoReels = async () => {
+  const response = await axios.get('/api/video-reels/homepage');
+  return Array.isArray(response.data) ? response.data : [];
+};
+
+// ==========================================
+// PENGATURAN IKLAN ADSENSE PER KATEGORI
+// Nanti ganti 'ca-pub-XXX' dan 'adSlot' dengan aslimu
+// ==========================================
+const AD_CONFIG = {
+  'news': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "11111111" },
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "22222222" },
+  },
+  'lifestyle': {
+    kanan: { tampil: false }, // Dimatikan (Lifestyle tidak ada sidebar)
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "33333333" },
+  },
+  'sport': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "44444444" },
+    bawah: { tampil: false }, // Dimatikan
+  },
+  'sport-e-sport': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "44444444" },
+    bawah: { tampil: false }, 
+  },
+  'music-film': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "55555555" },
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "66666666" },
+  },
+  'otomotif': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "77777777" },
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "88888888" },
+  },
+  'science': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "99999999" },
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "00000000" },
+  },
+  'scient': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "99999999" },
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "00000000" },
+  },
+  'health': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "12121212" },
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "34343434" },
+  },
+  'tech': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "56565656" },
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "78787878" },
+  },
+  'technology': {
+    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "56565656" },
+    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "78787878" },
+  }
+};
+// ==========================================
+
 function Home() {
   const queryClient = useQueryClient();
 
   React.useEffect(() => {
     queryClient.prefetchQuery({ queryKey: ['publicArticles'], queryFn: fetchArticles });
     queryClient.prefetchQuery({ queryKey: ['trendingArticles'], queryFn: fetchTrending });
+    queryClient.prefetchQuery({ queryKey: ['videoReels'], queryFn: fetchVideoReels });
   }, [queryClient]);
 
   const { data: allArticles = [], isLoading: articleLoading } = useQuery({
@@ -40,6 +99,12 @@ function Home() {
   const { data: trendingArticles = [], isLoading: trendingLoading } = useQuery({
     queryKey: ['trendingArticles'],
     queryFn: fetchTrending,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: videoReels = [], isLoading: videoReelsLoading } = useQuery({
+    queryKey: ['videoReels'],
+    queryFn: fetchVideoReels,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -158,7 +223,7 @@ function Home() {
     const authorName = article.user?.name || 'Anonim';
 
     return (
-      <Link className="trending-item" key={article.id || index} to={`/article/${article.id}`}>
+      <Link className="trending-item" key={article.id || index} to={`/article/${article.slug}`}>
         <div className="trending-rank">
           <span>{String(index + 1).padStart(2, '0')}</span>
         </div>
@@ -188,7 +253,7 @@ function Home() {
     );
   };
 
-  const renderCard = (article, index) => {
+  const renderCard = (article, index, isNewsStyle = false, isLifestyleStyle = false) => {
     if (!article) return null;
 
     const isPodcast = normalizeCategory(article.category) === 'podcast';
@@ -206,83 +271,108 @@ function Home() {
     const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : '';
     const showPodcastPlayer = isPodcast && activePodcastId === article.id;
 
-    const cardInner = (
-      <>
-        <div className="article-image-wrapper">
-          <img
-            src={imageUrl}
-            alt={article.title}
-            loading="lazy"
-            onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/600x400?text=Image"; }}
-          />
-        </div>
-        <div className="card-content">
-          <h3>{article.title || "Judul tidak tersedia"}</h3>
-          <div className="card-meta">
-            <div className="card-author">
-              {authorPhoto ? (
-                <div className="card-author-avatar-wrap">
-                  <img src={authorPhoto} alt={authorName} className="card-author-avatar" />
-                </div>
-              ) : !isPodcast ? (
-                <div className="card-author-avatar-wrap">
-                  <span className="card-author-initials">{getInitials(authorName)}</span>
-                </div>
-              ) : null}
-              <span className="card-author-name">{authorName}</span>
+    const isHero = isLifestyleStyle ? index === 6 : index === 0;
+    const isSmallHorizontal = (isNewsStyle && !isHero) || (isLifestyleStyle && !isHero);
+
+    let cardInner;
+
+    if (isSmallHorizontal) {
+      cardInner = (
+        <>
+          <div className="article-image-wrapper">
+            <img
+              src={imageUrl} 
+              alt={article.title}
+              loading="lazy"
+              onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/600x400?text=Image"; }}
+            />
+          </div>
+          <div className="card-content">
+            <h3 className="news-small-title">{article.title || "Judul tidak tersedia"}</h3>
+            
+            <div className="card-meta" style={{ marginTop: 'auto' }}>
+              <div className="card-author">
+                {authorPhoto ? (
+                  <div className="card-author-avatar-wrap" style={{ width: '18px', height: '18px' }}>
+                    <img src={authorPhoto} alt={authorName} className="card-author-avatar" />
+                  </div>
+                ) : (
+                  <div className="card-author-avatar-wrap" style={{ width: '18px', height: '18px' }}>
+                    <span className="card-author-initials">{getInitials(authorName)}</span>
+                  </div>
+                )}
+                <span className="card-author-name" style={{ fontSize: '11px' }}>{authorName}</span>
+              </div>
             </div>
           </div>
-          {isPodcast && <span className="podcast-badge">Podcast</span>}
-          {isPodcast && (
-            <button
-              type="button"
-              className="podcast-toggle-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePodcastPlayer(article.id);
-              }}
-            >
-              {showPodcastPlayer ? 'Tutup Podcast' : 'Putar Podcast'}
-            </button>
-          )}
-          {showPodcastPlayer && (
-            <div className="podcast-player-panel">
-              {spotifyEmbedUrl && (
-                <div className="podcast-embed podcast-audio">
-                  <iframe
-                    src={spotifyEmbedUrl}
-                    width="100%"
-                    height="232"
-                    frameBorder="0"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                  ></iframe>
-                </div>
-              )}
-              {youtubeEmbedUrl && (
-                <div className="podcast-embed podcast-video">
-                  <iframe
-                    src={youtubeEmbedUrl}
-                    width="100%"
-                    height="240"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                </div>
-              )}
-              {!spotifyEmbedUrl && !youtubeEmbedUrl && (
-                <p className="podcast-player-placeholder">Tidak ada embed podcast tersedia untuk artikel ini.</p>
-              )}
+        </>
+      );
+    } else {
+      cardInner = (
+        <>
+          <div className="article-image-wrapper">
+            <img
+              src={imageUrl}
+              alt={article.title}
+              loading="lazy"
+              onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/600x400?text=Image"; }}
+            />
+          </div>
+          <div className="card-content">
+            <h3>{article.title || "Judul tidak tersedia"}</h3>
+            <div className="card-meta">
+              <div className="card-author">
+                {authorPhoto ? (
+                  <div className="card-author-avatar-wrap">
+                    <img src={authorPhoto} alt={authorName} className="card-author-avatar" />
+                  </div>
+                ) : !isPodcast ? (
+                  <div className="card-author-avatar-wrap">
+                    <span className="card-author-initials">{getInitials(authorName)}</span>
+                  </div>
+                ) : null}
+                <span className="card-author-name">{authorName}</span>
+              </div>
             </div>
-          )}
-        </div>
-      </>
-    );
+            {isPodcast && <span className="podcast-badge">Podcast</span>}
+            {isPodcast && (
+              <button
+                type="button"
+                className="podcast-toggle-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePodcastPlayer(article.id);
+                }}
+              >
+                {showPodcastPlayer ? 'Tutup Podcast' : 'Putar Podcast'}
+              </button>
+            )}
+            {showPodcastPlayer && (
+              <div className="podcast-player-panel">
+                 {spotifyEmbedUrl && (
+                  <div className="podcast-embed podcast-audio">
+                    <iframe src={spotifyEmbedUrl} width="100%" height="232" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+                  </div>
+                )}
+                {youtubeEmbedUrl && (
+                  <div className="podcast-embed podcast-video">
+                    <iframe src={youtubeEmbedUrl} width="100%" height="240" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+                  </div>
+                )}
+                {!spotifyEmbedUrl && !youtubeEmbedUrl && (
+                  <p className="podcast-player-placeholder">Tidak ada embed podcast tersedia untuk artikel ini.</p>
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      );
+    }
 
     if (isPodcast) {
       return (
         <div
-          className={`article-card article-card--podcast ${index === 0 ? 'article-card--hero' : ''}`}
+          className={`article-card article-card--podcast ${isHero ? 'article-card--hero' : ''} ${isSmallHorizontal ? 'article-card--news-small' : ''}`}
           key={article.id || index}
         >
           {cardInner}
@@ -292,9 +382,9 @@ function Home() {
 
     return (
       <Link 
-        className={`article-card ${index === 0 ? 'article-card--hero' : ''}`}
+        className={`article-card ${isHero ? 'article-card--hero' : ''} ${isSmallHorizontal ? 'article-card--news-small' : ''}`}
         key={article.id || index} 
-        to={`/article/${article.id}`}>
+        to={`/article/${article.slug}`}>
         {cardInner}
       </Link>
     );
@@ -326,23 +416,113 @@ function Home() {
     ? []
     : (Array.isArray(trendingArticles) ? trendingArticles.slice(0, 5) : []);
 
+  const randomArticles = React.useMemo(() => {
+    if (!allArticles || !Array.isArray(allArticles)) return [];
+    
+    const normalArticles = allArticles.filter(a => normalizeCategory(a?.category) !== 'podcast');
+    const shuffled = [...normalArticles].sort(() => 0.5 - Math.random());
+    
+    return shuffled.slice(0, 3);
+  }, [allArticles]);
+
+  // ============================================================
+  // FUNGSI RENDER KATEGORI (MEMBACA AD_CONFIG)
+  // ============================================================
+  const renderCategoryGroup = (group, index) => {
+    const isNewsStyle = index % 2 === 0;
+    const isLifestyleStyle = index % 2 !== 0;
+    
+    const maxArticles = isLifestyleStyle ? 10 : 5;
+
+    const groupArticles = (Array.isArray(allArticles) ? allArticles : [])
+      .filter((item) =>
+        item?.category && group.categorySlugs?.some(
+          (slug) => slug.toLowerCase() === item.category.toLowerCase()
+        ) && normalizeCategory(item.category) !== 'podcast'
+      )
+      .slice(0, maxArticles);
+
+    if (groupArticles.length === 0 && !articleLoading) return null;
+
+    // ----- BACA PENGATURAN IKLAN DARI CONFIG -----
+    const kategori = group.slug.toLowerCase();
+    
+    // Jika kategori tidak ada di config, defaultnya mati (false)
+    const adSetting = AD_CONFIG[kategori] || {
+      kanan: { tampil: false },
+      bawah: { tampil: false }
+    };
+
+    const tampilIklanKanan = adSetting.kanan?.tampil;
+    const tampilIklanBawah = adSetting.bawah?.tampil;
+    // ---------------------------------------------
+
+    return (
+      <section key={group.slug} className={`home-section ${isNewsStyle ? 'news-section-special' : ''} ${isLifestyleStyle ? 'lifestyle-section-special' : ''}`}>
+        <div className="section-header">
+          <h2>{group.label}</h2>
+          <Link to={`/category/${group.slug}`} className="section-link">
+            Lihat semua <span className="arrow-right">→</span>
+          </Link>
+        </div>
+        
+        <div className={isNewsStyle ? "news-with-sidebar-wrapper" : ""}>
+          <div className={`article-grid ${isNewsStyle ? 'news-article-grid' : ''} ${isLifestyleStyle ? 'lifestyle-article-grid' : ''}`}>
+            {articleLoading
+              ? Array(maxArticles > 5 ? 3 : 3).fill(0).map((_, i) => <SkeletonCard key={i} />)
+              : groupArticles.map((article, i) => renderCard(article, i, isNewsStyle, isLifestyleStyle))
+            }
+          </div>
+
+         {/* Iklan Vertikal Sisi Kanan (AdSense) */}
+         {isNewsStyle && tampilIklanKanan && (
+            <div className="news-sidebar-right">
+              <div className="news-sidebar-static">
+                <AdSlot 
+                  type="vertical" 
+                  mode="adsense" 
+                  adClient={adSetting.kanan.adClient} 
+                  adSlot={adSetting.kanan.adSlot} 
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Iklan Horizontal Bawah (AdSense) */}
+        {tampilIklanBawah && (
+          <div className="ad-news-horizontal">
+            <AdSlot 
+              type="horizontal" 
+              mode="adsense" 
+              adClient={adSetting.bawah.adClient} 
+              adSlot={adSetting.bawah.adSlot} 
+            />
+          </div>
+        )}
+      </section>
+    );
+  };
+
   return (
     <div className="home-container">
 
-      {/* ===== LAYOUT: Iklan Kiri | Konten | Iklan Kanan ===== */}
+      {/* ======================================================= */}
+      {/* WADAH 1: TRENDING & IKLAN STICKY                        */}
+      {/* ======================================================= */}
       <div className="home-layout-wrapper">
-
-        {/* Iklan Vertikal Kiri */}
         <div className="ad-sidebar ad-sidebar-left">
           <div className="ad-sidebar-sticky">
-            <AdSlot type="vertical" label="Iklan" />
+            <AdSlot 
+              type="vertical" 
+              mode="adsense" 
+              adClient="ca-pub-XXXXXXXXX" 
+              adSlot="99999991" 
+            />
           </div>
         </div>
 
-        {/* ===== KONTEN UTAMA ===== */}
         <div className="home-main-content">
-
-          {/* Section Trending */}
           <section className="section-trending">
             <div className="section-header">
               <h2>Trending Hari Ini</h2>
@@ -357,39 +537,64 @@ function Home() {
               }
             </div>
           </section>
+        </div>
 
-          {/* Iklan Horizontal Tengah */}
-          <div className="ad-center">
-            <AdSlot type="horizontal" label="Iklan" />
+        <div className="ad-sidebar ad-sidebar-right">
+          <div className="ad-sidebar-sticky">
+            <AdSlot 
+              type="vertical" 
+              mode="adsense" 
+              adClient="ca-pub-XXXXXXXXX" 
+              adSlot="99999992" 
+            />
           </div>
+        </div>
+      </div> 
 
-          {/* Section Categories */}
-          {categoryGroups?.map((group) => {
-            const groupArticles = (Array.isArray(allArticles) ? allArticles : [])
-              .filter((item) =>
-                item?.category && group.categorySlugs?.some(
-                  (slug) => slug.toLowerCase() === item.category.toLowerCase()
-                ) && normalizeCategory(item.category) !== 'podcast'
-              )
-              .slice(0, 5);
+      {/* ======================================================= */}
+      {/* WADAH 2: KONTEN BAWAH (REELS, KATEGORI, DLL)            */}
+      {/* ======================================================= */}
+      <div className="home-layout-wrapper" style={{ marginTop: '40px' }}>
+        <div className="ad-sidebar ad-sidebar-left" style={{ visibility: 'hidden', pointerEvents: 'none' }}></div>
 
-            if (groupArticles.length === 0 && !articleLoading) return null;
+        <div className="home-main-content">
+
+          <section className="home-section section-video-reels">
+            <div className="section-header">
+              <h2>Video Reels</h2>
+              <Link to="/video-reels" className="section-link">
+                Lihat semua <span className="arrow-right">→</span>
+              </Link>
+            </div>
+            {videoReelsLoading ? (
+              <p style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Memuat Video Reels...</p>
+            ) : videoReels && videoReels.length > 0 ? (
+              <VideoReels reels={videoReels} />
+            ) : (
+              <p style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Belum ada video reels yang aktif.</p>
+            )}
+          </section>
+
+          {/* Render Berbagai Kategori & Section Rekomendasi */}
+          {categoryGroups?.map((group, index) => {
+            const isActualLifestyle = group.slug.toLowerCase() === 'lifestyle' || group.label.toLowerCase() === 'lifestyle';
 
             return (
-              <section key={group.slug} className="home-section">
-                <div className="section-header">
-                  <h2>{group.label}</h2>
-                  <Link to={`/category/${group.slug}`} className="section-link">
-                    Lihat semua <span className="arrow-right">→</span>
-                  </Link>
-                </div>
-                <div className="article-grid">
-                  {articleLoading
-                    ? Array(3).fill(0).map((_, i) => <SkeletonCard key={i} />)
-                    : groupArticles.map((article, index) => renderCard(article, index))
-                  }
-                </div>
-              </section>
+              <React.Fragment key={group.slug}>
+                {renderCategoryGroup(group, index)}
+
+                {isActualLifestyle && randomArticles.length > 0 && !articleLoading && (
+                  <section className="home-section random-section">
+                    <div className="section-header">
+                      <h2>Rekomendasi Pilihan</h2>
+                    </div>
+                    <div className="random-article-grid">
+                      {randomArticles.slice(0, 4).map((article, i) => renderCard(article, i + 10))}
+                    </div>
+                  </section>
+                )}
+
+              </React.Fragment>
             );
           })}
 
@@ -401,21 +606,17 @@ function Home() {
           )}
 
         </div>
-        {/* ===== END KONTEN UTAMA ===== */}
 
-        {/* Iklan Vertikal Kanan */}
-        <div className="ad-sidebar ad-sidebar-right">
-          <div className="ad-sidebar-sticky">
-            <AdSlot type="vertical" label="Iklan" />
-          </div>
-        </div>
-
+        <div className="ad-sidebar ad-sidebar-right" style={{ visibility: 'hidden', pointerEvents: 'none' }}></div>
       </div>
-      {/* ===== END LAYOUT WRAPPER ===== */}
 
-      {/* Iklan Horizontal sebelum Footer */}
       <div className="ad-before-footer">
-        <AdSlot type="horizontal" label="Iklan" />
+        <AdSlot 
+          type="horizontal" 
+          mode="adsense" 
+          adClient="ca-pub-XXXXXXXXX" 
+          adSlot="99999993" 
+        />
       </div>
 
     </div>

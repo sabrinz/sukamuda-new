@@ -23,6 +23,7 @@ import Help from './pages/Help';
 import ArticleDetail from './pages/ArticleDetail';
 import FAQ from './pages/FAQ.jsx';
 import PublicProfile from './pages/PublicProfile';
+import VideoReelsPage from './pages/VideoReelsPage';
 
 // IMPORT HALAMAN ADMIN & SEARCH
 import AdminDashboard from './pages/AdminDashboard';
@@ -37,7 +38,8 @@ function App() {
         <Routes> 
           <Route path="/" element={<Home />} />
           <Route path="/category/:slug" element={<Category />} />
-          <Route path="/article/:id" element={<ArticleDetail />} />
+          <Route path="/article/:slug" element={<ArticleDetail />} />
+          <Route path="/video-reels" element={<VideoReelsPage />} />
           <Route path="/search" element={<Search />} />
           <Route path="/about" element={<About />} />
           
