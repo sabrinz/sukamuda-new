@@ -1,8 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-/* ========================================
-   VARIABEL
-   ======================================== */
 :root {
   --bg: #F3F4F6;
   --card: #FFFFFF;
@@ -17,9 +14,6 @@
   --radius-sm: 10px;
 }
 
-/* ========================================
-   HALAMAN
-   ======================================== */
 .register-page {
   min-height: 100vh;
   min-height: 100dvh;
@@ -32,9 +26,6 @@
   overflow: hidden;
 }
 
-/* ========================================
-   PARTIKEL FLOATING
-   ======================================== */
 .particles {
   position: fixed;
   inset: 0;

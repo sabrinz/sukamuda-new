@@ -8,19 +8,23 @@
 
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="article">
-    <meta property="og:url" content="{{ $shareUrl }}">
+    <meta property="og:site_name" content="SUKAMUDA">
+    <meta property="og:url" content="{{ $articleUrl }}">
     <meta property="og:title" content="{{ $shareTitle }}">
     <meta property="og:description" content="{{ $shareDescription }}">
     <meta property="og:image" content="{{ $shareImage }}">
+    <meta property="og:image:secure_url" content="{{ $shareImage }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="{{ $shareUrl }}">
-    <meta property="twitter:title" content="{{ $shareTitle }}">
-    <meta property="twitter:description" content="{{ $shareDescription }}">
-    <meta property="twitter:image" content="{{ $shareImage }}">
+    <!-- Twitter (PERBAIKAN: pakai name= bukan property=) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ $shareUrl }}">
+    <meta name="twitter:title" content="{{ $shareTitle }}">
+    <meta name="twitter:description" content="{{ $shareDescription }}">
+    <meta name="twitter:image" content="{{ $shareImage }}">
 
-    <!-- Redirect fallback (Meta Refresh) -->
+    <!-- Redirect fallback -->
     <meta http-equiv="refresh" content="0; url={{ $articleUrl }}">
 
     <style>

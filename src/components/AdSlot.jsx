@@ -1,80 +1,84 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './AdSlot.css';
-
-// ============================================================
-// CARA PAKAI:
-//
-// MODE 1 - Placeholder (kotak kosong, buat development):
-//   <AdSlot type="horizontal" mode="placeholder" label="Iklan" />
-//   <AdSlot type="vertical" mode="placeholder" label="Iklan" />
-//
-// MODE 2 - Banner gambar sendiri:
-//   <AdSlot type="horizontal" mode="image"
-//     imageUrl="https://urlgambarmu.com/banner.jpg"
-//     linkUrl="https://linkiklan.com"
-//   />
-//
-// MODE 3 - Google AdSense:
-//   <AdSlot type="horizontal" mode="adsense"
-//     adClient="ca-pub-XXXXXXXXXX"
-//     adSlot="XXXXXXXXXX"
-//   />
-// ============================================================
 
 const AdSlot = ({
   type = 'horizontal',
-  mode = 'placeholder',  // 'placeholder' | 'image' | 'adsense'
+  mode = 'placeholder',
   label = 'Iklan',
   imageUrl = '',
   linkUrl = '#',
-  adClient = '',   
-  adSlot = '',     
+  adClient = '',
+  adSlot = '',
 }) => {
+  const imgRef = useRef(null);
+  
+  // Penanda agar iklan mutlak hanya di-push 1x
+  const isPushed = useRef(false);
 
-  const adClass = type === 'vertical' ? 'ad-slot-box vertical' : 'ad-slot-box horizontal';
+  // Otomatis ubah jadi placeholder kalau dijalankan di localhost
+  const isLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  const activeMode = isLocal ? 'placeholder' : mode;
 
-  // Aktifkan AdSense saat komponen mount
+  // Push iklan
   useEffect(() => {
-    if (mode === 'adsense') {
+    // Hanya eksekusi jika mode adsense dan belum pernah di-push
+    if (activeMode === 'adsense' && !isPushed.current) {
       try {
+        isPushed.current = true;
+        // Kita push ke array window.adsbygoogle (Google yang akan eksekusi nanti)
         (window.adsbygoogle = window.adsbygoogle || []).push({});
       } catch (e) {
-        console.error('AdSense error:', e);
+        console.error('AdSense push error:', e);
       }
     }
-  }, [mode]);
+  }, [activeMode]);
 
-  // MODE 1: Placeholder (kotak kosong)
-  if (mode === 'placeholder') {
+  // Hapus shimmer saat gambar sudah load (untuk mode image)
+  const handleImageLoad = () => {
+    if (imgRef.current && imgRef.current.parentElement) {
+      imgRef.current.parentElement.classList.add('imgLoaded');
+    }
+  };
+
+  const sizeLabel = type === 'horizontal' ? '728 × 90' : '160 × 250';
+
+  // ── 1. Tampilan Placeholder (Otomatis saat di Localhost) ──
+  if (activeMode === 'placeholder') {
     return (
-      <div className={adClass}>
-        {label}
+      <div className={`ad-slot-box ${type} ad-placeholder`}>
+        <span className="ad-placeholder-icon">◻</span>
+        <span className="ad-placeholder-label">{label}</span>
+        <span className="ad-placeholder-size">{sizeLabel}</span>
       </div>
     );
   }
 
-  // MODE 2: Banner gambar sendiri
-  if (mode === 'image') {
+  // ── 2. Tampilan Iklan Gambar Custom ──
+  if (activeMode === 'image') {
     return (
-      <div className={adClass} style={{ padding: 0, border: 'none' }}>
-        <a href={linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', height: '100%' }}>
+      <div className={`ad-slot-box ${type} ad-image`}>
+        <a href={linkUrl} target="_blank" rel="noopener noreferrer">
           <img
+            ref={imgRef}
             src={imageUrl}
             alt="Iklan"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+            loading="lazy"
+            onLoad={handleImageLoad}
           />
         </a>
       </div>
     );
   }
 
-  // MODE 3: Google AdSense
-  if (mode === 'adsense') {
+  // ── 3. Tampilan Google AdSense ──
+  if (activeMode === 'adsense') {
+    // Langsung render tag <ins>. Jika script Google diblokir AdBlock, 
+    // kotak ini akan otomatis dikosongkan/diabaikan, tidak perlu menampilkan error kuning.
     return (
-      <div className={adClass} style={{ padding: 0, border: 'none', overflow: 'hidden' }}>
+      <div className={`ad-slot-box ${type} ad-adsense`}>
         <ins
           className="adsbygoogle"
-          style={{ display: 'block', width: '100%', height: '100%' }}
+          style={{ display: 'block' }}
           data-ad-client={adClient}
           data-ad-slot={adSlot}
           data-ad-format="auto"
@@ -87,4 +91,5 @@ const AdSlot = ({
   return null;
 };
 
-export default AdSlot;
+// Bungkus dengan React.memo untuk mencegah re-render saat halaman di-scroll
+export default React.memo(AdSlot);

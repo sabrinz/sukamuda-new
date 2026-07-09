@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-// SAYA TAMBAHKAN SEMUA IMPORT INI SUPAYA TIDAK ERROR
 use App\Models\User;
 use App\Models\Comment;
 use App\Models\ArticleLike;
+use App\Models\ArticleView; // <- DITAMBAHKAN
 use App\Models\Notification;
 
 use Illuminate\Database\Eloquent\Model;
@@ -29,12 +29,14 @@ class Article extends Model
         'summary',
         'content',
         'tags',
-        'status', // Nilai: 'approved', 'pending', 'draft', 'rejected'
+        'status',
         'rejection_reason',
         'views',
-        'is_trending', // Tambahkan
-        'audio_link',  // Untuk podcast Spotify link
-        'video_link',  // Untuk podcast YouTube link
+        // 'is_trending', -> DIHAPUS (Diganti 2 kolom baru di bawah)
+        'is_ever_trending',  // <- DITAMBAHKAN
+        'is_manual_trending', // <- DITAMBAHKAN
+        'audio_link',
+        'video_link',
     ];
 
     protected static function booted(): void
@@ -68,45 +70,43 @@ class Article extends Model
         return $slug;
     }
 
-    /**
-     * Relasi: Artikel ini milik User siapa?
-     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Relasi: Artikel ini punya komentar apa saja?
-     */
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
     }
 
-    /**
-     * Relasi ke tabel likes untuk menghitung jumlah suka
-     */
     public function likes(): HasMany
     {
         return $this->hasMany(ArticleLike::class);
     }
 
-    /**
-     * Relasi balik untuk mengetahui siapa saja yang menyukai artikel ini
-     * (Ini dipakai untuk Tab "Disukai" di Profil User)
-     */
     public function likedByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'article_likes', 'article_id', 'user_id')
                     ->withTimestamps();
     }
 
-    /**
-     * Relasi ke notifikasi yang terkait dengan artikel ini
-     */
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
+    }
+
+    // ==========================================
+    // FUNGSI TRENDING & VIEW BARU (DITAMBAHKAN)
+    // ==========================================
+
+    public function views()
+    {
+        return $this->hasMany(ArticleView::class);
+    }
+
+    public function getUniqueViewsCountAttribute()
+    {
+        return $this->views()->distinct('user_id')->count() + $this->views()->whereNull('user_id')->distinct('ip_address')->count();
     }
 }

@@ -1,8 +1,16 @@
 import axios from 'axios';
 
+const apiBaseUrl = import.meta.env.VITE_API_URL;
+const normalizeUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `https://${url}`;
+};
+const baseURL = normalizeUrl(apiBaseUrl) || 'https://sukamuda.co.id';
+
 // 1. Konfigurasi Dasar (Wajib agar Session & Cookie sinkron)
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = 'https://sukamuda.co.id';
+axios.defaults.baseURL = baseURL;
 axios.defaults.headers.common['Accept'] = 'application/json';
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 

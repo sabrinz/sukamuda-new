@@ -6,7 +6,6 @@ import './VerifyOtp.css';
 import logoSukaMuda from '../assets/logo.png';
 
 const VerifyOtp = () => {
-  // --- STATE ---
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(60);
@@ -18,7 +17,6 @@ const VerifyOtp = () => {
   const location = useLocation();
   const userData = location.state;
 
-  // --- LIFECYCLE ---
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(t);
@@ -35,7 +33,6 @@ const VerifyOtp = () => {
     }
   }, [userData, navigate, timer]);
 
-  // --- HANDLERS ---
   const handleChange = (e, index) => {
     const val = e.target.value;
     if (isNaN(val)) return;

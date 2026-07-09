@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// <--- SAYA TAMBAHKAN INI AGAR TIDAK ERROR
 use App\Models\Article;
 use App\Models\Comment; 
 
@@ -18,10 +17,7 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     * * Semua kolom profil Sukamuda sudah masuk ke sini agar bisa disimpan lewat ProfileController.
-     */
+   
     protected $fillable = [
         'name',
         'email',
@@ -40,19 +36,12 @@ class User extends Authenticatable implements MustVerifyEmail
         'interests', 
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     */
+    
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     * * Sangat penting: 'interests' => 'array' memastikan data JSON di database 
-     * dikonversi menjadi array murni saat sampai di React (mencegah error .map())
-     */
     protected function casts(): array
     {
         return [
@@ -62,9 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    /**
-     * Relasi ke Artikel yang ditulis oleh user ini.
-     */
+   
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class)->latest();

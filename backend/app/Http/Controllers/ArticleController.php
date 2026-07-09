@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Article;
-use App\Models\Comment;
+use App\Models\ArticleView; 
 use App\Models\ArticleLike;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -15,17 +15,32 @@ use Illuminate\Support\Facades\DB;
 
 class ArticleController extends Controller
 {
-    /**
-     * Helper untuk mengubah path gambar menjadi URL lengkap
-     */
+    private function formatImageUrl($imagePath)
+{
+    if (empty($imagePath) || !is_string($imagePath)) {
+        return null;
+    }
+
+    // kalau sudah URL
+    if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+
+        // ubah localhost ke domain hosting
+        $imagePath = str_replace(
+            'http://127.0.0.1:8000',
+            'https://sukamuda.co.id',
+            $imagePath
+        );
+
+        return $imagePath;
+    }
+
+    return 'https://sukamuda.co.id/storage/' . ltrim($imagePath, '/');
+}
+
     private function transformArticles($articles)
     {
         $articles->getCollection()->transform(function ($article) {
-            if ($article->image) {
-                if (!filter_var($article->image, FILTER_VALIDATE_URL)) {
-                    $article->image = asset('storage/' . $article->image);
-                }
-            }
+            $article->image = $this->formatImageUrl($article->image);
             return $article;
         });
         return $articles;
@@ -65,9 +80,14 @@ class ArticleController extends Controller
     {
         $articles = Article::where('category', $category)
             ->where('status', 'approved')
-            ->select('id', 'title', 'slug')
+            ->select('id', 'title', 'slug', 'image', 'video_link', 'user_id', 'category')
+            ->with('user:id,name,avatar')
             ->latest()
             ->get();
+
+        foreach ($articles as $article) {
+            $article->image = $this->formatImageUrl($article->image);
+        }
 
         return response()->json($articles);
     }
@@ -75,7 +95,12 @@ class ArticleController extends Controller
     public function getPublicArticles(Request $request)
     {
         $user = $request->user('sanctum');
-        $query = Article::where('status', 'approved')->with('user')->withCount('likes');
+        
+        $query = Article::where('status', 'approved')
+            // Menambahkan 'content' jika kamu pakai cara bypass cPanel sementara
+            ->select(['id', 'user_id', 'title', 'slug', 'image', 'summary', 'content', 'category', 'created_at'])
+            ->with('user:id,name,avatar')
+            ->withCount('likes');
 
         if ($user) {
             $query->withExists(['likes as is_liked_by_user' => function ($q) use ($user) {
@@ -84,13 +109,16 @@ class ArticleController extends Controller
         }
 
         $articles = $query->latest()->paginate(50);
-        $this->transformArticles($articles);
-        return response()->json($articles->items())->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
+        $articles->getCollection()->transform(function ($article) {
+            $article->image = $this->formatImageUrl($article->image);
+            return $article;
+        });
+
+        return response()->json($articles->items())
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
-    /**
-     * FUNGSI SIMPAN ARTIKEL BARU
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -129,9 +157,7 @@ class ArticleController extends Controller
             'views'         => 0
         ]);
 
-        if ($article->image) {
-            $article->image = asset('storage/' . $article->image);
-        }
+        $article->image = $this->formatImageUrl($article->image);
 
         Cache::flush();
         return response()->json(['message' => 'Berita berhasil dibuat!', 'data' => $article], 201);
@@ -143,6 +169,15 @@ class ArticleController extends Controller
 
         $article = $this->buildArticleDetailQuery($user)->where('slug', $slug)->first();
 
+        if (!$article && preg_match('/^(.+)-\d{10,}$/', $slug, $matches)) {
+            $cleanSlug = $matches[1];
+            $article = $this->buildArticleDetailQuery($user)->where('slug', $cleanSlug)->first();
+            
+            if ($article) {
+                $article->update(['slug' => $cleanSlug]);
+            }
+        }
+
         if (!$article && ctype_digit($slug)) {
             $article = $this->buildArticleDetailQuery($user)->where('id', (int) $slug)->first();
         }
@@ -151,9 +186,7 @@ class ArticleController extends Controller
             return response()->json(['message' => 'Artikel tidak ditemukan'], 404);
         }
 
-        if ($article->image && !filter_var($article->image, FILTER_VALIDATE_URL)) {
-            $article->image = asset('storage/' . $article->image);
-        }
+        $article->image = $this->formatImageUrl($article->image);
 
         return response()->json(['data' => $article]);
     }
@@ -171,9 +204,6 @@ class ArticleController extends Controller
         return $query;
     }
 
-    /**
-     * FUNGSI UPDATE ARTIKEL
-     */
     public function update(Request $request, $id)
     {
         $article = Article::findOrFail($id);
@@ -238,14 +268,12 @@ class ArticleController extends Controller
         $oldStatus = $article->status;
         $article->status = $request->status;
         
-        // Simpan alasan penolakan jika status rejected
         if ($request->status === 'rejected') {
             $article->rejection_reason = $request->rejection_reason;
         }
         
         $article->save();
 
-        // Buat notifikasi untuk penulis artikel
         $articleTitle = $article->title;
         
         if ($request->status === 'approved') {
@@ -337,7 +365,6 @@ class ArticleController extends Controller
         return response()->json(['message' => 'Artikel berhasil dihapus permanen dari sampah!']);
     }
 
-    // --- Sisanya Fungsi Like, Comment, dll (Tetap Sama) ---
     public function toggleLike(Request $request, $id)
     {
         $user = $request->user();
@@ -350,11 +377,9 @@ class ArticleController extends Controller
             $like->delete();
             $status = 'unliked';
         } else {
-            ArticleLike::create(['user_id' => $user->id, 'article_id' => $id]);
+            $like = ArticleLike::create(['user_id' => $user->id, 'article_id' => $id]);
             $status = 'liked';
 
-            // Buat notifikasi jika like (jangan untuk unlike)
-            // Jangan kirim notifikasi ke user sendiri
             if ($article->user_id !== $user->id) {
                 $message = "{$user->name} menyukai artikel anda yang berjudul \"{$article->title}\"";
                 
@@ -377,12 +402,44 @@ class ArticleController extends Controller
             'likes_count' => $likesCount
         ]);
     }
-    
+
+    // --- FUNGSI BARU UNTUK MENGATASI ERROR 500 VIEWS ---
     public function incrementView($id)
     {
+        try {
+            $article = Article::findOrFail($id);
+            $article->increment('views'); 
+
+            return response()->json([
+                'success' => true,
+                'views' => $article->views,
+                'message' => 'View count updated successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update view count: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function view(Request $request, $id)
+    {
         $article = Article::findOrFail($id);
+        
         $article->increment('views');
-        return response()->json(['views' => $article->views]);
+        
+        ArticleView::create([
+            'article_id' => $id,
+            'ip_address' => $request->ip(),
+            'user_id'    => $request->user('sanctum')?->id,
+        ]);
+
+        return response()->json([
+            'views' => $article->fresh()->views,
+            'is_new_view' => true,
+        ]);
     }
 
     public function destroy(Request $request, $id)
@@ -395,31 +452,114 @@ class ArticleController extends Controller
         Cache::flush();
         return response()->json(['message' => 'Artikel berhasil dipindahkan ke sampah!']);
     }
+
     public function toggleTrending($id)
     {
         $article = Article::findOrFail($id);
 
-        $article->is_trending = !$article->is_trending;
+        $article->is_manual_trending = !$article->is_manual_trending;
         $article->save();
-
-        Cache::flush();
+        
+        Cache::forget('trending_weekly_' . now()->startOfWeek()->format('Y-m-d'));
 
         return response()->json([
-            'message' => 'Trending updated',
-            'is_trending' => $article->is_trending
+            'message' => 'Trending manual updated',
+            'is_manual_trending' => $article->is_manual_trending
         ]);
     }
 
+   public function shareRender($slug)
+{
+    $article = Article::where('slug', $slug)->firstOrFail();
+
+   if ($article->image) {
+
+    if (str_starts_with($article->image, 'http')) {
+
+        $shareImage = str_replace(
+            'http://127.0.0.1:8000',
+            'https://sukamuda.co.id',
+            $article->image
+        );
+
+    } else {
+
+        $shareImage = asset('storage/' . $article->image);
+
+    }
+
+} else {
+
+    $shareImage = asset('images/default-placeholder.png');
+
+}
+
+    $cleanDescription = Str::limit(
+        strip_tags($article->summary ?? $article->content),
+        140,
+        '...'
+    );
+
+    $reactBaseUrl = 'https://sukamuda.co.id'; 
+    $articleUrl = rtrim($reactBaseUrl, '/') . '/article/' . $article->slug;
+
+    return view('article_share', [
+        'shareTitle'       => $article->title . ' - SUKAMUDA',
+        'shareDescription' => $cleanDescription,
+        'shareUrl'         => url('/share/article/' . $article->slug),
+        'shareImage'       => $shareImage,
+        'articleUrl'       => $articleUrl
+    ]);
+}
+
+    // --- FUNGSI TRENDING YANG SUDAH DIPERBAIKI ---
     public function trending()
     {
-        $articles = Article::where('status', 'approved')
-            ->where('is_trending', true)
-            ->with('user')
-            ->latest()
-            ->take(5)
-            ->get();
+        // Ubah nama cache key agar sistem langsung membaca kode yang baru
+        $cacheKey = 'trending_weekly_final_' . now()->startOfWeek()->format('Y-m-d');
+        
+        $articles = Cache::remember($cacheKey, now()->addHour(), function () {
+            
+            $startOfWeek = now()->startOfWeek();
+            
+            // Ganti bagian $weeklyViews dengan kode ini:
+$weeklyViews = ArticleView::select('article_id', \DB::raw('COUNT(*) as total_views'))
+    ->groupBy('article_id')
+    ->pluck('total_views', 'article_id')
+    ->toArray();
+
+            $articles = Article::where('status', 'approved')
+                ->where(function ($query) {
+                    $query->whereNull('is_ever_trending')
+                          ->orWhere('is_ever_trending', 0)
+                          ->orWhere('is_manual_trending', 1);
+                })
+                ->select([
+                    'id', 'user_id', 'title', 'slug', 'image', 
+                    'summary', 'category', 'created_at', 'views',
+                    'is_ever_trending', 'is_manual_trending'
+                ])
+                ->with('user:id,name')
+                ->get();
+
+            $articles = $articles->map(function ($article) use ($weeklyViews) {
+                // Menambahkan data sementara untuk di-sorting
+                $article->weekly_views = $weeklyViews[$article->id] ?? 0;
+                return $article;
+            })->sortByDesc('weekly_views')->take(5);
+
+            foreach ($articles as $article) {
+                if (!$article->is_manual_trending) {
+                    // Gunakan Query Builder langsung agar tidak error column not found
+                    \DB::table('articles')->where('id', $article->id)->update(['is_ever_trending' => 1]);
+                    $article->is_ever_trending = 1;
+                }
+                $article->image = $this->formatImageUrl($article->image);
+            }
+            
+            return $articles->values();
+        });
 
         return response()->json($articles);
     }
-}
-
+} 

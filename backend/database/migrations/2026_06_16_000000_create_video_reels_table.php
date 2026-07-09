@@ -11,19 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('video_reels', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('title');
-            $table->text('description')->nullable();
-            $table->string('video_url'); // URL lengkap dari platform
-            $table->string('platform'); // instagram, tiktok, facebook, youtube
-            $table->string('thumbnail_url')->nullable(); // Optional thumbnail
-            $table->string('status')->default('active'); // active, inactive, draft
-            $table->integer('views')->default(0);
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('video_reels')) {
+            Schema::create('video_reels', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->string('title');
+                $table->text('description')->nullable();
+                $table->string('video_url'); // URL lengkap dari platform
+                $table->string('platform'); // instagram, tiktok, facebook, youtube
+                $table->string('thumbnail_url')->nullable(); // Optional thumbnail
+                $table->string('status')->default('active'); // active, inactive, draft
+                $table->integer('views')->default(0);
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
     }
 
     /**
@@ -33,4 +35,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('video_reels');
     }
-};
+};  

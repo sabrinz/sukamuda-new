@@ -14,26 +14,20 @@ class ProfileController extends Controller
     public function index(Request $request)
     {
         try {
-            // 1. Ambil user yang sedang login
             $user = $request->user();
 
             if (!$user) {
                 return response()->json(['message' => 'User tidak ditemukan'], 401);
             }
 
-            // 2. Ambil semua artikel user dan filter berdasarkan status
             $allArticles = Article::where('user_id', $user->id)->get();
 
-            // PENTING: Gunakan string exact sesuai database Anda
             $posts = $allArticles->where('status', 'approved')->values();
             $drafts = $allArticles->where('status', 'draft')->values();
             $pending = $allArticles->where('status', 'pending')->values();
-            $rejected = $allArticles->where('status', 'rejected')->values();
 
-            // 3. Load favorites (artikel yang di-like)
             $favorites = $user->favorites()->get();
 
-            // 4. Siapkan data response
             $data = [
                 'name' => $user->name,
                 'email' => $user->email,
@@ -44,11 +38,9 @@ class ProfileController extends Controller
                 'avatar' => $user->avatar ? asset('storage/' . $user->avatar) : null,
                 'coverPhoto' => $user->cover_photo ? asset('storage/' . $user->cover_photo) : null,
                 
-                // List Artikel
                 'posts' => $this->formatArticles($posts),
                 'drafts' => $this->formatArticles($drafts),
                 'pending' => $this->formatArticles($pending),
-                'rejected' => $this->formatArticles($rejected),
                 'favorites' => $this->formatArticles($favorites),
             ];
 
@@ -69,7 +61,6 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         try {
-            // 1. Validasi input
             $request->validate([
                 'name' => 'required|string|max:255',
                 'bio' => 'nullable|string|max:500',
@@ -82,20 +73,16 @@ class ProfileController extends Controller
 
             $user = $request->user();
 
-            // 2. Update teks biasa
             $user->name = $request->name;
             $user->bio = $request->bio;
             $user->profession = $request->profession;
-            $user->school_name = $request->schoolName; // Simpan ke snake_case DB
+            $user->school_name = $request->schoolName;
             
-            // 3. Update interests (JSON)
             if ($request->has('interests')) {
                  $user->interests = $request->interests;
             }
             
-            // 4. Handle Upload Avatar
             if ($request->hasFile('avatarFile')) {
-                // Hapus avatar lama jika ada
                 if ($user->avatar) {
                     Storage::disk('public')->delete($user->avatar);
                 }
@@ -113,7 +100,6 @@ class ProfileController extends Controller
 
             $user->save();
 
-            // 5. Kirim ulang data profil terbaru setelah update
             return $this->index($request);
 
         } catch (\Exception $e) {
@@ -122,21 +108,14 @@ class ProfileController extends Controller
         }
     }
 
-    /**
-     * Helper function untuk format array artikel
-     * DIPERBAIKI: Menggunakan foreach dengan continue agar error pada satu artikel tidak menghentikan semua.
-     */
     private function formatArticles($articles)
     {
-        // Cek jika kosong
         if (!$articles || $articles->isEmpty()) {
             return [];
         }
 
-        // Gunakan foreach untuk safety
         $formatted = [];
         foreach ($articles as $article) {
-            // Skip jika object article tidak valid
             if (!$article) continue;
 
             try {
@@ -145,29 +124,23 @@ class ProfileController extends Controller
                     'title' => $article->title ?? 'Tanpa Judul',
                     'slug' => $article->slug ?? '',
                     'category' => $article->category ?? 'Umum',
-                    // Cek gambar
                     'image' => !empty($article->image) 
                         ? (filter_var($article->image, FILTER_VALIDATE_URL) ? $article->image : asset('storage/' . $article->image)) 
                         : null,
-                    'summary' => $article->summary ?? '',
+                    'excerpt' => $article->summary ?? '',
                     'content' => $article->content ?? '',
                     'status' => $article->status,
                     'createdAt' => $article->created_at,
                     'updatedAt' => $article->updated_at,
                 ];
             } catch (\Exception $e) {
-                // Jika ada error pada artikel tertentu, lewati saja (jangan blok semua)
                 continue;
             }
         }
 
-        // Kembalikan array (sudah otomatis ter-reset indexnya 0,1,2..)
         return array_values($formatted);
     }
 
-    /**
-     * Dapatkan profil public berdasarkan id user.
-     */
     public function showPublic($id)
     {
         try {

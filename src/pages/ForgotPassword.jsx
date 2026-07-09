@@ -29,7 +29,6 @@ const ForgotPassword = () => {
     setSuccess('');
   };
 
-  // ===== OTP LOGIC =====
   const handleOtpChange = (index, value) => {
     if (!/^\d*$/.test(value)) return;
     const newOtp = [...otp];

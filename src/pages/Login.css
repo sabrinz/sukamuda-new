@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-/* ========================================
+/* ══════════════════════════════════════
    VARIABEL
-   ======================================== */
+   ══════════════════════════════════════ */
 :root {
   --bg: #F3F4F6;
   --card: #FFFFFF;
@@ -17,23 +17,26 @@
   --radius-sm: 10px;
 }
 
-/* ========================================
+/* ══════════════════════════════════════
    HALAMAN
-   ======================================== */
+   ══════════════════════════════════════ */
 .login-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg);
-  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   position: relative;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ========================================
-   PARTIKEL FLOATING
-   ======================================== */
+/* ══════════════════════════════════════
+   PARTIKEL
+   ══════════════════════════════════════ */
 .particles {
   position: fixed;
   inset: 0;
@@ -51,18 +54,19 @@
   bottom: -12px;
   opacity: 0;
   animation: particleFloat var(--duration) var(--delay) infinite linear;
+  will-change: transform, opacity;
 }
 
 @keyframes particleFloat {
   0%   { opacity: 0;    transform: translateY(0) translateX(0); }
-  10%  { opacity: 0.5; }
-  90%  { opacity: 0.5; }
+  10%  { opacity: 0.45; }
+  90%  { opacity: 0.45; }
   100% { opacity: 0;    transform: translateY(-100vh) translateX(30px); }
 }
 
-/* ========================================
-   DEKORASI GARIS & BENTUK
-   ======================================== */
+/* ══════════════════════════════════════
+   DEKORASI GARIS
+   ══════════════════════════════════════ */
 .deco-line {
   position: absolute;
   height: 2px;
@@ -73,42 +77,24 @@
   animation: decoFadeIn 1s ease forwards;
 }
 
-.deco-line-1 {
-  width: 120px;
-  top: 12%;
-  left: 7%;
-  transform: rotate(-20deg);
-  animation-delay: 0.3s;
-}
-
-.deco-line-2 {
-  width: 90px;
-  bottom: 16%;
-  right: 6%;
-  transform: rotate(25deg);
-  animation-delay: 0.5s;
-}
-
-.deco-line-3 {
-  width: 70px;
-  top: 55%;
-  left: 4%;
-  transform: rotate(-40deg);
-  animation-delay: 0.7s;
-}
+.deco-line-1 { width: 120px; top: 12%; left: 7%;  transform: rotate(-20deg); animation-delay: 0.3s; }
+.deco-line-2 { width: 90px;  bottom: 16%; right: 6%; transform: rotate(25deg);  animation-delay: 0.5s; }
+.deco-line-3 { width: 70px;  top: 55%; left: 4%;  transform: rotate(-40deg); animation-delay: 0.7s; }
 
 @keyframes decoFadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
+/* ══════════════════════════════════════
+   DEKORASI BENTUK
+   ══════════════════════════════════════ */
 .deco-shape {
   position: absolute;
   border: 2px solid #D1D5DB;
   pointer-events: none;
   z-index: 0;
   opacity: 0;
-  animation: decoShapeIn 0.8s ease forwards;
 }
 
 .deco-shape-1 {
@@ -118,7 +104,7 @@
   top: 8%;
   right: 9%;
   transform: rotate(15deg);
-  animation-delay: 0.4s;
+  animation: decoShapeIn 0.8s 0.4s ease forwards;
 }
 
 .deco-shape-2 {
@@ -127,8 +113,7 @@
   border-radius: 50%;
   bottom: 10%;
   left: 10%;
-  animation-delay: 0.6s;
-  animation-name: decoShapeInCircle;
+  animation: decoCircleIn 0.8s 0.6s ease forwards;
 }
 
 @keyframes decoShapeIn {
@@ -136,14 +121,14 @@
   to   { opacity: 1; transform: rotate(15deg) scale(1); }
 }
 
-@keyframes decoShapeInCircle {
+@keyframes decoCircleIn {
   from { opacity: 0; transform: scale(0.7); }
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* ========================================
+/* ══════════════════════════════════════
    TOMBOL KEMBALI
-   ======================================== */
+   ══════════════════════════════════════ */
 .back-btn {
   position: absolute;
   top: 24px;
@@ -162,12 +147,13 @@
   z-index: 10;
   opacity: 0;
   transform: translateX(-8px);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .is-mounted .back-btn {
   opacity: 1;
   transform: translateX(0);
-  transition-delay: 0.1s;
+  transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .back-btn:hover {
@@ -176,9 +162,13 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* ========================================
+.back-btn:active {
+  transform: translateX(-1px);
+}
+
+/* ══════════════════════════════════════
    KARTU LOGIN
-   ======================================== */
+   ══════════════════════════════════════ */
 .login-card {
   position: relative;
   z-index: 5;
@@ -195,22 +185,22 @@
   text-align: center;
   opacity: 0;
   transform: translateY(20px);
+  will-change: opacity, transform;
 }
 
 .is-mounted .login-card {
   opacity: 1;
   transform: translateY(0);
-  transition:
-    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ========================================
+/* ══════════════════════════════════════
    ANIMASI MASUK PER ITEM
-   ======================================== */
+   ══════════════════════════════════════ */
 .anim-item {
   opacity: 0;
   transform: translateY(12px);
+  will-change: opacity, transform;
 }
 
 .is-mounted .anim-item {
@@ -220,13 +210,16 @@
   transition-delay: calc(0.15s + var(--i) * 0.06s);
 }
 
-/* ========================================
+/* ══════════════════════════════════════
    LOGO
-   ======================================== */
+   ══════════════════════════════════════ */
 .logo-wrap {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin-bottom: 20px;
+  position: relative;
+  height: 64px;
 }
 
 .logo-img {
@@ -234,8 +227,10 @@
   height: 64px;
   border-radius: 16px;
   object-fit: contain;
-  animation: logoFloat 4s ease-in-out infinite;
-  animation-delay: 1s;
+}
+
+.is-mounted .logo-img {
+  animation: logoFloat 4s 1s ease-in-out infinite;
 }
 
 @keyframes logoFloat {
@@ -243,20 +238,35 @@
   50%      { transform: translateY(-4px); }
 }
 
-/* ========================================
+/* Fallback kalau logo gagal load */
+.logo-fallback {
+  display: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--black);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 800;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -1px;
+}
+
+/* ══════════════════════════════════════
    JUDUL
-   ======================================== */
+   ══════════════════════════════════════ */
 .login-heading {
   font-size: 22px;
   font-weight: 800;
   color: var(--text);
-  margin-bottom: 30px;
+  margin: 0 0 30px;
   letter-spacing: -0.3px;
 }
 
-/* ========================================
+/* ══════════════════════════════════════
    FORM
-   ======================================== */
+   ══════════════════════════════════════ */
 .login-form {
   display: flex;
   flex-direction: column;
@@ -301,6 +311,7 @@
 .input-box input {
   flex: 1 1 0%;
   min-width: 0;
+  width: 100%;
   padding: 13px 48px 13px 46px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
@@ -310,8 +321,10 @@
   color: var(--text);
   background: var(--input-bg);
   outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
   box-sizing: border-box;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .input-box input::placeholder {
@@ -325,7 +338,12 @@
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
 }
 
-/* Toggle password */
+.input-box input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Toggle password ── */
 .toggle-pw {
   position: absolute;
   right: 12px;
@@ -339,20 +357,22 @@
   justify-content: center;
   transition: color 0.2s ease;
   z-index: 2;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .toggle-pw:hover {
   color: var(--text);
 }
 
-/* Lupa password */
+/* ── Lupa password ── */
 .forgot-link {
+  display: block;
   text-align: right;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-3);
-  margin: 8px 0 22px 0;
-  cursor: pointer;
+  margin: 8px 0 22px;
+  text-decoration: none;
   transition: color 0.2s ease;
 }
 
@@ -360,9 +380,9 @@
   color: var(--text);
 }
 
-/* ========================================
+/* ══════════════════════════════════════
    TOMBOL LOGIN
-   ======================================== */
+   ══════════════════════════════════════ */
 .btn-login {
   width: 100%;
   padding: 14px;
@@ -374,7 +394,7 @@
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
@@ -382,6 +402,7 @@
   min-height: 48px;
   position: relative;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-login::after {
@@ -397,21 +418,21 @@
     transparent 60%
   );
   transform: translateX(-100%);
-  transition: none;
+  pointer-events: none;
 }
 
-.btn-login:hover::after {
+.btn-login:hover:not(:disabled)::after {
   transform: translateX(100%);
   transition: transform 0.6s ease;
 }
 
-.btn-login:hover {
+.btn-login:hover:not(:disabled) {
   background: #000000;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
-.btn-login:active {
+.btn-login:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
@@ -422,10 +443,7 @@
   transform: none;
 }
 
-.btn-login:disabled::after {
-  display: none;
-}
-
+/* ── Spinner ── */
 .spinner {
   display: inline-block;
   width: 18px;
@@ -440,9 +458,9 @@
   to { transform: rotate(360deg); }
 }
 
-/* ========================================
+/* ══════════════════════════════════════
    PEMISAH & FOOTER
-   ======================================== */
+   ══════════════════════════════════════ */
 .login-sep {
   height: 1px;
   background: var(--border);
@@ -453,6 +471,7 @@
   font-size: 13px;
   color: var(--text-3);
   font-weight: 500;
+  margin: 0;
 }
 
 .link-dark {
@@ -477,9 +496,9 @@
   width: 100%;
 }
 
-/* ========================================
+/* ══════════════════════════════════════
    RESPONSIF
-   ======================================== */
+   ══════════════════════════════════════ */
 @media (max-width: 480px) {
   .login-card {
     padding: 36px 24px 30px;
@@ -492,8 +511,13 @@
     margin-bottom: 26px;
   }
 
-  .logo-img {
+  .logo-img,
+  .logo-fallback {
     width: 56px;
+    height: 56px;
+  }
+
+  .logo-wrap {
     height: 56px;
   }
 
@@ -501,6 +525,13 @@
   .deco-line,
   .deco-shape {
     display: none;
+  }
+
+  .back-btn {
+    top: 16px;
+    left: 16px;
+    width: 36px;
+    height: 36px;
   }
 }
 
@@ -513,17 +544,78 @@
     padding: 12px 40px 12px 42px;
     font-size: 13px;
   }
+
+  .input-group {
+    margin-bottom: 22px;
+  }
 }
 
-/* ========================================
+/* ══════════════════════════════════════
+   LANDSCAPE KECIL (HP landscape)
+   ══════════════════════════════════════ */
+@media (max-height: 580px) and (orientation: landscape) {
+  .login-card {
+    padding: 24px 28px 20px;
+    margin: 12px 24px;
+  }
+
+  .logo-wrap {
+    margin-bottom: 12px;
+    height: 44px;
+  }
+
+  .logo-img,
+  .logo-fallback {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .login-heading {
+    font-size: 18px;
+    margin-bottom: 18px;
+  }
+
+  .input-group {
+    margin-bottom: 16px;
+  }
+
+  .input-box input {
+    padding: 10px 44px 10px 42px;
+  }
+
+  .forgot-link {
+    margin: 4px 0 14px;
+  }
+
+  .login-sep {
+    margin: 18px 0;
+  }
+
+  .particles,
+  .deco-line,
+  .deco-shape {
+    display: none;
+  }
+}
+
+/* ══════════════════════════════════════
    REDUCED MOTION
-   ======================================== */
+   ══════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .login-page,
+  .login-page *,
+  .login-page *::before,
+  .login-page *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .login-card,
+  .anim-item,
+  .back-btn {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

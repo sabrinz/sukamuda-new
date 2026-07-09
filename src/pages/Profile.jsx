@@ -1,14 +1,24 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   IoPencilSharp,
   IoHeart,
   IoTrashOutline,
-  IoCloseCircleOutline,
   IoDocumentTextOutline,
-  IoTimeOutline,
-  IoFileTrayOutline,
   IoFlagOutline,
+  IoCheckmarkCircle,
+  IoAlertCircle,
+  IoCameraOutline,
+  IoImagesOutline,
+  IoSparkles,
+  IoArrowForward,
+  IoCreateOutline,
+  IoCloseOutline,
+  IoBookmarkOutline,
+  IoCheckmarkDoneOutline,
+  IoPersonOutline,
+  IoSchoolOutline,
+  IoGridOutline,
 } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
 import axios, { ensureCsrfToken } from '../utils/axiosConfig';
@@ -16,6 +26,43 @@ import './Profile.css';
 
 const daftarProfession = ['Content Writer', 'Blogger', 'Freelance Writer', 'Contributor', 'Mahasiswa', 'Pelajar', 'Other'];
 const pilihanInterest  = ['News', 'Lifestyle', 'Music & Film', 'Health', 'Hobby', 'Science', 'Sport', 'Gadget', 'Automotive'];
+
+const STUDENT_PROFESSIONS = ['Pelajar', 'Mahasiswa', 'Pelajar/Mahasiswa'];
+const isStudent = (p) => STUDENT_PROFESSIONS.includes(p);
+
+const sanitizeImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+
+  // 1. Coba potong dulu parameter ?v= di belakang agar regex bisa mendeteksi pola ganda dengan bersih
+  let cleanUrl = url;
+  let queryPart = '';
+  const qIndex = url.indexOf('?');
+  if (qIndex !== -1) {
+    cleanUrl = url.substring(0, qIndex);
+    queryPart = url.substring(qIndex); // simpan ?v=... nya
+  }
+
+  // 2. Deteksi pola ganda: domain/storage/domain/storage/...
+  // Pola regex ini spesifik mencari /storage/ yang diawali domain
+  const doubled = cleanUrl.match(/^(https?:\/\/[^/]+\/storage\/)(https?:\/\/[^/]+\/storage\/.+)/);
+  if (doubled) {
+    // Ambil bagian kedua yang benar, lalu tempelkan query ?v=... kembali
+    return doubled[2] + queryPart;
+  }
+
+  // 3. Fallback deteksi ganda tanpa protocol kedua
+  const doubledNoProto = cleanUrl.match(/^(https?:\/\/[^/]+\/)([^/]+\/)(storage\/.+)/);
+  if (doubledNoProto && cleanUrl.includes('/storage/')) {
+    const afterFirst = cleanUrl.replace(/^https?:\/\/[^/]+\/+/, '');
+    if (/^(https?:\/\/)?[^/]+\/storage\//.test(afterFirst)) {
+      const lastStorage = cleanUrl.lastIndexOf('/storage/');
+      if (lastStorage > 0) return cleanUrl.substring(lastStorage) + queryPart;
+    }
+  }
+
+  // Jika tidak ganda, kembalikan URL utuh + query nya
+  return url;
+};
 
 const Profile = () => {
   const { refreshUser } = useAuth();
@@ -26,24 +73,23 @@ const Profile = () => {
   const [activeTab, setActiveTab]           = useState('Posts');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [error, setError]                   = useState(null);
+  const [toast, setToast]                   = useState(null);
 
   const [userData, setUserData] = useState({
     name: '', email: '', bio: '', profession: 'Content Writer',
     schoolName: '', interest: [], avatar: '', coverPhoto: '',
   });
 
-  const [posts, setPosts]                     = useState([]);
-  const [drafts, setDrafts]                   = useState([]);
-  const [pendingArticles, setPendingArticles] = useState([]);
-  const [rejectedArticles, setRejectedArticles] = useState([]);
-  const [favorites, setFavorites]             = useState([]);
+  const [posts, setPosts]     = useState([]);
+  const [drafts, setDrafts]   = useState([]);
+  const [favorites, setFavorites] = useState([]);
 
-  const [tempData, setTempData]   = useState(userData);
-  const [avatarFile, setAvatarFile] = useState(null);
+  const [tempData, setTempData]         = useState(userData);
+  const [avatarFile, setAvatarFile]     = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [coverPhotoFile, setCoverPhotoFile] = useState(null);
   const [coverPhotoPreview, setCoverPhotoPreview] = useState(null);
-  const [saving, setSaving]       = useState(false);
+  const [saving, setSaving]             = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState({ id: null, type: null, title: '' });
   const [deleting, setDeleting]         = useState(false);
@@ -52,56 +98,64 @@ const Profile = () => {
   const [reportReason, setReportReason] = useState('');
   const [reporting, setReporting]       = useState(false);
 
-  /* ── completion ── */
+  // ★ State untuk cache buster
+  const [imageVersion, setImageVersion] = useState(Date.now());
+
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
   const profileData = useMemo(() => {
-    const needsSchool = ['Pelajar', 'Mahasiswa', 'Pelajar/Mahasiswa'].includes(userData.profession);
+    const needsSchool = isStudent(userData.profession);
     const checks = [
-      { done: Boolean(String(userData.profession || '').trim()) },
-      { done: needsSchool ? Boolean(String(userData.schoolName || '').trim()) : true },
-      { done: Array.isArray(userData.interest) && userData.interest.length > 0 },
+      Boolean(String(userData.profession || '').trim()),
+      needsSchool ? Boolean(String(userData.schoolName || '').trim()) : true,
+      Array.isArray(userData.interest) && userData.interest.length > 0,
+      Boolean(String(userData.bio || '').trim()),
     ];
-    const completed = checks.filter(c => c.done).length;
+    const completed = checks.filter(Boolean).length;
     return {
       percent: Math.round((completed / checks.length) * 100),
       isComplete: completed === checks.length,
+      remaining: checks.length - completed,
     };
   }, [userData]);
 
-  /* ── fetch ── */
+  // ★ Pisahkan fungsi load profil agar bisa dipanggil ulang
+  const loadProfile = useCallback(async () => {
+    try {
+      const res = await axios.get('/api/profile');
+      const d = res.data?.data;
+      if (!d) return;
+      setUserData({
+        name:       d.name       || 'User',
+        email:      d.email      || '',
+        bio:        d.bio        || '',
+        profession: d.profession || 'Content Writer',
+        schoolName: d.schoolName || '',
+        interest:   Array.isArray(d.interests) ? d.interests : [],
+        avatar:     d.avatar     || '',
+        coverPhoto: d.coverPhoto || '',
+      });
+      const safe = (arr) => (Array.isArray(arr) ? arr : []);
+      setPosts(safe(d.posts));
+      setDrafts(safe(d.drafts));
+      setFavorites(safe(d.favorites));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Gagal mengambil data profil.');
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
-    const load = async () => {
-      try {
-        const res = await axios.get('/api/profile');
-        const d = res.data?.data;
-        if (!d || !active) return;
-
-        setUserData({
-          name:       d.name       || 'User',
-          email:      d.email      || '',
-          bio:        d.bio        || '',
-          profession: d.profession || 'Content Writer',
-          schoolName: d.schoolName || '',
-          interest:   Array.isArray(d.interests) ? d.interests : [],
-          avatar:     d.avatar     || '',
-          coverPhoto: d.coverPhoto || '',
-        });
-
-        const safe = arr => Array.isArray(arr) ? arr : [];
-        setPosts(safe(d.posts));
-        setDrafts(safe(d.drafts));
-        setPendingArticles(safe(d.pending));
-        setRejectedArticles(safe(d.rejected));
-        setFavorites(safe(d.favorites));
-      } catch (err) {
-        if (active) setError(err.response?.data?.message || 'Gagal mengambil data profil.');
-      } finally {
-        if (active) setLoading(false);
-      }
+    const init = async () => {
+      await loadProfile();
+      if (active) setLoading(false);
     };
-    load();
+    init();
     return () => { active = false; };
-  }, []);
+  }, [loadProfile]);
 
   useEffect(() => {
     if (!loading && location.state?.openEditProfile) {
@@ -110,7 +164,6 @@ const Profile = () => {
     }
   }, [loading, location, navigate]);
 
-  /* ── handlers ── */
   const openModal = () => {
     setTempData(userData);
     setAvatarFile(null);
@@ -120,71 +173,78 @@ const Profile = () => {
     setIsEditModalOpen(true);
   };
 
-  const toggleInterest = it => {
+  const toggleInterest = (it) => {
     const cur = Array.isArray(tempData.interest) ? tempData.interest : [];
-    setTempData({
-      ...tempData,
-      interest: cur.includes(it) ? cur.filter(i => i !== it) : [...cur, it],
-    });
+    setTempData({ ...tempData, interest: cur.includes(it) ? cur.filter((i) => i !== it) : [...cur, it] });
   };
 
-  const handleAvatarChange = e => {
-    const file = e.target.files[0];
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowed.includes(file.type)) { alert('Format file tidak didukung. Gunakan JPG/PNG/WEBP.'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('Ukuran file maksimal 5 MB.'); return; }
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      showToast('Format tidak didukung. Gunakan JPG/PNG/WEBP.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Ukuran maksimal 5 MB.', 'error');
+      return;
+    }
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
 
-  const handleCoverPhotoChange = e => {
-    const file = e.target.files[0];
+  const handleCoverPhotoChange = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type)) { alert('Format foto sampul tidak didukung. Gunakan JPG/PNG/WEBP.'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('Ukuran foto sampul maksimal 5 MB.'); return; }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      showToast('Format tidak didukung. Gunakan JPG/PNG/WEBP.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Ukuran maksimal 5 MB.', 'error');
+      return;
+    }
     setCoverPhotoFile(file);
     setCoverPhotoPreview(URL.createObjectURL(file));
   };
 
   const handleSaveProfile = async () => {
-    if (!tempData.name?.trim()) { alert('Nama tidak boleh kosong.'); return; }
+    if (!tempData.name?.trim()) {
+      showToast('Nama tidak boleh kosong.', 'error');
+      return;
+    }
     setSaving(true);
     try {
       await ensureCsrfToken();
       const fd = new FormData();
-      fd.append('name',       tempData.name || '');
-      fd.append('bio',        tempData.bio  || '');
+      fd.append('name', tempData.name || '');
+      fd.append('bio', tempData.bio || '');
       fd.append('profession', tempData.profession || '');
-      const isStudent = ['Pelajar', 'Mahasiswa', 'Pelajar/Mahasiswa'].includes(tempData.profession);
-      fd.append('schoolName', isStudent ? tempData.schoolName || '' : '');
-      (Array.isArray(tempData.interest) ? tempData.interest : [])
-        .forEach(item => fd.append('interests[]', item));
+      fd.append('schoolName', isStudent(tempData.profession) ? tempData.schoolName || '' : '');
+      (Array.isArray(tempData.interest) ? tempData.interest : []).forEach((item) => fd.append('interests[]', item));
       if (avatarFile) fd.append('avatarFile', avatarFile);
       if (coverPhotoFile) fd.append('coverPhotoFile', coverPhotoFile);
 
-      const res = await axios.post('/api/profile', fd);
-      const sd  = res.data?.data;
-      if (sd) {
-        setUserData({
-          name:       sd.name       || '',
-          email:      sd.email      || '',
-          bio:        sd.bio        || '',
-          profession: sd.profession || '',
-          schoolName: sd.schoolName || '',
-          interest:   Array.isArray(sd.interests) ? sd.interests : [],
-          avatar:     sd.avatar     || '',
-          coverPhoto: sd.coverPhoto || '',
-        });
-        if (refreshUser) await refreshUser();
-      }
+      await axios.post('/api/profile', fd);
+
+      // ★ PERBAIKAN UTAMA: Re-fetch profil dari server setelah simpan
+      // Ini menjamin data avatar/coverPhoto selalu akurat
+      await loadProfile();
+
+      // Update cache buster agar gambar langsung refresh
+      setImageVersion(Date.now());
+
+      if (refreshUser) await refreshUser();
+
       setIsEditModalOpen(false);
       setAvatarFile(null);
       setAvatarPreview(null);
+      setCoverPhotoFile(null);
+      setCoverPhotoPreview(null);
+      showToast('Profil berhasil diperbarui.', 'success');
     } catch (err) {
       console.error(err);
-      alert('Gagal menyimpan profil.');
+      showToast('Gagal menyimpan profil.', 'error');
     } finally {
       setSaving(false);
     }
@@ -196,16 +256,15 @@ const Profile = () => {
     try {
       await ensureCsrfToken();
       await axios.delete(`/api/articles/${deleteTarget.id}`);
-      const rm = (list, id) => list.filter(x => x.id !== id);
+      const rm = (list, id) => list.filter((x) => x.id !== id);
       const { id, type } = deleteTarget;
-      if (type === 'post')     setPosts(p => rm(p, id));
-      if (type === 'draft')    setDrafts(p => rm(p, id));
-      if (type === 'pending')  setPendingArticles(p => rm(p, id));
-      if (type === 'rejected') setRejectedArticles(p => rm(p, id));
-      if (type === 'favorite') setFavorites(p => rm(p, id));
+      if (type === 'post') setPosts((p) => rm(p, id));
+      if (type === 'draft') setDrafts((p) => rm(p, id));
+      if (type === 'favorite') setFavorites((p) => rm(p, id));
       setDeleteTarget({ id: null, type: null, title: '' });
+      showToast('Artikel berhasil dihapus.', 'success');
     } catch {
-      alert('Gagal menghapus artikel.');
+      showToast('Gagal menghapus artikel.', 'error');
     } finally {
       setDeleting(false);
     }
@@ -216,16 +275,13 @@ const Profile = () => {
     setReporting(true);
     try {
       await ensureCsrfToken();
-      await axios.post('/api/reports', {
-        article_id: reportTarget.id,
-        reason: reportReason.trim(),
-      });
-      alert('Laporan berhasil dikirim.');
+      await axios.post('/api/reports', { article_id: reportTarget.id, reason: reportReason.trim() });
       setReportTarget({ id: null, title: '' });
       setReportReason('');
+      showToast('Laporan berhasil dikirim.', 'success');
     } catch (err) {
       console.error(err);
-      alert('Gagal mengirim laporan.');
+      showToast('Gagal mengirim laporan.', 'error');
     } finally {
       setReporting(false);
     }
@@ -234,348 +290,625 @@ const Profile = () => {
   const clearDelete = () => !deleting && setDeleteTarget({ id: null, type: null, title: '' });
   const clearReport = () => !reporting && setReportTarget({ id: null, title: '' });
 
-  /* ── loading ── */
-  if (loading) return <div className="pp-loading">Memuat profil…</div>;
+  if (loading) return <ProfileSkeleton />;
 
-  const avatarBg = avatarPreview || userData.avatar;
-  const coverBg = coverPhotoPreview || userData.coverPhoto;
-  const initials = userData.name?.charAt(0).toUpperCase() || '?';
+  // ★ Cache buster function
+  const addCacheBust = (url) => {
+    if (!url || url.startsWith('blob:')) return url;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}v=${imageVersion}`;
+  };
+
+  const avatarSrc    = addCacheBust(sanitizeImageUrl(avatarPreview || userData.avatar));
+  const coverSrc     = addCacheBust(sanitizeImageUrl(coverPhotoPreview || userData.coverPhoto));
+  const initials     = userData.name?.charAt(0).toUpperCase() || '?';
+  const hasAvatarImg = Boolean(avatarSrc);
+  const hasCoverImg  = Boolean(coverSrc);
+
+  const TABS = [
+    { id: 'Posts',    label: 'Published', count: posts.length,     icon: <IoDocumentTextOutline size={15} /> },
+    { id: 'Draft',    label: 'Drafts',    count: drafts.length,    icon: <IoCreateOutline size={15} /> },
+    { id: 'Favorite', label: 'Favorites', count: favorites.length, icon: <IoHeart size={14} /> },
+  ];
 
   return (
-    <div className="pp-page">
+    <div className="pf-page">
 
-      {/* ── HEADER ── */}
-      <div className="pp-header">
-        <div
-          className="pp-banner"
-          style={coverBg ? {
-            backgroundImage: `url(${coverBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          } : undefined}
-        />
-        <div className="pp-info-row">
-          <div className="pp-avatar-wrap">
-            <div
-              className="pp-avatar"
-              style={avatarBg ? { backgroundImage: `url(${avatarBg})` } : {}}
-              onClick={openModal}
-            >
-              {!avatarBg && initials}
-            </div>
-            <div className="pp-avatar-edit" onClick={openModal}>
-              <IoPencilSharp size={12} />
-            </div>
+      {/* ═══ COVER PHOTO ═══ */}
+      <header className="pf-cover-section">
+        <div className="pf-cover-wrapper">
+          <div className="pf-cover-bg" style={hasCoverImg ? { backgroundImage: `url(${coverSrc})` } : undefined}>
+            {!hasCoverImg && (
+              <>
+                <div className="pf-cover-mesh" />
+                <div className="pf-cover-orb pf-cover-orb--1" />
+                <div className="pf-cover-orb pf-cover-orb--2" />
+                <div className="pf-cover-orb pf-cover-orb--3" />
+                <div className="pf-cover-grid-lines" />
+              </>
+            )}
+          </div>
+          <div className="pf-cover-gradient" />
+          <div className="pf-cover-shine" />
+        </div>
+      </header>
+
+      {/* ═══ PROFILE CARD ═══ */}
+      <section className="pf-card-section">
+        <div className="pf-card">
+
+          <div className="pf-card-avatar-wrap">
+            <button className="pf-avatar-trigger" onClick={openModal} aria-label="Ganti foto profil">
+              <div className="pf-avatar-ring">
+                {hasAvatarImg ? (
+                  <img
+                    className="pf-avatar-img-tag"
+                    src={avatarSrc}
+                    alt={userData.name}
+                  />
+                ) : (
+                  <div className="pf-avatar-img pf-avatar-img--fallback">
+                    <span className="pf-avatar-initial">{initials}</span>
+                  </div>
+                )}
+              </div>
+              <span className="pf-avatar-badge">
+                <IoCameraOutline size={11} />
+              </span>
+            </button>
           </div>
 
-          <div className="pp-meta">
-            <div className="pp-name-row">
-              <h1 className="pp-name">{userData.name}</h1>
-              <button className="pp-edit-btn" onClick={openModal} aria-label="Edit profil">
-                <IoPencilSharp size={14} />
-              </button>
+          {/* Info */}
+          <div className="pf-card-info">
+            <h1 className="pf-card-name">{userData.name}</h1>
+
+            <div className="pf-card-tags">
+              <span className="pf-tag">
+                <IoSparkles size={11} />
+                {userData.profession}
+              </span>
+              {isStudent(userData.profession) && userData.schoolName && (
+                <span className="pf-tag pf-tag--sub">
+                  <IoSchoolOutline size={11} />
+                  {userData.schoolName}
+                </span>
+              )}
             </div>
-            <p className="pp-bio">{userData.bio || 'Belum ada bio.'}</p>
-            <p className="pp-prof">
-              {userData.profession}
-              {['Pelajar', 'Mahasiswa', 'Pelajar/Mahasiswa'].includes(userData.profession) && userData.schoolName ? ` · ${userData.schoolName}` : ''}
-            </p>
+
+            {userData.bio && <p className="pf-card-bio">{userData.bio}</p>}
+
+            <div className="pf-card-meta-row">
+              {userData.email && (
+                <span className="pf-meta-email">{userData.email}</span>
+              )}
+            </div>
+
             {Array.isArray(userData.interest) && userData.interest.length > 0 && (
-              <div className="pp-pills">
-                {userData.interest.map((it, i) => (
-                  <span key={i} className="pp-pill">{it} +</span>
+              <div className="pf-interest-pills">
+                {userData.interest.map((it) => (
+                  <span key={it} className="pf-interest-pill">{it}</span>
                 ))}
               </div>
+            )}
+
+            <button className="pf-edit-profile-btn" onClick={openModal}>
+              <IoPencilSharp size={13} />
+              <span>Edit Profil</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ MAIN CONTENT ═══ */}
+      <main className="pf-main">
+
+        {error && (
+          <div className="pf-error-banner">
+            <IoAlertCircle size={18} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {!profileData.isComplete && (
+          <div className="pf-completion-card">
+            <div className="pf-comp-header">
+              <div className="pf-comp-icon-wrap">
+                <IoSparkles size={14} />
+              </div>
+              <div className="pf-comp-text">
+                <h4>Lengkapi Profilmu</h4>
+                <p>{profileData.remaining} langkah lagi untuk profil sempurna</p>
+              </div>
+            </div>
+            <div className="pf-comp-footer">
+              <div className="pf-comp-progress">
+                <div className="pf-comp-bar">
+                  <div className="pf-comp-fill" style={{ width: `${profileData.percent}%` }} />
+                </div>
+                <span className="pf-comp-pct">{profileData.percent}%</span>
+              </div>
+              <button className="pf-comp-btn" onClick={openModal}>
+                Lengkapi
+                <IoArrowForward size={12} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <nav className="pf-tabs">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`pf-tab ${activeTab === tab.id ? 'pf-tab--active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <span className="pf-tab-icon">{tab.icon}</span>
+              <span className="pf-tab-label">{tab.label}</span>
+              {tab.count > 0 && <span className="pf-tab-count">{tab.count}</span>}
+            </button>
+          ))}
+        </nav>
+
+        {/* Tab Content */}
+        <section className="pf-tab-content">
+          {activeTab === 'Posts' && (
+            posts.length > 0 ? (
+              <div className="pf-grid">
+                {posts.map((p, i) => (
+                  <ArticleCard
+                    key={p.id}
+                    data={p}
+                    idx={i}
+                    type="post"
+                    onReport={() => setReportTarget({ id: p.id, title: p.title })}
+                    onDelete={() => setDeleteTarget({ id: p.id, type: 'post', title: p.title })}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<IoDocumentTextOutline size={26} />}
+                msg="Belum ada artikel yang diterbitkan."
+                sub="Mulai bagikan ceritamu kepada dunia."
+                cta="Tulis Artikel Pertama"
+                onClick={() => navigate('/write')}
+              />
+            )
+          )}
+
+          {activeTab === 'Draft' && (
+            drafts.length > 0 ? (
+              <div className="pf-grid">
+                {drafts.map((d, i) => (
+                  <ArticleCard
+                    key={d.id}
+                    data={d}
+                    idx={i}
+                    type="draft"
+                    onDelete={() => setDeleteTarget({ id: d.id, type: 'draft', title: d.title })}
+                    onEdit={() => navigate('/write', { state: { draft: d } })}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<IoCreateOutline size={26} />}
+                msg="Belum ada draft."
+                sub="Ide-ide mu menunggu untuk ditulis."
+                cta="Mulai Menulis"
+                onClick={() => navigate('/write')}
+              />
+            )
+          )}
+
+          {activeTab === 'Favorite' && (
+            favorites.length > 0 ? (
+              <div className="pf-grid">
+                {favorites.map((f, i) => (
+                  <ArticleCard
+                    key={f.id}
+                    data={f}
+                    idx={i}
+                    type="favorite"
+                    userName={f.author?.name}
+                    onDelete={() => setDeleteTarget({ id: f.id, type: 'favorite', title: f.title })}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<IoBookmarkOutline size={26} />}
+                msg="Belum ada artikel favorit."
+                sub="Simpan artikel yang kamu suka untuk dibaca nanti."
+              />
+            )
+          )}
+        </section>
+      </main>
+
+      {/* ═══ EDIT MODAL ═══ */}
+      {isEditModalOpen && (
+        <div className="pf-overlay" onClick={() => !saving && setIsEditModalOpen(false)}>
+          <div className="pf-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pf-modal-head">
+              <div>
+                <h2>Edit Profil</h2>
+                <p>Perbarui informasi publik kamu</p>
+              </div>
+              <button
+                className="pf-modal-close"
+                onClick={() => !saving && setIsEditModalOpen(false)}
+                aria-label="Tutup"
+              >
+                <IoCloseOutline size={20} />
+              </button>
+            </div>
+
+            <div className="pf-modal-body">
+              {/* Avatar Section */}
+              <div className="pf-fm-avatar-section">
+                <div
+                  className={`pf-fm-avatar-display ${hasAvatarImg ? 'pf-fm-avatar-display--has-preview' : ''}`}
+                  onClick={() => document.getElementById('pf-avatar-input')?.click()}
+                >
+                  {avatarSrc ? (
+                    <img
+                      className="pf-fm-avatar-circle-img"
+                      src={avatarSrc}
+                      alt="Preview"
+                    />
+                  ) : (
+                    <div className="pf-fm-avatar-circle">
+                      <span>{initials}</span>
+                    </div>
+                  )}
+                  <div className="pf-fm-avatar-overlay">
+                    <IoCameraOutline size={20} />
+                    <span>Ganti Foto</span>
+                  </div>
+                  <input
+                    id="pf-avatar-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleAvatarChange}
+                    hidden
+                  />
+                </div>
+                {avatarFile && (
+                  <div className="pf-fm-file-status pf-fm-file-status--success">
+                    <IoCheckmarkDoneOutline size={13} />
+                    <span>{avatarFile.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Cover Photo */}
+              <div className="pf-fm-group">
+                <label className="pf-fm-label">Foto Sampul</label>
+                <div
+                  className={`pf-fm-cover-area ${hasCoverImg ? 'pf-fm-cover-area--has-preview' : ''}`}
+                  onClick={() => document.getElementById('pf-cover-input')?.click()}
+                >
+                  {hasCoverImg ? (
+                    <>
+                      <img
+                        className="pf-fm-cover-img-tag"
+                        src={coverSrc}
+                        alt="Cover preview"
+                      />
+                      <div className="pf-fm-cover-overlay">
+                        <IoImagesOutline size={16} />
+                        <span>Ganti Sampul</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="pf-fm-cover-empty">
+                      <IoImagesOutline size={22} />
+                      <span>Pilih Foto Sampul</span>
+                      <small>JPG, PNG, atau WEBP — Maks 5MB</small>
+                    </div>
+                  )}
+                  <input
+                    id="pf-cover-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleCoverPhotoChange}
+                    hidden
+                  />
+                </div>
+                {coverPhotoFile && (
+                  <div className="pf-fm-file-status pf-fm-file-status--success">
+                    <IoCheckmarkDoneOutline size={13} />
+                    <span>{coverPhotoFile.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Nama */}
+              <div className="pf-fm-group">
+                <label className="pf-fm-label">Nama Lengkap</label>
+                <input
+                  className="pf-fm-input"
+                  value={tempData.name}
+                  onChange={(e) => setTempData({ ...tempData, name: e.target.value })}
+                  placeholder="Nama kamu"
+                />
+              </div>
+
+              {/* Bio */}
+              <div className="pf-fm-group">
+                <label className="pf-fm-label">Bio</label>
+                <textarea
+                  className="pf-fm-input pf-fm-textarea"
+                  value={tempData.bio}
+                  rows={3}
+                  onChange={(e) => setTempData({ ...tempData, bio: e.target.value })}
+                  placeholder="Ceritakan sedikit tentang dirimu..."
+                />
+              </div>
+
+              {/* Profesi + Sekolah */}
+              <div className="pf-fm-row">
+                <div className="pf-fm-group">
+                  <label className="pf-fm-label">Profesi</label>
+                  <select
+                    className="pf-fm-input pf-fm-select"
+                    value={tempData.profession}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setTempData({
+                        ...tempData,
+                        profession: v,
+                        schoolName: isStudent(v) ? tempData.schoolName : '',
+                      });
+                    }}
+                  >
+                    {daftarProfession.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+                {isStudent(tempData.profession) && (
+                  <div className="pf-fm-group">
+                    <label className="pf-fm-label">
+                      {tempData.profession === 'Pelajar' ? 'Asal Sekolah' : 'Asal Kampus'}
+                    </label>
+                    <input
+                      className="pf-fm-input"
+                      value={tempData.schoolName}
+                      onChange={(e) => setTempData({ ...tempData, schoolName: e.target.value })}
+                      placeholder={tempData.profession === 'Pelajar' ? 'Nama sekolah' : 'Nama kampus'}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Interest */}
+              <div className="pf-fm-group">
+                <label className="pf-fm-label">Minat</label>
+                <div className="pf-fm-chips">
+                  {pilihanInterest.map((it) => (
+                    <button
+                      type="button"
+                      key={it}
+                      className={`pf-fm-chip ${(tempData.interest || []).includes(it) ? 'pf-fm-chip--on' : ''}`}
+                      onClick={() => toggleInterest(it)}
+                    >
+                      {it}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="pf-modal-foot">
+              <button
+                className="pf-btn-ghost"
+                onClick={() => !saving && setIsEditModalOpen(false)}
+                disabled={saving}
+              >
+                Batal
+              </button>
+              <button className="pf-btn-primary" onClick={handleSaveProfile} disabled={saving}>
+                {saving ? (
+                  <>
+                    <span className="pf-spinner" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  'Simpan Perubahan'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ DELETE MODAL ═══ */}
+      {deleteTarget.id && (
+        <div className="pf-overlay" onClick={clearDelete}>
+          <div className="pf-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="pf-dialog-icon pf-dialog-icon--danger">
+              <IoTrashOutline size={22} />
+            </div>
+            <h3>Hapus Artikel?</h3>
+            <p>"<strong>{deleteTarget.title}</strong>" akan dihapus permanen dan tidak bisa dikembalikan.</p>
+            <div className="pf-dialog-actions">
+              <button className="pf-btn-ghost" onClick={clearDelete} disabled={deleting}>Batal</button>
+              <button className="pf-btn-danger" onClick={handleDeleteArticle} disabled={deleting}>
+                {deleting ? (
+                  <><span className="pf-spinner" />Menghapus...</>
+                ) : (
+                  'Hapus Permanen'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ REPORT MODAL ═══ */}
+      {reportTarget.id && (
+        <div className="pf-overlay" onClick={clearReport}>
+          <div className="pf-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="pf-dialog-icon">
+              <IoFlagOutline size={22} />
+            </div>
+            <h3>Laporkan Artikel</h3>
+            <p>"<strong>{reportTarget.title}</strong>"</p>
+            <textarea
+              className="pf-dialog-textarea"
+              placeholder="Jelaskan alasan pelaporan..."
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              rows={4}
+            />
+            <div className="pf-dialog-actions">
+              <button className="pf-btn-ghost" onClick={clearReport} disabled={reporting}>Batal</button>
+              <button
+                className="pf-btn-primary"
+                onClick={handleReportArticle}
+                disabled={reporting || !reportReason.trim()}
+              >
+                {reporting ? (
+                  <><span className="pf-spinner" />Mengirim...</>
+                ) : (
+                  'Kirim Laporan'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ TOAST ═══ */}
+      {toast && (
+        <div className={`pf-toast ${toast.type === 'error' ? 'pf-toast--error' : ''}`}>
+          {toast.type === 'success' ? <IoCheckmarkCircle size={16} /> : <IoAlertCircle size={16} />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════
+   SUBCOMPONENTS
+═══════════════════════════════════════════ */
+
+const ArticleCard = ({ data, type, idx = 0, onDelete, onEdit, onReport }) => {
+  const date = data.createdAt
+    ? new Date(data.createdAt).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '';
+
+  const isDraft = type === 'draft';
+
+  return (
+    <article className="pf-article-card" style={{ animationDelay: `${idx * 0.07}s` }}>
+      <div className="pf-ac-thumb">
+        {data.image ? (
+          <img src={data.image} alt={data.title} loading="lazy" />
+        ) : (
+          <div className="pf-ac-thumb-ph">
+            <IoDocumentTextOutline size={24} />
+          </div>
+        )}
+        {data.category && <span className="pf-ac-cat">{data.category}</span>}
+        {isDraft && <span className="pf-ac-draft-badge">Draft</span>}
+      </div>
+      <div className="pf-ac-body">
+        <div className="pf-ac-meta">
+          <span>{data.category || 'Umum'}</span>
+          <span className="pf-ac-dot" />
+          <span>{date}</span>
+        </div>
+        <h3 className="pf-ac-title">{data.title || 'Tanpa Judul'}</h3>
+        <div className="pf-ac-footer">
+          {type === 'post' || type === 'favorite' ? (
+            <Link to={`/article/${data.slug}`} className="pf-ac-read">
+              Baca
+              <IoArrowForward size={12} />
+            </Link>
+          ) : (
+            <button className="pf-ac-read" onClick={onEdit}>
+              Lanjutkan
+              <IoArrowForward size={12} />
+            </button>
+          )}
+          <div className="pf-ac-actions">
+            {onReport && type === 'post' && (
+              <button className="pf-ac-act" onClick={onReport} title="Laporkan">
+                <IoFlagOutline size={13} />
+              </button>
+            )}
+            {onDelete && (
+              <button className="pf-ac-act pf-ac-act--danger" onClick={onDelete} title="Hapus">
+                <IoTrashOutline size={13} />
+              </button>
             )}
           </div>
         </div>
       </div>
+    </article>
+  );
+};
 
-      {/* ── ERROR ── */}
-      {error && (
-        <div className="pp-error">
-          <div className="pp-error-inner">⚠️ {error}</div>
-        </div>
-      )}
+const EmptyState = ({ icon, msg, sub, cta, onClick }) => (
+  <div className="pf-empty">
+    <div className="pf-empty-icon">{icon}</div>
+    <p className="pf-empty-title">{msg}</p>
+    {sub && <p className="pf-empty-desc">{sub}</p>}
+    {cta && (
+      <button className="pf-btn-primary pf-empty-cta" onClick={onClick}>
+        {cta}
+        <IoArrowForward size={13} />
+      </button>
+    )}
+  </div>
+);
 
-      {/* ── COMPLETION ── */}
-      {!profileData.isComplete && (
-        <div className="pp-completion">
-          <div className="pp-cw">
-            <div className="pp-cw-text">
-              <h4>Lengkapi Profil</h4>
-              <p>Tingkatkan kredibilitasmu</p>
-            </div>
-            <div className="pp-cw-bar">
-              <div className="pp-cw-fill" style={{ width: `${profileData.percent}%` }} />
-            </div>
-            <div className="pp-cw-pct">{profileData.percent}%</div>
+const ProfileSkeleton = () => (
+  <div className="pf-page">
+    <header className="pf-cover-section">
+      <div className="pf-cover-wrapper">
+        <div className="pf-cover-bg pf-skel-dark" />
+      </div>
+    </header>
+    <section className="pf-card-section">
+      <div className="pf-card pf-skel-card-wrap">
+        <div className="pf-card-avatar-wrap">
+          <div className="pf-avatar-ring">
+            <div className="pf-avatar-img pf-skel-circle" />
           </div>
         </div>
-      )}
-
-      {/* ── TABS ── */}
-      <div className="pp-tabs">
-        {[
-          { id: 'Posts',    label: 'Posts',    icon: <IoDocumentTextOutline size={15} /> },
-          { id: 'Draft',    label: `Draft (${drafts.length})`, icon: <IoFileTrayOutline size={15} /> },
-          { id: 'Favorite', label: 'Favorite', icon: <IoHeart size={14} style={{ color: '#ef4444' }} /> },
-        ].map((tab, i, arr) => (
-          <React.Fragment key={tab.id}>
-            <button
-              className={`pp-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.icon} {tab.label}
-            </button>
-            {i < arr.length - 1 && <span className="pp-tab-sep">|</span>}
-          </React.Fragment>
+        <div className="pf-card-info">
+          <div className="pf-skel-bar w50 h9 mb8" />
+          <div className="pf-skel-bar w35 h6 mb10" />
+          <div className="pf-skel-bar w80 h5 mb6" />
+          <div className="pf-skel-bar w60 h5" />
+        </div>
+      </div>
+    </section>
+    <main className="pf-main">
+      <div className="pf-skel-bar w100 h6 mb16" />
+      <div className="pf-grid">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="pf-article-card pf-skel-card">
+            <div className="pf-skel-thumb" />
+            <div className="pf-ac-body" style={{ padding: 14 }}>
+              <div className="pf-skel-bar w40 h4 mb6" />
+              <div className="pf-skel-bar w90 h7 mb6" />
+              <div className="pf-skel-bar w65 h5" />
+            </div>
+          </div>
         ))}
       </div>
-
-      {/* ── CONTENT ── */}
-      <div className="pp-content">
-        {activeTab === 'Posts' && (
-          posts.length > 0
-            ? posts.map(p => (
-                <ArticleCard key={p.id} data={p} type="post" userName={userData.name}
-                  onReport={() => setReportTarget({ id: p.id, title: p.title })} />
-              ))
-            : <EmptyState message="Belum ada artikel yang diterbitkan." />
-        )}
-
-        {/*  */}
-
-        {activeTab === 'Draft' && (
-          drafts.length > 0
-            ? drafts.map(d => (
-                <ArticleCard key={d.id} data={d} type="draft" userName={userData.name}
-                  onDelete={() => setDeleteTarget({ id: d.id, type: 'draft', title: d.title })}
-                  onEdit={() => navigate('/write', { state: { draft: d } })} />
-              ))
-            : <EmptyState message="Draft kosong." />
-        )}
-
-        {activeTab === 'Favorite' && (
-          favorites.length > 0
-            ? favorites.map(fav => (
-                <ArticleCard key={fav.id} data={fav} type="favorite" userName={fav.author?.name} />
-              ))
-            : <EmptyState message="Belum ada artikel yang disukai." />
-        )}
-      </div>
-
-      {/* ── MODAL EDIT ── */}
-      {isEditModalOpen && (
-        <div className="pp-overlay" onClick={() => !saving && setIsEditModalOpen(false)}>
-          <div className="pp-modal" onClick={e => e.stopPropagation()}>
-            <div className="pp-modal-head">
-              <h2>Edit Profil</h2>
-              <button className="pp-modal-close" onClick={() => !saving && setIsEditModalOpen(false)}>
-                <IoCloseCircleOutline size={24} />
-              </button>
-            </div>
-            <div className="pp-modal-body">
-              <div className="pp-field">
-                <label className="pp-label">Nama Lengkap</label>
-                <input className="pp-input" value={tempData.name}
-                  onChange={e => setTempData({ ...tempData, name: e.target.value })} />
-              </div>
-              <div className="pp-field">
-                <label className="pp-label">Bio</label>
-                <input className="pp-input" value={tempData.bio}
-                  onChange={e => setTempData({ ...tempData, bio: e.target.value })} />
-              </div>
-              <div className="pp-field">
-                <label className="pp-label">Profesi</label>
-                <select className="pp-select" value={tempData.profession}
-                  onChange={e => {
-                    const profession = e.target.value;
-                    const isStudent = ['Pelajar', 'Mahasiswa', 'Pelajar/Mahasiswa'].includes(profession);
-                    setTempData({
-                      ...tempData,
-                      profession,
-                      schoolName: isStudent ? tempData.schoolName : '',
-                    });
-                  }}>
-                  {daftarProfession.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              {['Pelajar'].includes(tempData.profession) && (
-                <div className="pp-field">
-                  <label className="pp-label">Asal Sekolah</label>
-                  <input className="pp-input" value={tempData.schoolName}
-                    onChange={e => setTempData({ ...tempData, schoolName: e.target.value })}
-                    placeholder="Nama sekolah" />
-                </div>
-              )}
-
-              {['Mahasiswa'].includes(tempData.profession) && (
-                <div className="pp-field">
-                  <label className="pp-label">Asal Kampus</label>
-                  <input className="pp-input" value={tempData.schoolName}
-                    onChange={e => setTempData({ ...tempData, schoolName: e.target.value })}
-                    placeholder="Nama Kampus" />
-                </div>
-              )}
-
-              <div className="pp-field">
-                <label className="pp-label">Minat</label>
-                <div className="pp-interest-grid">
-                  {pilihanInterest.map(it => (
-                    <div
-                      key={it}
-                      className={`pp-interest-chip ${(tempData.interest || []).includes(it) ? 'active' : ''}`}
-                      onClick={() => toggleInterest(it)}
-                    >
-                      {it} {(tempData.interest || []).includes(it) ? '✓' : '+'}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="pp-field">
-                <label className="pp-label">Ganti Foto Profil</label>
-                <input type="file" className="pp-input" accept="image/jpeg,image/png,image/webp"
-                  onChange={handleAvatarChange} />
-                {avatarFile && (
-                  <small style={{ color: 'green', marginTop: 5, display: 'block' }}>
-                    {avatarFile.name}
-                  </small>
-                )}
-              </div>
-              <div className="pp-field">
-                <label className="pp-label">Ganti Foto Sampul</label>
-                <input type="file" className="pp-input" accept="image/jpeg,image/png,image/webp"
-                  onChange={handleCoverPhotoChange} />
-                {(coverPhotoFile || coverPhotoPreview || userData.coverPhoto) && (
-                  <div className="pp-cover-preview">
-                    <img
-                      src={coverPhotoPreview || userData.coverPhoto}
-                      alt="Preview foto sampul"
-                    />
-                  </div>
-                )}
-                {coverPhotoFile && (
-                  <small style={{ color: 'green', marginTop: 5, display: 'block' }}>
-                    {coverPhotoFile.name}
-                  </small>
-                )}
-              </div>
-            </div>
-            <div className="pp-modal-foot">
-              <button className="pp-btn pp-btn-ghost" onClick={() => !saving && setIsEditModalOpen(false)}>
-                Batal
-              </button>
-              <button className="pp-btn pp-btn-primary" onClick={handleSaveProfile} disabled={saving}>
-                {saving ? 'Menyimpan…' : 'Simpan'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL DELETE ── */}
-      {deleteTarget.id && (
-        <div className="pp-overlay" onClick={clearDelete}>
-          <div className="pp-del-modal" onClick={e => e.stopPropagation()}>
-            <div className="pp-del-icon"><IoTrashOutline size={40} /></div>
-            <h2>Hapus Artikel?</h2>
-            <p>"{deleteTarget.title}" akan dihapus permanen dan tidak dapat dikembalikan.</p>
-            <div className="pp-del-btns">
-              <button className="pp-btn pp-btn-ghost" onClick={clearDelete}>Batal</button>
-              <button className="pp-btn pp-btn-danger" onClick={handleDeleteArticle} disabled={deleting}>
-                {deleting ? 'Menghapus…' : 'Hapus'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL REPORT ── */}
-      {reportTarget.id && (
-        <div className="pp-overlay" onClick={clearReport}>
-          <div className="pp-report-modal" onClick={e => e.stopPropagation()}>
-            <div className="pp-report-icon"><IoFlagOutline size={40} /></div>
-            <h2>Laporkan Artikel</h2>
-            <p>Artikel: "{reportTarget.title}"</p>
-            <textarea
-              className="pp-report-textarea"
-              placeholder="Jelaskan alasan pelaporan..."
-              value={reportReason}
-              onChange={e => setReportReason(e.target.value)}
-              rows={4}
-            />
-            <div className="pp-report-btns">
-              <button className="pp-btn pp-btn-ghost" onClick={clearReport}>Batal</button>
-              <button className="pp-btn pp-btn-primary" onClick={handleReportArticle} disabled={reporting || !reportReason.trim()}>
-                {reporting ? 'Mengirim…' : 'Kirim Laporan'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-/* ─────────────────────────────────────────────
-   SUB COMPONENTS
-───────────────────────────────────────────── */
-const ArticleCard = ({ data, type, userName, onDelete, onEdit, onReport }) => {
-  const date = data.createdAt
-    ? new Date(data.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-    : '-';
-
-  return (
-    <div className="pp-card">
-      <div className="pp-card-thumb">
-        {data.image
-          ? <img src={data.image} alt={data.title} loading="lazy" />
-          : null}
-        {type === 'pending'  && <span className="pp-card-badge badge-pending">Review</span>}
-        {type === 'rejected' && <span className="pp-card-badge badge-rejected">Revisi</span>}
-        {type === 'draft'    && <span className="pp-card-badge badge-draft">Draft</span>}
-        {type === 'post'     && data.category && <span className="pp-card-cat">{data.category}</span>}
-        {type === 'favorite' && data.category && <span className="pp-card-cat">{data.category}</span>}
-      </div>
-      <div className="pp-card-body">
-        <div>
-          {userName && <p className="pp-card-author">Nama : {userName}</p>}
-          <p className="pp-card-submeta">
-            {data.category || 'Umum'} | {date}
-          </p>
-          <h3 className="pp-card-title">{data.title || 'Tanpa Judul'}</h3>
-        </div>
-        <div className="pp-card-actions">
-          {type !== 'favorite' && type !== 'post' ? (
-            <button className="pp-btn pp-btn-primary" onClick={onEdit}>
-              {type === 'rejected' ? 'Revisi' : 'Lanjutkan Menulis'}
-            </button>
-          ) : (
-            <Link to={`/article/${data.slug}`} className="pp-btn pp-btn-link">
-              Selengkapnya &rarr;
-            </Link>
-          )}
-          {onDelete && (
-            <button className="pp-trash" onClick={onDelete} aria-label="Hapus artikel">
-              <IoTrashOutline size={18} />
-            </button>
-          )}
-          {onReport && type === 'post' && (
-            <button className="pp-report" onClick={onReport} aria-label="Laporkan artikel">
-              <IoFlagOutline size={18} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const EmptyState = ({ message }) => (
-  <div className="pp-empty">
-    <IoFileTrayOutline size={40} />
-    <p>{message}</p>
+    </main>
   </div>
 );
 

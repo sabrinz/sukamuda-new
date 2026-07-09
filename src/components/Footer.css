@@ -1,134 +1,535 @@
+/* ================================================= */
+/* ===== FOOTER CONTAINER ===== */
+/* ================================================= */
 .profile-footer {
   background-color: #000;
   color: #fff;
-  padding: 60px 80px; /* Padding samping agak lebar sesuai gambar */
   border-top: 1px solid #1a1a1a;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  margin-top: 20px;
 }
 
+/* ── UTAMA ── */
 .footer-content {
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between; /* Membuat Logo, Tengah, dan Kanan mencar rata */
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 40px 20px;
+  text-align: center;
 }
 
-/* Logo Section */
+/* ================================================= */
+/* ===== LOGO SECTION ===== */
+/* ================================================= */
 .footer-logo-section {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 14px;
 }
 
 .footer-logo-circle {
-  width: 130px;
-  height: 130px;
-  border: 1px solid #fff;
+  width: 88px;
+  height: 88px;
+  border: none;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 15px;
+  overflow: hidden;
+  transition: all 0.35s ease;
+  background: transparent;
+}
+
+.footer-logo-circle:hover {
+  transform: scale(1.04);
 }
 
 .footer-logo-circle img {
-  width: 120%;
+  width: 70%;
   height: auto;
   object-fit: contain;
 }
 
+/* ── SOCIAL ICONS ── */
 .social-follow {
   display: flex;
   align-items: center;
-  gap: 10px; /* sedikit diperlebar biar ga dempet */
-  font-size: 14px;
+  gap: 10px;
 }
 
-.instagram-icon {
-  font-size: 18px;
-  color: #fff;
-  transition: 0.3s;
+.social-follow span {
+  font-size: 10px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  margin-right: 2px;
 }
 
-.instagram-icon:hover {
-  color: #e1306c; /* warna IG */
-  transform: scale(1.2);
+.social-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  background: transparent;
 }
 
-/* TAMBAHAN TIKTOK */
-.tiktok-icon {
-  font-size: 18px;
-  color: #fff;
-  transition: 0.3s;
+.social-icon-wrap:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.tiktok-icon:hover {
-  color: #25f4ee; /* warna khas TikTok */
-  transform: scale(1.2);
-  text-shadow: 0 0 8px rgba(37, 244, 238, 0.7);
+.social-icon-wrap.instagram:hover {
+  border-color: rgba(225, 48, 108, 0.5);
+  background: rgba(225, 48, 108, 0.1);
 }
 
-/* Styling untuk icon Threads */
+.social-icon-wrap.tiktok:hover {
+  border-color: rgba(37, 244, 238, 0.5);
+  background: rgba(37, 244, 238, 0.08);
+}
+
+.social-icon-wrap.threads:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.instagram-icon,
+.tiktok-icon,
 .threads-icon {
-  font-size: 20px;
-  color: #ffffff; /* Warna hitam khas Threads */
-  transition: transform 0.3s ease;
-}
-
-.threads-icon:hover {
-  transform: scale(1.2);
-  color: #444; /* Warna saat di-hover */
-}
-
-/* Pastikan container social-follow menggunakan flex agar sejajar */
-.social-follow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-/* Menu Tengah & Kategori */
-.footer-links, .cat-col {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.footer-links {
-  margin-top: 15px; /* Menyesuaikan agar sejajar dengan tinggi logo */
-}
-
-.footer-links a, .cat-col a {
-  color: #bbb;
-  text-decoration: none;
   font-size: 14px;
-  transition: 0.3s;
+  color: #999;
+  transition: color 0.3s ease;
 }
 
-.footer-links a:hover, .cat-col a:hover {
+.social-icon-wrap.instagram:hover .instagram-icon { color: #e1306c; }
+.social-icon-wrap.tiktok:hover .tiktok-icon { color: #25f4ee; }
+.social-icon-wrap.threads:hover .threads-icon { color: #fff; }
+
+/* ================================================= */
+/* ===== LINKS SECTION ===== */
+/* ================================================= */
+.footer-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+  row-gap: 0;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.footer-links a {
+  color: #666;
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.25s ease;
+  line-height: 1;
+  display: block;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  text-align: center;
+}
+
+.footer-links a:hover {
   color: #fff;
 }
 
-/* Bagian Kategori Spesifik */
+/* ================================================= */
+/* ===== CATEGORIES SECTION ===== */
+/* ================================================= */
+.footer-categories {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
 .footer-categories h3 {
-  font-size: 18px;
-  margin-bottom: 25px;
-  font-weight: bold;
+  font-size: 10px;
+  margin: 0 0 12px 0;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #555;
+  text-transform: uppercase;
+  text-align: center;
 }
 
 .category-grid {
-  display: flex;
-  gap: 80px; /* Jarak lebar antar kolom kategori agar persis di gambar */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+  row-gap: 0;
 }
 
-/* Responsive */
+.cat-col {
+  display: contents;
+}
+
+.cat-col a {
+  color: #666;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.25s ease;
+  line-height: 1;
+  display: block;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  text-align: center;
+}
+
+.cat-col a:last-child {
+  border-bottom: none;
+}
+
+.cat-col a:hover {
+  color: #fff;
+}
+
+/* ================================================= */
+/* ===== BOTTOM BAR ===== */
+/* ================================================= */
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 16px 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-bottom p {
+  font-size: 11px;
+  color: #3a3a3a;
+  margin: 0;
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 16px;
+}
+
+.footer-bottom-links a {
+  font-size: 11px;
+  color: #444;
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+.footer-bottom-links a:hover {
+  color: #fff;
+}
+
+/* ================================================= */
+/* ===== TABLET (≤ 900px) ===== */
+/* ================================================= */
 @media (max-width: 900px) {
   .footer-content {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 40px;
+    gap: 24px;
+    padding: 36px 20px;
   }
+
+  .footer-bottom {
+    padding: 14px 20px;
+  }
+}
+
+/* ================================================= */
+/* ===== MOBILE (≤ 600px) ===== */
+/* ================================================= */
+@media (max-width: 600px) {
+  .footer-content {
+    gap: 26px;
+    padding: 32px 20px;
+  }
+
+  .footer-logo-section {
+    gap: 16px;
+  }
+
+  .footer-logo-circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .social-follow {
+    gap: 12px;
+  }
+
+  .social-icon-wrap {
+    width: 34px;
+    height: 34px;
+  }
+
+  .instagram-icon,
+  .tiktok-icon,
+  .threads-icon {
+    font-size: 15px;
+  }
+
+  .footer-links {
+    max-width: 100%;
+    column-gap: 28px;
+  }
+
+  .footer-links a {
+    font-size: 12px;
+    padding: 9px 0;
+  }
+
+  .footer-categories {
+    max-width: 100%;
+  }
+
+  .footer-categories h3 {
+    font-size: 9px;
+    margin-bottom: 14px;
+  }
+
   .category-grid {
-    gap: 40px;
+    column-gap: 28px;
+  }
+
+  .cat-col a {
+    font-size: 12px;
+    padding: 9px 0;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 20px;
+    text-align: center;
+  }
+
+  .footer-bottom p,
+  .footer-bottom-links a {
+    font-size: 10px;
+  }
+
+  .footer-bottom-links {
+    gap: 14px;
+  }
+}
+
+/* ================================================= */
+/* ===== HP KECIL (≤ 420px) ===== */
+/* ================================================= */
+@media (max-width: 420px) {
+  .footer-content {
+    gap: 24px;
+    padding: 28px 18px;
+  }
+
+  .footer-logo-section {
+    gap: 14px;
+  }
+
+  .footer-logo-circle {
+    width: 72px;
+    height: 72px;
+  }
+
+  .social-follow {
+    gap: 10px;
+  }
+
+  .social-icon-wrap {
+    width: 32px;
+    height: 32px;
+  }
+
+  .instagram-icon,
+  .tiktok-icon,
+.threads-icon {
+    font-size: 14px;
+  }
+
+  .social-follow span {
+    font-size: 9px;
+  }
+
+  .footer-links {
+    column-gap: 24px;
+  }
+
+  .footer-links a {
+    font-size: 12px;
+    padding: 8px 0;
+  }
+
+  .footer-categories h3 {
+    font-size: 9px;
+    margin-bottom: 12px;
+  }
+
+  .category-grid {
+    column-gap: 24px;
+  }
+
+  .cat-col a {
+    font-size: 12px;
+    padding: 8px 0;
+  }
+
+  .footer-bottom {
+    padding: 12px 18px;
+  }
+}
+
+/* ================================================= */
+/* ===== HP SANGAT KECIL (≤ 360px) ===== */
+/* ================================================= */
+@media (max-width: 360px) {
+  .footer-content {
+    gap: 22px;
+    padding: 26px 16px;
+  }
+
+  .footer-logo-section {
+    gap: 12px;
+  }
+
+  .footer-logo-circle {
+    width: 64px;
+    height: 64px;
+  }
+
+  .social-follow {
+    gap: 8px;
+  }
+
+  .social-icon-wrap {
+    width: 30px;
+    height: 30px;
+  }
+
+  .instagram-icon,
+  .tiktok-icon,
+  .threads-icon {
+    font-size: 13px;
+  }
+
+  .social-follow span {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+
+  .footer-links {
+    column-gap: 20px;
+  }
+
+  .footer-links a {
+    font-size: 11px;
+    padding: 7px 0;
+  }
+
+  .footer-categories h3 {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
+
+  .category-grid {
+    column-gap: 20px;
+  }
+
+  .cat-col a {
+    font-size: 11px;
+    padding: 7px 0;
+  }
+
+  .footer-bottom {
+    padding: 10px 16px;
+  }
+
+  .footer-bottom p,
+  .footer-bottom-links a {
+    font-size: 9px;
+  }
+
+  .footer-bottom-links {
+    gap: 12px;
+  }
+}
+
+/* ================================================= */
+/* ===== HP MINI (≤ 320px) ===== */
+/* ================================================= */
+@media (max-width: 320px) {
+  .footer-content {
+    padding: 22px 14px;
+    gap: 20px;
+  }
+
+  .footer-logo-section {
+    gap: 10px;
+  }
+
+  .footer-logo-circle {
+    width: 56px;
+    height: 56px;
+  }
+
+  .social-follow {
+    gap: 8px;
+  }
+
+  .social-icon-wrap {
+    width: 28px;
+    height: 28px;
+  }
+
+  .instagram-icon,
+  .tiktok-icon,
+  .threads-icon {
+    font-size: 12px;
+  }
+
+  .footer-links {
+    column-gap: 16px;
+  }
+
+  .footer-links a {
+    font-size: 10px;
+    padding: 6px 0;
+  }
+
+  .footer-categories h3 {
+    font-size: 8px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .category-grid {
+    column-gap: 16px;
+  }
+
+  .cat-col a {
+    font-size: 10px;
+    padding: 6px 0;
+  }
+
+  .footer-bottom {
+    padding: 10px 14px;
+  }
+
+  .footer-bottom p,
+  .footer-bottom-links a {
+    font-size: 8px;
+  }
+
+  .footer-bottom-links {
+    gap: 10px;
   }
 }

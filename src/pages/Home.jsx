@@ -20,7 +20,7 @@ const fetchArticles = async () => {
 };
 
 const fetchTrending = async () => {
-  const response = await axios.get('/api/trending-articles');
+  const response = await axios.get('/api/trending');
   return Array.isArray(response.data) ? response.data : [];
 };
 
@@ -29,26 +29,22 @@ const fetchVideoReels = async () => {
   return Array.isArray(response.data) ? response.data : [];
 };
 
-// ==========================================
-// PENGATURAN IKLAN ADSENSE PER KATEGORI
-// Nanti ganti 'ca-pub-XXX' dan 'adSlot' dengan aslimu
-// ==========================================
 const AD_CONFIG = {
   'news': {
     kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "11111111" },
     bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "22222222" },
   },
   'lifestyle': {
-    kanan: { tampil: false }, // Dimatikan (Lifestyle tidak ada sidebar)
+    kanan: { tampil: false },
     bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "33333333" },
   },
   'sport': {
     kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "44444444" },
-    bawah: { tampil: false }, // Dimatikan
+    bawah: { tampil: false },
   },
   'sport-e-sport': {
     kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "44444444" },
-    bawah: { tampil: false }, 
+    bawah: { tampil: false },
   },
   'music-film': {
     kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "55555555" },
@@ -59,10 +55,6 @@ const AD_CONFIG = {
     bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "88888888" },
   },
   'science': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "99999999" },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "00000000" },
-  },
-  'scient': {
     kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "99999999" },
     bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "00000000" },
   },
@@ -79,10 +71,19 @@ const AD_CONFIG = {
     bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "78787878" },
   }
 };
-// ==========================================
 
 function Home() {
   const queryClient = useQueryClient();
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 1100);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   React.useEffect(() => {
     queryClient.prefetchQuery({ queryKey: ['publicArticles'], queryFn: fetchArticles });
@@ -96,10 +97,12 @@ function Home() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: trendingArticles = [], isLoading: trendingLoading } = useQuery({
+  const { data: trendingArticles = [], isLoading: trendingLoading, isError: trendingError } = useQuery({
     queryKey: ['trendingArticles'],
     queryFn: fetchTrending,
-    staleTime: 1000 * 60 * 5,
+    cacheTime: 0, // DITAMBAHKAN: Memaksa React untuk lupa cache lama setiap refresh
+    staleTime: 0, // DITAMBAHKAN: Selalu anggap data sudah basi, jadi wajib fetch ulang
+    retry: 1
   });
 
   const { data: videoReels = [], isLoading: videoReelsLoading } = useQuery({
@@ -107,6 +110,39 @@ function Home() {
     queryFn: fetchVideoReels,
     staleTime: 1000 * 60 * 5,
   });
+
+  const articlesImageMap = React.useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(allArticles)) {
+      allArticles.forEach((article) => {
+        if (article) {
+          if (article.id) map.set(String(article.id), article);
+          if (article.slug) map.set(article.slug, article);
+        }
+      });
+    }
+    return map;
+  }, [allArticles]);
+
+    const getTrendingImage = (trendingArticle) => {
+    if (!trendingArticle) return '';
+    
+    // Langsung ambil gambar dari data trending yang dikirim server
+    if (trendingArticle.image) {
+      if (trendingArticle.image.startsWith('http://') || trendingArticle.image.startsWith('https://')) {
+        return trendingArticle.image;
+      }
+      return `${baseUrl}/storage/${trendingArticle.image}`;
+    }
+
+    // Fallback ke thumbnail YouTube jika ada
+    if (trendingArticle.video_link) {
+      const ytThumb = getYoutubeThumbnailUrl(trendingArticle.video_link);
+      if (ytThumb) return ytThumb;
+    }
+
+    return `https://placehold.co/150x100/f5f5f5/999?text=${encodeURIComponent(trendingArticle.category || 'Berita')}`;
+  };
 
   const formatCategory = (cat) =>
     cat ? cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase() : "Umum";
@@ -124,20 +160,14 @@ function Home() {
       const normalized = url.trim();
       if (normalized.startsWith('spotify:')) {
         const parts = normalized.split(':').filter(Boolean);
-        if (parts.length >= 3) {
-          return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
-        }
+        if (parts.length >= 3) return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
         return '';
       }
       const parsed = new URL(normalized);
       if (!parsed.hostname.includes('spotify.com')) return '';
       const parts = parsed.pathname.split('/').filter(Boolean);
-      if (parts[0] === 'embed') {
-        parts.shift();
-      }
-      if (parts.length >= 2) {
-        return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
-      }
+      if (parts[0] === 'embed') parts.shift();
+      if (parts.length >= 2) return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
       return '';
     } catch {
       return '';
@@ -151,24 +181,18 @@ function Home() {
       const parsed = new URL(normalized);
       const host = parsed.hostname.toLowerCase();
       let videoId = '';
-
       if (host.includes('youtu.be')) {
         videoId = parsed.pathname.slice(1);
       } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
-        if (parsed.pathname.startsWith('/watch')) {
-          videoId = parsed.searchParams.get('v');
-        } else if (parsed.pathname.startsWith('/embed/')) {
-          videoId = parsed.pathname.split('/embed/')[1];
-        } else if (parsed.pathname.startsWith('/shorts/')) {
-          videoId = parsed.pathname.split('/shorts/')[1];
-        } else if (parsed.pathname.startsWith('/live')) {
-          videoId = parsed.searchParams.get('v');
-        } else {
+        if (parsed.pathname.startsWith('/watch')) videoId = parsed.searchParams.get('v');
+        else if (parsed.pathname.startsWith('/embed/')) videoId = parsed.pathname.split('/embed/')[1];
+        else if (parsed.pathname.startsWith('/shorts/')) videoId = parsed.pathname.split('/shorts/')[1];
+        else if (parsed.pathname.startsWith('/live')) videoId = parsed.searchParams.get('v');
+        else {
           const parts = parsed.pathname.split('/').filter(Boolean);
           videoId = parts[parts.length - 1] || '';
         }
       }
-
       return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
     } catch {
       return '';
@@ -182,24 +206,18 @@ function Home() {
       const parsed = new URL(normalized);
       const host = parsed.hostname.toLowerCase();
       let videoId = '';
-
       if (host.includes('youtu.be')) {
         videoId = parsed.pathname.slice(1);
       } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
-        if (parsed.pathname.startsWith('/watch')) {
-          videoId = parsed.searchParams.get('v');
-        } else if (parsed.pathname.startsWith('/embed/')) {
-          videoId = parsed.pathname.split('/embed/')[1];
-        } else if (parsed.pathname.startsWith('/shorts/')) {
-          videoId = parsed.pathname.split('/shorts/')[1];
-        } else if (parsed.pathname.startsWith('/live')) {
-          videoId = parsed.searchParams.get('v');
-        } else {
+        if (parsed.pathname.startsWith('/watch')) videoId = parsed.searchParams.get('v');
+        else if (parsed.pathname.startsWith('/embed/')) videoId = parsed.pathname.split('/embed/')[1];
+        else if (parsed.pathname.startsWith('/shorts/')) videoId = parsed.pathname.split('/shorts/')[1];
+        else if (parsed.pathname.startsWith('/live')) videoId = parsed.searchParams.get('v');
+        else {
           const parts = parsed.pathname.split('/').filter(Boolean);
           videoId = parts[parts.length - 1] || '';
         }
       }
-
       return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
     } catch {
       return '';
@@ -214,11 +232,7 @@ function Home() {
 
   const renderTrendingItem = (article, index) => {
     if (!article) return null;
-
-    const imageUrl = article.image
-      ? (article.image.startsWith('http') ? article.image : `${baseUrl}/storage/${article.image}`)
-      : "https://via.placeholder.com/150x100?text=SukaMuda";
-
+    const imageUrl = getTrendingImage(article);
     const authorPhoto = resolveImageUrl(article.user?.avatar || article.user?.profile_photo_url);
     const authorName = article.user?.name || 'Anonim';
 
@@ -232,7 +246,9 @@ function Home() {
             src={imageUrl}
             alt={article.title}
             loading="lazy"
-            onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/150x100?text=Image"; }}
+            onError={(e) => {
+              e.currentTarget.src = `https://placehold.co/150x100/f5f5f5/999?text=${encodeURIComponent(article.category || 'Berita')}`;
+            }}
           />
         </div>
         <div className="trending-details">
@@ -263,7 +279,7 @@ function Home() {
 
     const imageUrl = article.image
       ? (article.image.startsWith('http') ? article.image : `${baseUrl}/storage/${article.image}`)
-      : (videoThumbnail || "https://via.placeholder.com/600x400?text=SukaMuda");
+      : (videoThumbnail || `https://placehold.co/600x400/f5f5f5/999?text=${encodeURIComponent(article.category || 'SukaMuda')}`);
 
     const authorPhoto = isPodcast ? null : resolveImageUrl(article.user?.avatar || article.user?.profile_photo_url);
     const authorName = article.user?.name || 'Anonim';
@@ -281,15 +297,16 @@ function Home() {
         <>
           <div className="article-image-wrapper">
             <img
-              src={imageUrl} 
+              src={imageUrl}
               alt={article.title}
               loading="lazy"
-              onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/600x400?text=Image"; }}
+              onError={(e) => {
+                e.currentTarget.src = `https://placehold.co/600x400/f5f5f5/999?text=${encodeURIComponent(article.category || 'SukaMuda')}`;
+              }}
             />
           </div>
           <div className="card-content">
             <h3 className="news-small-title">{article.title || "Judul tidak tersedia"}</h3>
-            
             <div className="card-meta" style={{ marginTop: 'auto' }}>
               <div className="card-author">
                 {authorPhoto ? (
@@ -315,7 +332,9 @@ function Home() {
               src={imageUrl}
               alt={article.title}
               loading="lazy"
-              onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/600x400?text=Image"; }}
+              onError={(e) => {
+                e.currentTarget.src = `https://placehold.co/600x400/f5f5f5/999?text=${encodeURIComponent(article.category || 'SukaMuda')}`;
+              }}
             />
           </div>
           <div className="card-content">
@@ -349,7 +368,7 @@ function Home() {
             )}
             {showPodcastPlayer && (
               <div className="podcast-player-panel">
-                 {spotifyEmbedUrl && (
+                {spotifyEmbedUrl && (
                   <div className="podcast-embed podcast-audio">
                     <iframe src={spotifyEmbedUrl} width="100%" height="232" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
                   </div>
@@ -381,9 +400,9 @@ function Home() {
     }
 
     return (
-      <Link 
+      <Link
         className={`article-card ${isHero ? 'article-card--hero' : ''} ${isSmallHorizontal ? 'article-card--news-small' : ''}`}
-        key={article.id || index} 
+        key={article.id || index}
         to={`/article/${article.slug}`}>
         {cardInner}
       </Link>
@@ -404,11 +423,28 @@ function Home() {
   const SkeletonTrending = () => (
     <div className="trending-item skeleton">
       <div className="trending-rank"><div className="skeleton-box"></div></div>
-      <div className="trending-thumb"><div className="skeleton-img"></div></div>
+      <div className="trending-thumb">
+        <div className="skeleton-img" style={{ width: '100%', height: '100%' }}></div>
+      </div>
       <div className="trending-details">
         <div className="skeleton-line short"></div>
         <div className="skeleton-line long"></div>
       </div>
+    </div>
+  );
+
+  const SkeletonReels = () => (
+    <div className="vr-skeleton-scroll">
+      {Array(5).fill(0).map((_, i) => (
+        <div className="vr-skeleton-card" key={i}>
+          <div className="vr-skeleton-thumb" />
+          <div className="vr-skeleton-info">
+            <div className="vr-skeleton-line vr-skeleton-line--title" />
+            <div className="vr-skeleton-line vr-skeleton-line--desc" />
+            <div className="vr-skeleton-line vr-skeleton-line--author" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 
@@ -418,20 +454,14 @@ function Home() {
 
   const randomArticles = React.useMemo(() => {
     if (!allArticles || !Array.isArray(allArticles)) return [];
-    
     const normalArticles = allArticles.filter(a => normalizeCategory(a?.category) !== 'podcast');
     const shuffled = [...normalArticles].sort(() => 0.5 - Math.random());
-    
     return shuffled.slice(0, 3);
   }, [allArticles]);
 
-  // ============================================================
-  // FUNGSI RENDER KATEGORI (MEMBACA AD_CONFIG)
-  // ============================================================
   const renderCategoryGroup = (group, index) => {
     const isNewsStyle = index % 2 === 0;
     const isLifestyleStyle = index % 2 !== 0;
-    
     const maxArticles = isLifestyleStyle ? 10 : 5;
 
     const groupArticles = (Array.isArray(allArticles) ? allArticles : [])
@@ -444,10 +474,7 @@ function Home() {
 
     if (groupArticles.length === 0 && !articleLoading) return null;
 
-    // ----- BACA PENGATURAN IKLAN DARI CONFIG -----
     const kategori = group.slug.toLowerCase();
-    
-    // Jika kategori tidak ada di config, defaultnya mati (false)
     const adSetting = AD_CONFIG[kategori] || {
       kanan: { tampil: false },
       bawah: { tampil: false }
@@ -455,7 +482,6 @@ function Home() {
 
     const tampilIklanKanan = adSetting.kanan?.tampil;
     const tampilIklanBawah = adSetting.bawah?.tampil;
-    // ---------------------------------------------
 
     return (
       <section key={group.slug} className={`home-section ${isNewsStyle ? 'news-section-special' : ''} ${isLifestyleStyle ? 'lifestyle-section-special' : ''}`}>
@@ -465,7 +491,7 @@ function Home() {
             Lihat semua <span className="arrow-right">→</span>
           </Link>
         </div>
-        
+
         <div className={isNewsStyle ? "news-with-sidebar-wrapper" : ""}>
           <div className={`article-grid ${isNewsStyle ? 'news-article-grid' : ''} ${isLifestyleStyle ? 'lifestyle-article-grid' : ''}`}>
             {articleLoading
@@ -474,29 +500,27 @@ function Home() {
             }
           </div>
 
-         {/* Iklan Vertikal Sisi Kanan (AdSense) */}
-         {isNewsStyle && tampilIklanKanan && (
+          {isNewsStyle && tampilIklanKanan && !isMobile && (
             <div className="news-sidebar-right">
               <div className="news-sidebar-static">
-                <AdSlot 
-                  type="vertical" 
-                  mode="adsense" 
-                  adClient={adSetting.kanan.adClient} 
-                  adSlot={adSetting.kanan.adSlot} 
+                <AdSlot
+                  type="vertical"
+                  mode="adsense"
+                  adClient={adSetting.kanan.adClient}
+                  adSlot={adSetting.kanan.adSlot}
                 />
               </div>
             </div>
           )}
         </div>
 
-        {/* Iklan Horizontal Bawah (AdSense) */}
         {tampilIklanBawah && (
           <div className="ad-news-horizontal">
-            <AdSlot 
-              type="horizontal" 
-              mode="adsense" 
-              adClient={adSetting.bawah.adClient} 
-              adSlot={adSetting.bawah.adSlot} 
+            <AdSlot
+              type="horizontal"
+              mode="adsense"
+              adClient={adSetting.bawah.adClient}
+              adSlot={adSetting.bawah.adSlot}
             />
           </div>
         )}
@@ -507,58 +531,67 @@ function Home() {
   return (
     <div className="home-container">
 
-      {/* ======================================================= */}
-      {/* WADAH 1: TRENDING & IKLAN STICKY                        */}
-      {/* ======================================================= */}
+      {/* WADAH 1: TRENDING & IKLAN STICKY */}
       <div className="home-layout-wrapper">
-        <div className="ad-sidebar ad-sidebar-left">
-          <div className="ad-sidebar-sticky">
-            <AdSlot 
-              type="vertical" 
-              mode="adsense" 
-              adClient="ca-pub-XXXXXXXXX" 
-              adSlot="99999991" 
-            />
+        {!isMobile && (
+          <div className="ad-sidebar ad-sidebar-left">
+            <div className="ad-sidebar-sticky">
+              <AdSlot
+                type="vertical"
+                mode="adsense"
+                adClient="ca-pub-XXXXXXXXX"
+                adSlot="99999991"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="home-main-content">
           <section className="section-trending">
             <div className="section-header">
-              <h2>Trending Hari Ini</h2>
+              <h2>Trending Mingguan</h2>
               <div className="trending-count">
                 <span>Top {trendingLoading ? '...' : top5Trending.length} Berita</span>
               </div>
             </div>
             <div className="trending-grid">
-              {trendingLoading
-                ? Array(5).fill(0).map((_, i) => <SkeletonTrending key={i} />)
-                : top5Trending?.map((article, index) => renderTrendingItem(article, index))
-              }
+              {trendingError ? (
+                <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+                  <p>Gagal memuat berita trending. Coba refresh halaman nanti.</p>
+                </div>
+              ) : trendingLoading ? (
+                Array(5).fill(0).map((_, i) => <SkeletonTrending key={i} />)
+              ) : top5Trending.length > 0 ? (
+                top5Trending.map((article, index) => renderTrendingItem(article, index))
+              ) : (
+                <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+                  <p>Belum ada berita trending saat ini.</p>
+                </div>
+              )}
             </div>
           </section>
         </div>
 
-        <div className="ad-sidebar ad-sidebar-right">
-          <div className="ad-sidebar-sticky">
-            <AdSlot 
-              type="vertical" 
-              mode="adsense" 
-              adClient="ca-pub-XXXXXXXXX" 
-              adSlot="99999992" 
-            />
+        {!isMobile && (
+          <div className="ad-sidebar ad-sidebar-right">
+            <div className="ad-sidebar-sticky">
+              <AdSlot
+                type="vertical"
+                mode="adsense"
+                adClient="ca-pub-XXXXXXXXX"
+                adSlot="99999992"
+              />
+            </div>
           </div>
-        </div>
-      </div> 
+        )}
+      </div>
 
-      {/* ======================================================= */}
-      {/* WADAH 2: KONTEN BAWAH (REELS, KATEGORI, DLL)            */}
-      {/* ======================================================= */}
+      {/* WADAH 2: KONTEN BAWAH (REELS, KATEGORI, DLL) */}
       <div className="home-layout-wrapper" style={{ marginTop: '40px' }}>
-        <div className="ad-sidebar ad-sidebar-left" style={{ visibility: 'hidden', pointerEvents: 'none' }}></div>
 
         <div className="home-main-content">
 
+          {/* ── VIDEO REELS ── */}
           <section className="home-section section-video-reels">
             <div className="section-header">
               <h2>Video Reels</h2>
@@ -566,16 +599,18 @@ function Home() {
                 Lihat semua <span className="arrow-right">→</span>
               </Link>
             </div>
+
             {videoReelsLoading ? (
-              <p style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Memuat Video Reels...</p>
+              <SkeletonReels />
             ) : videoReels && videoReels.length > 0 ? (
               <VideoReels reels={videoReels} />
             ) : (
-              <p style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Belum ada video reels yang aktif.</p>
+              <div className="vr-empty">
+                <p>Belum ada video reels yang aktif.</p>
+              </div>
             )}
           </section>
 
-          {/* Render Berbagai Kategori & Section Rekomendasi */}
           {categoryGroups?.map((group, index) => {
             const isActualLifestyle = group.slug.toLowerCase() === 'lifestyle' || group.label.toLowerCase() === 'lifestyle';
 
@@ -593,12 +628,10 @@ function Home() {
                     </div>
                   </section>
                 )}
-
               </React.Fragment>
             );
           })}
 
-          {/* Empty State */}
           {(Array.isArray(allArticles) ? allArticles.length === 0 : true) && !articleLoading && (
             <div className="empty-state">
               <p>Belum ada artikel yang diterbitkan saat ini.</p>
@@ -607,15 +640,14 @@ function Home() {
 
         </div>
 
-        <div className="ad-sidebar ad-sidebar-right" style={{ visibility: 'hidden', pointerEvents: 'none' }}></div>
       </div>
 
       <div className="ad-before-footer">
-        <AdSlot 
-          type="horizontal" 
-          mode="adsense" 
-          adClient="ca-pub-XXXXXXXXX" 
-          adSlot="99999993" 
+        <AdSlot
+          type="horizontal"
+          mode="adsense"
+          adClient="ca-pub-XXXXXXXXX"
+          adSlot="99999993"
         />
       </div>
 

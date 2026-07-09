@@ -7,7 +7,6 @@ import logoSukaMuda from '../assets/logo.png';
 const Register = () => {
   const navigate = useNavigate();
 
-  // --- STATE ---
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,17 +18,19 @@ const Register = () => {
   const [showPw, setShowPw] = useState(false);
   const [showPwConf, setShowPwConf] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [modal, setModal] = useState({ show: false, type: '', message: '' });
 
-  // --- LIFECYCLE ---
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(t);
   }, []);
 
-  // --- HANDLERS ---
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const openModal = (type, message) => setModal({ show: true, type, message });
+  const closeModal = () => setModal({ show: false, type: '', message: '' });
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -44,8 +45,7 @@ const Register = () => {
         response.status === 200 ||
         response.status === 201
       ) {
-        alert('Kode OTP telah dikirim ke email kamu!');
-        navigate('/verify-otp', { state: formData });
+        openModal('success', 'Kode OTP telah dikirim ke email kamu!');
       }
     } catch (error) {
       console.error('Detail Error:', error.response?.data);
@@ -61,7 +61,7 @@ const Register = () => {
         finalMessage = serverMessage;
       }
 
-      alert(finalMessage);
+      openModal('error', finalMessage);
     } finally {
       setLoading(false);
     }
@@ -255,6 +255,40 @@ const Register = () => {
           Sudah punya akun? <Link to="/login" className="link-dark">Masuk</Link>
         </p>
       </div>
+
+      {/* Modal Popup */}
+      {modal.show && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className={`modal-icon ${modal.type}`}>
+              {modal.type === 'success' ? (
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              )}
+            </div>
+            <p className="modal-message">{modal.message}</p>
+            <button
+              className="modal-btn"
+              onClick={() => {
+                closeModal();
+                if (modal.type === 'success') {
+                  navigate('/verify-otp', { state: formData });
+                }
+              }}
+            >
+              {modal.type === 'success' ? 'Lanjut Verifikasi' : 'Mengerti'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

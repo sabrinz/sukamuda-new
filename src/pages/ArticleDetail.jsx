@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "../utils/axiosConfig";
 import { useAuth } from "../context/AuthContext";
@@ -12,6 +13,15 @@ const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
 const normalizeCategory = (value) => (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '');
 
 const PARAGRAPHS_PER_LOAD = 20;
+
+const cleanSlugFromTimestamp = (slug) => {
+  if (!slug) return '';
+  const match = slug.match(/^(.+)-\d{10}$/);
+  if (match) {
+    return match[1];
+  }
+  return slug;
+};
 
 const splitHtmlByParagraph = (html) => {
   if (!html) return [];
@@ -125,9 +135,6 @@ const getYoutubeThumbnailUrl = (url) => {
   }
 };
 
-// ─── FIX BUG BLACKSCREEN: Melindungi innerHTML dari re-render React ───
-// Dengan ini, iframe di dalam konten artikel TIDAK akan di-destroy saat scroll
-// karena React tidak menyentuh DOM di dalam komponen ini
 const StableHtmlRenderer = React.memo(({ html, className }) => {
   const ref = useRef(null);
 
@@ -140,10 +147,14 @@ const StableHtmlRenderer = React.memo(({ html, className }) => {
   return <div className={className} ref={ref} />;
 });
 
+StableHtmlRenderer.displayName = "StableHtmlRenderer";
+
 const ArticleDetail = () => {
-  const { slug } = useParams();
-  const { isLoggedIn, user } = useAuth();
+  const { slug: rawSlug } = useParams();
+  const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
+
+  const slug = cleanSlugFromTimestamp(rawSlug);
 
   const [article, setArticle] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
@@ -164,13 +175,12 @@ const ArticleDetail = () => {
   const [visibleParagraphs, setVisibleParagraphs] = useState(PARAGRAPHS_PER_LOAD);
 
   const contentRef = useRef(null);
+
   const shareUrl = useMemo(() => {
     const articleSlug = article?.slug || slug;
-
     if (!articleSlug) {
       return typeof window !== "undefined" ? window.location.href : "";
     }
-
     try {
       const apiOrigin = new URL(baseUrl).origin;
       return `${apiOrigin}/article/${articleSlug}`;
@@ -188,35 +198,45 @@ const ArticleDetail = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: articleDetail, isLoading: articleDetailLoading } = useQuery({
-    queryKey: ['articleBySlug', slug],
-    queryFn: async () => {
-      const res = await axios.get(`/api/articles/${slug}`);
-      return res.data.data;
-    },
-    enabled: !!slug,
-    staleTime: 1000 * 60 * 5,
-    retry: false,
-  });
+  // ✅ Cari artikel dari list dulu
+    const articleFromList = useMemo(() => {
+    if (!slug || !allArticles.length) return null;
+    const safeSlug = String(slug).toLowerCase();
+    return allArticles.find((item) => {
+      if (!item || !item.slug) return false;
+      const itemSlugClean = cleanSlugFromTimestamp(String(item.slug)).toLowerCase();
+      return itemSlugClean === safeSlug || String(item.slug).toLowerCase() === safeSlug || String(item.id) === String(slug);
+    }) || null;
+  }, [slug, allArticles]);
 
-  useEffect(() => {
-    const source = articleDetail
-      || allArticles.find((item) => String(item.slug) === String(slug) || String(item.id) === String(slug))
-      || null;
+// Ambil detail artikel langsung berdasarkan slug
+const { data: articleDetail } = useQuery({
+  queryKey: ['article', slug],
+  queryFn: async () => {
+    const res = await axios.get(`/api/articles/${slug}`);
+    return res.data.data;
+  },
+  enabled: !!slug,
+});
 
-    setArticle(source);
-    if (source) {
-      setLikeCount(source.likes_count || 0);
-      setIsLiked(source.is_liked_by_user || false);
-      setIsBookmarked(source.is_bookmarked_by_user || false);
-      setViewCount(source.views_count || source.views || 0);
-    }
-    setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
-    setHasAwardedRead(false);
-    hasAwardedReadRef.current = false;
-    window.scrollTo(0, 0);
-  }, [slug, allArticles, articleDetail]);
+useEffect(() => {
+  const source = articleFromList || articleDetail;
 
+  setArticle(source);
+
+  if (source) {
+    setLikeCount(source.likes_count || 0);
+    setIsLiked(source.is_liked_by_user || false);
+    setIsBookmarked(source.is_bookmarked_by_user || false);
+    setViewCount(source.views_count || source.views || 0);
+  }
+
+  setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
+  setHasAwardedRead(false);
+  hasAwardedReadRef.current = false;
+  window.scrollTo(0, 0);
+
+}, [slug, articleFromList, articleDetail]);
   const awardReadPoint = async () => {
     if (hasAwardedReadRef.current || !article?.id) return;
     hasAwardedReadRef.current = true;
@@ -237,13 +257,11 @@ const ArticleDetail = () => {
   const totalParagraphs = getTotalParagraphs(article?.content || "");
   const hasMore = visibleParagraphs < totalParagraphs;
 
-  // ─── useMemo: visibleHtml tidak dihitung ulang saat scroll ───
   const visibleHtml = useMemo(
     () => getVisibleHtml(article?.content || "", visibleParagraphs),
     [article?.content, visibleParagraphs]
   );
 
-  // ─── useCallback: scroll handler stabil, tidak trigger re-render ───
   const handleScroll = useCallback(() => {
     const scrollTop = window.scrollY;
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
@@ -338,24 +356,38 @@ const ArticleDetail = () => {
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
-  const isPageLoading = articleDetailLoading || (articleLoading && !articleDetail);
+  const isPageLoading = articleLoading && !articleFromList;
 
-  if (isPageLoading)
+  if (isPageLoading) {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
         <p>Menyelami berita...</p>
       </div>
     );
+  }
 
-  if (!article && !articleDetailLoading && !articleLoading)
+  // PERBAIKAN: Cegah error jika slug kosong/invalid setelah dibersihkan
+  if (!slug || slug.length < 2) {
+    return (
+      <div className="error-container">
+        <h2>Waduh!</h2>
+        <p>Link yang kamu buka tidak valid.</p>
+        <Link to="/">Balik ke Home</Link>
+      </div>
+    );
+  }
+
+  if (!article) {
     return (
       <div className="error-container">
         <h2>Waduh!</h2>
         <p>Artikelnya nggak ketemu.</p>
+        {/* PERBAIKAN: Hapus debug slug yang memperlihatkan rawSlug ke user */}
         <Link to="/">Balik ke Home</Link>
       </div>
     );
+  }
 
   const isPodcast = normalizeCategory(article.category) === 'podcast';
   const categoryLabel = categories.find((item) => item.slug === normalizeCategory(article.category))?.label || article.category;
@@ -369,19 +401,17 @@ const ArticleDetail = () => {
     .filter((item) => normalizeCategory(item.category) === normalizeCategory(article.category) && String(item.id) !== String(article.id))
     .slice(0, 3);
 
-  // ─── FIX PODCAST: Baca dari field database audio_link & video_link ───
-  // Bukan dari article.content, sehingga iframe tidak ikut di-re-render React
   const spotifyEmbedUrl = article.audio_link ? getSpotifyEmbedUrl(article.audio_link) : '';
   const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : '';
   const showPodcastEmbed = isPodcast && (spotifyEmbedUrl || youtubeEmbedUrl);
 
-  const youtubeThumbnail = isPodcast && article.video_link
-    ? getYoutubeThumbnailUrl(article.video_link)
-    : '';
+  const youtubeThumbnail = isPodcast && article.video_link ? getYoutubeThumbnailUrl(article.video_link) : '';
 
   const imageUrl = article.image
-    ? article.image.startsWith("http") ? article.image : `${baseUrl}/storage/${article.image}`
-    : (youtubeThumbnail || (isPodcast ? "https://via.placeholder.com/1200x600?text=Podcast" : null));
+    ? (article.image.startsWith("http") ? article.image : `${baseUrl}/storage/${article.image}`)
+    : (youtubeThumbnail || `https://placehold.co/1200x600/1a1a1a/ffffff?text=${encodeURIComponent(categoryLabel || 'Artikel')}`);
+
+  const fallbackPlaceholder = `https://placehold.co/1200x600/1a1a1a/ffffff?text=${encodeURIComponent(categoryLabel || 'Artikel')}`;
 
   const tagsArray = article.tags
     ? typeof article.tags === "string"
@@ -391,7 +421,7 @@ const ArticleDetail = () => {
 
   const authorProfileUrl = article.user?.id ? `/user/${article.user.id}` : '/';
   const isDraft = article.status === "draft";
-  const encodedTitle = encodeURIComponent(article.title);
+  const encodedTitle = encodeURIComponent(article.title || '');
   const encodedUrl = encodeURIComponent(shareUrl);
 
   const handleLoadMore = () => {
@@ -406,10 +436,38 @@ const ArticleDetail = () => {
 
   return (
     <>
-      {/* Reading Progress Bar */}
-      <div className="reading-progress-bar" style={{ width: `${readProgress}%` }} />
+      <Helmet>
+        <title>{article.title}</title>
 
-      {/* Back to Top */}
+        <meta property="og:title" content={article.title} />
+
+        <meta 
+          property="og:description" 
+          content={article.summary || article.title} 
+        />
+
+        <meta 
+          property="og:image" 
+          content={imageUrl} 
+        />
+
+        <meta 
+          property="og:url" 
+          content={shareUrl} 
+        />
+
+        <meta 
+          property="og:type" 
+          content="article" 
+        />
+
+        <meta 
+          name="twitter:card" 
+          content="summary_large_image" 
+        />
+      </Helmet>
+
+      <div className="reading-progress-bar" style={{ width: `${readProgress}%` }} />
       <button
         className={`back-to-top ${showBackTop ? "visible" : ""}`}
         onClick={scrollToTop}
@@ -420,10 +478,8 @@ const ArticleDetail = () => {
         </svg>
       </button>
 
-      {/* ===== LAYOUT WRAPPER ===== */}
       <div className="article-layout-wrapper">
 
-        {/* Iklan Vertikal Kiri */}
         <div className="ad-sidebar ad-sidebar-left">
           <div className="ad-sidebar-sticky">
             <AdSlot
@@ -435,7 +491,6 @@ const ArticleDetail = () => {
           </div>
         </div>
 
-        {/* ===== KONTEN UTAMA ===== */}
         <div className="article-main-content">
 
           <div className="ad-center">
@@ -448,7 +503,6 @@ const ArticleDetail = () => {
           </div>
 
           <div className="article-container">
-            {/* Breadcrumb */}
             <nav className="breadcrumb">
               <Link to="/">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -463,7 +517,6 @@ const ArticleDetail = () => {
               <Link to={`/category/${article.category}`}>{categoryLabel}</Link>
             </nav>
 
-            {/* Header */}
             <header className="article-header">
               <div className="header-top-row">
                 <span className="badge-category">{categoryLabel}</span>
@@ -492,7 +545,11 @@ const ArticleDetail = () => {
                 <Link to={authorProfileUrl} className="author-link">
                   <div className="author-avatar">
                     {article.user?.avatar ? (
-                      <img src={article.user.avatar.startsWith("http") ? article.user.avatar : `${baseUrl}/storage/${article.user.avatar}`} alt={article.user?.name} />
+                      <img
+                        src={article.user.avatar.startsWith("http") ? article.user.avatar : `${baseUrl}/storage/${article.user.avatar}`}
+                        alt={article.user?.name}
+                        onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100/1a1a1a/ffffff?text=U"; }}
+                      />
                     ) : (
                       article.user?.name?.charAt(0) || "A"
                     )}
@@ -527,20 +584,22 @@ const ArticleDetail = () => {
               </div>
             </header>
 
-            {/* Hero Wrapper */}
             <div className="hero-wrapper">
-              {/* ─── Hero Image untuk artikel non-podcast ─── */}
               {imageUrl && !isPodcast && (
                 <>
-                  <img src={imageUrl} alt={article.title} className="hero-img" loading="lazy" />
+                  <img
+                    src={imageUrl}
+                    alt={article.title}
+                    className="hero-img"
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.src = fallbackPlaceholder; }}
+                  />
                   {article.image_caption && (
                     <p className="image-caption-text">{article.image_caption}</p>
                   )}
                 </>
               )}
 
-              {/* ─── Podcast embed dari field audio_link & video_link ─── */}
-              {/* key={url} memastikan iframe hanya di-mount ulang saat URL benar-benar berubah */}
               {showPodcastEmbed && (
                 <div className="podcast-embed-section" style={{ marginBottom: '24px' }}>
                   {spotifyEmbedUrl && (
@@ -588,14 +647,11 @@ const ArticleDetail = () => {
                   </div>
                 )}
 
-                {/* ─── StableHtmlRenderer mencegah re-render DOM saat scroll ─── */}
-                {/* Menggantikan dangerouslySetInnerHTML yang menjadi penyebab blackscreen */}
                 <StableHtmlRenderer
                   className="text-render"
                   html={visibleHtml}
                 />
 
-                {/* Tombol Muat Lebih Banyak */}
                 {hasMore && (
                   <div className="load-more-wrapper">
                     <button className="load-more-btn" onClick={handleLoadMore}>
@@ -614,16 +670,15 @@ const ArticleDetail = () => {
                     </div>
                     <div className="related-grid-new">
                       {relatedShortcodeArticles.map((item) => {
+                        const shortcodeCategoryLabel = categories.find((c) => c.slug === normalizeCategory(item.category))?.label || item.category;
                         const itemImage = item.image
-                          ? item.image.startsWith('http')
-                            ? item.image
-                            : `${baseUrl}/storage/${item.image}`
-                          : 'http://via.placeholder.com/400x220';
+                          ? (item.image.startsWith('http') ? item.image : `${baseUrl}/storage/${item.image}`)
+                          : `https://placehold.co/400x220/1a1a1a/ffffff?text=${encodeURIComponent(shortcodeCategoryLabel || 'Berita')}`;
                         return (
                           <Link className="related-card" key={item.id} to={`/article/${item.slug}`}>
                             <div className="related-img-wrap">
-                              <img src={itemImage} alt={item.title} loading="lazy" />
-                              <span className="related-cat">{categories.find((c) => c.slug === item.category)?.label || item.category}</span>
+                              <img src={itemImage} alt={item.title} loading="lazy" onError={(e) => { e.currentTarget.src = `https://placehold.co/400x220/1a1a1a/ffffff?text=${encodeURIComponent(shortcodeCategoryLabel || 'Berita')}`; }} />
+                              <span className="related-cat">{shortcodeCategoryLabel}</span>
                             </div>
                             <div className="related-text">
                               <h4>{item.title}</h4>
@@ -636,7 +691,6 @@ const ArticleDetail = () => {
                   </section>
                 )}
 
-                {/* Tags */}
                 {!hasMore && tagsArray.length > 0 && (
                   <div className="tags-container">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -649,7 +703,6 @@ const ArticleDetail = () => {
                   </div>
                 )}
 
-                {/* Interactions */}
                 {!hasMore && (
                   <div className="interactions-section">
                     <div className="interactions-left">
@@ -733,12 +786,15 @@ const ArticleDetail = () => {
                   </div>
                 )}
 
-                {/* Author Bio */}
                 {!hasMore && article.user && (
                   <div className="author-bio-card">
                     <div className="author-bio-avatar">
                       {article.user.avatar ? (
-                        <img src={article.user.avatar.startsWith("http") ? article.user.avatar : `${baseUrl}/storage/${article.user.avatar}`} alt={article.user.name} />
+                        <img
+                          src={article.user.avatar.startsWith("http") ? article.user.avatar : `${baseUrl}/storage/${article.user.avatar}`}
+                          alt={article.user.name}
+                          onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100/1a1a1a/ffffff?text=U"; }}
+                        />
                       ) : (
                         article.user.name?.charAt(0) || "A"
                       )}
@@ -756,7 +812,6 @@ const ArticleDetail = () => {
               </article>
             </div>
 
-            {/* Iklan Horizontal tengah */}
             {!hasMore && (
               <div className="ad-center" style={{ margin: '32px 0' }}>
                 <AdSlot
@@ -768,7 +823,6 @@ const ArticleDetail = () => {
               </div>
             )}
 
-            {/* Related Articles */}
             {!hasMore && relatedArticles.length > 0 && (
               <section className="related-section-new">
                 <div className="section-header">
@@ -779,27 +833,35 @@ const ArticleDetail = () => {
                   </Link>
                 </div>
                 <div className="related-grid-new">
-                  {relatedArticles.map((item) => (
-                    <Link className="related-card" key={item.id} to={`/article/${item.slug}`}>
-                      <div className="related-img-wrap">
-                        <img src={item.image?.startsWith("http") ? item.image : `${baseUrl}/storage/${item.image}`} alt={item.title} loading="lazy" />
-                        <span className="related-cat">{categories.find((c) => c.slug === item.category)?.label || item.category}</span>
-                      </div>
-                      <div className="related-text">
-                        <h4>{item.title}</h4>
-                        <span className="related-date">{new Date(item.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
-                      </div>
-                    </Link>
-                  ))}
+                  {relatedArticles.map((item) => {
+                    const relatedCategoryLabel = categories.find((c) => c.slug === normalizeCategory(item.category))?.label || item.category;
+                    return (
+                      <Link className="related-card" key={item.id} to={`/article/${item.slug}`}>
+                        <div className="related-img-wrap">
+                          <img
+                            src={item.image?.startsWith("http") ? item.image : `${baseUrl}/storage/${item.image}`}
+                            alt={item.title}
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.src = `https://placehold.co/400x220/1a1a1a/ffffff?text=${encodeURIComponent(relatedCategoryLabel || 'Berita')}`;
+                            }}
+                          />
+                          <span className="related-cat">{relatedCategoryLabel}</span>
+                        </div>
+                        <div className="related-grid-text">
+                          <h4>{item.title}</h4>
+                          <span className="related-date">{new Date(item.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </section>
             )}
           </div>
 
         </div>
-        {/* ===== END KONTEN UTAMA ===== */}
 
-        {/* Iklan Vertikal Kanan */}
         <div className="ad-sidebar ad-sidebar-right">
           <div className="ad-sidebar-sticky">
             <AdSlot
@@ -812,18 +874,14 @@ const ArticleDetail = () => {
         </div>
 
       </div>
-      {/* ===== END LAYOUT WRAPPER ===== */}
 
-      {/* Iklan sebelum Footer */}
       <div className="ad-before-footer">
-        <div className="ad-before-footer">
-          <AdSlot
-            type="horizontal"
-            mode="adsense"
-            adClient="ca-pub-XXXXXXXXX"
-            adSlot="99999993"
-          />
-        </div>
+        <AdSlot
+          type="horizontal"
+          mode="adsense"
+          adClient="ca-pub-XXXXXXXXX"
+          adSlot="99999993"
+        />
       </div>
     </>
   );
