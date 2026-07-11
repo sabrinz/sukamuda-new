@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import './Help.css';
 
 const Help = () => {
@@ -32,6 +33,58 @@ const Help = () => {
 
   return (
     <div className="hl-root">
+      <Helmet>
+        <title>Pusat Bantuan - Sukamuda</title>
+        <link rel="canonical" href="https://sukamuda.co.id/help" />
+        <meta name="description" content="Punya pertanyaan atau kendala seputar layanan Sukamuda? Hubungi pusat bantuan tim support kami di sini." />
+        
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ContactPage",
+            "name": "Pusat Bantuan dan Kontak - Sukamuda",
+            "description": "Punya pertanyaan atau kendala seputar layanan Sukamuda? Hubungi pusat bantuan tim support kami di sini.",
+            "url": "https://sukamuda.co.id/help",
+            "mainEntity": {
+              "@type": "Organization",
+              "name": "Sukamuda",
+              "url": "https://sukamuda.co.id",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "email": "bantuan@sukamuda50.com",
+                "contactType": "customer support"
+              }
+            },
+            "isPartOf": {
+              "@type": "WebSite",
+              "name": "Sukamuda",
+              "url": "https://sukamuda.co.id"
+            },
+            "inLanguage": "id-ID"
+          })}
+        </script>
+
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Beranda",
+                "item": "https://sukamuda.co.id"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Bantuan"
+              }
+            ]
+          })}
+        </script>
+      </Helmet>
+
       <div className="hl-grid-bg" />
 
       <div className="hl-wrap">
@@ -61,7 +114,7 @@ const Help = () => {
               <span className="hl-h1-line">Butuh</span>
               <span className="hl-h1-line hl-h1-accent">Bantuan?</span>
             </h1>
-            <p className="hl-hero-desc">
+            <p className="hl-hero-desc" style={{ textAlign: 'left' }}>
               Punya pertanyaan atau kendala seputar layanan Sukamuda? Tim kami siap membantu.
             </p>
           </div>
@@ -71,7 +124,7 @@ const Help = () => {
         </header>
 
         {/* EMAIL CARD */}
-        <section className={`hl-sec ${on('card') ? 'hl-on' : ''}`} id="card" ref={(e) => reg(e, 'card')}>
+        <section className={`hl-sec ${on('card') ? 'hl-on' : ''}`} id="card" ref={(e) => reg(e, 'card')} style={{ textAlign: 'left' }}>
           <a
             href={gmailLink}
             target="_blank"
@@ -92,7 +145,7 @@ const Help = () => {
         </section>
 
         {/* INFO CARDS */}
-        <section className={`hl-sec ${on('info') ? 'hl-on' : ''}`} id="info" ref={(e) => reg(e, 'info')}>
+        <section className={`hl-sec ${on('info') ? 'hl-on' : ''}`} id="info" ref={(e) => reg(e, 'info')} style={{ textAlign: 'left' }}>
           <div className="hl-info-grid">
             <div className="hl-info-card" style={{ transitionDelay: '0ms' }}>
               <div className="hl-info-icon">
@@ -112,7 +165,7 @@ const Help = () => {
         </section>
 
         {/* FAQ TEASER */}
-        <section className={`hl-sec ${on('tease') ? 'hl-on' : ''}`} id="tease" ref={(e) => reg(e, 'tease')}>
+        <section className={`hl-sec ${on('tease') ? 'hl-on' : ''}`} id="tease" ref={(e) => reg(e, 'tease')} style={{ textAlign: 'left' }}>
           <div className="hl-tease-card">
             <div className="hl-tease-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>

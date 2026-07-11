@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import './Faq.css';
 
 const FAQ = () => {
@@ -46,6 +47,47 @@ const FAQ = () => {
 
   return (
     <div className="fq-root">
+      <Helmet>
+        <title>Frequently Asked Questions (FAQ) - Sukamuda</title>
+        <link rel="canonical" href="https://sukamuda.co.id/faq" />
+        <meta name="description" content="Temukan jawaban untuk pertanyaan yang paling sering ditanyakan seputar platform digital Sukamuda." />
+        
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": faqData.map((item) => ({
+              "@type": "Question",
+              "name": item.q,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": item.a
+              }
+            }))
+          })}
+        </script>
+
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Beranda",
+                "item": "https://sukamuda.co.id"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "FAQ"
+              }
+            ]
+          })}
+        </script>
+      </Helmet>
+
       <div className="fq-grid-bg" />
 
       <div className="fq-wrap">
@@ -75,7 +117,7 @@ const FAQ = () => {
               <span className="fq-h1-line">Frequently Asked</span>
               <span className="fq-h1-line fq-h1-accent">Questions</span>
             </h1>
-            <p className="fq-hero-desc">
+            <p className="fq-hero-desc" style={{ textAlign: 'left' }}>
               Temukan jawaban untuk pertanyaan yang paling sering ditanyakan seputar Sukamuda.
             </p>
           </div>
@@ -85,7 +127,7 @@ const FAQ = () => {
         </header>
 
         {/* FAQ LIST */}
-        <section className={`fq-list ${on('list') ? 'fq-on' : ''}`} id="list" ref={(e) => reg(e, 'list')}>
+        <section className={`fq-list ${on('list') ? 'fq-on' : ''}`} id="list" ref={(e) => reg(e, 'list')} style={{ textAlign: 'left' }}>
           {faqData.map((item, i) => {
             const isOpen = openIndex === i;
             return (
@@ -105,7 +147,7 @@ const FAQ = () => {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   </span>
                 </button>
-                <div className="fq-a">
+                <div className="fq-a" style={{ textAlign: 'left' }}>
                   <p>{item.a}</p>
                 </div>
               </div>
@@ -114,7 +156,7 @@ const FAQ = () => {
         </section>
 
         {/* HELP TEASER */}
-        <section className={`fq-sec ${on('tease') ? 'fq-on' : ''}`} id="tease" ref={(e) => reg(e, 'tease')}>
+        <section className={`fq-sec ${on('tease') ? 'fq-on' : ''}`} id="tease" ref={(e) => reg(e, 'tease')} style={{ textAlign: 'left' }}>
           <div className="fq-tease-card">
             <div className="fq-tease-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg>

@@ -36,6 +36,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  text-align: left;
 }
 
 h1 {
@@ -72,5 +73,43 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+
+/* Perbaikan SEO: Body content rata kiri */
+.article-content,
+.article-body,
+.post-content,
+.entry-content,
+.detail-content,
+.content-body,
+.page-content {
+  text-align: left !important;
+}
+
+/* Perbaikan SEO: Image detail article minimal 1200x600 — HANYA berlaku di halaman detail */
+.article-container .article-image-wrapper,
+.article-container .featured-image-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 24px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.article-container .article-image-wrapper img,
+.article-container .featured-image-wrapper img {
+  width: 100%;
+  height: auto;
+  min-height: 500px;
+  object-fit: cover;
+  display: block;
+}
+
+@media (min-width: 1240px) {
+  .article-container .article-image-wrapper img,
+  .article-container .featured-image-wrapper img {
+    min-width: 1200px;
+    min-height: 600px;
   }
 }

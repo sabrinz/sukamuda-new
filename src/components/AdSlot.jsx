@@ -25,8 +25,12 @@ const AdSlot = ({
     if (activeMode === 'adsense' && !isPushed.current) {
       try {
         isPushed.current = true;
-        // Kita push ke array window.adsbygoogle (Google yang akan eksekusi nanti)
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        
+        // TAMBAHAN: Beri jeda 200ms agar DOM & CSS selesai me-render ukuran layout
+        setTimeout(() => {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        }, 200);
+        
       } catch (e) {
         console.error('AdSense push error:', e);
       }
@@ -72,10 +76,12 @@ const AdSlot = ({
 
   // ── 3. Tampilan Google AdSense ──
   if (activeMode === 'adsense') {
-    // Langsung render tag <ins>. Jika script Google diblokir AdBlock, 
-    // kotak ini akan otomatis dikosongkan/diabaikan, tidak perlu menampilkan error kuning.
     return (
-      <div className={`ad-slot-box ${type} ad-adsense`}>
+      // TAMBAHAN: Paksa ukuran minimum secara inline agar lebarnya tidak terdeteksi 0
+      <div 
+        className={`ad-slot-box ${type} ad-adsense`} 
+        style={{ width: '100%', minWidth: '200px', minHeight: '50px', overflow: 'hidden' }}
+      >
         <ins
           className="adsbygoogle"
           style={{ display: 'block' }}

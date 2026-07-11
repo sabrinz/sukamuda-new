@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import './About.css';
 
 const About = () => {
@@ -25,6 +26,48 @@ const About = () => {
 
   return (
     <div className="x-root">
+      <Helmet>
+        <title>Tentang Kami - Sukamuda</title>
+        <link rel="canonical" href="https://sukamuda.co.id/about" />
+        <meta name="description" content="Sukamuda adalah wadah bagi siapa saja yang ingin menulis, membaca, dan berdiskusi dalam suasana yang positif, inspiratif, dan membangun." />
+        
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "AboutPage",
+            "name": "Tentang Kami - Sukamuda",
+            "description": "Sukamuda adalah wadah bagi siapa saja yang ingin menulis, membaca, dan berdiskusi dalam suasana yang positif, inspiratif, dan membangun.",
+            "url": "https://sukamuda.co.id/about",
+            "isPartOf": {
+              "@type": "WebSite",
+              "name": "Sukamuda",
+              "url": "https://sukamuda.co.id"
+            },
+            "inLanguage": "id-ID"
+          })}
+        </script>
+
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Beranda",
+                "item": "https://sukamuda.co.id"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Tentang Kami"
+              }
+            ]
+          })}
+        </script>
+      </Helmet>
+
       <div className="x-grid-bg" />
 
       <div className="x-wrap">
@@ -51,7 +94,7 @@ const About = () => {
               <span className="x-h1-line">Ruang Berbagi</span>
               <span className="x-h1-line x-h1-accent">Ide &amp; Kreativitas</span>
             </h1>
-            <p className="x-hero-desc">
+            <p className="x-hero-desc" style={{ textAlign: 'left' }}>
               Sukamuda adalah wadah bagi siapa saja yang ingin menulis, membaca,
               dan berdiskusi dalam suasana yang positif, inspiratif, dan membangun.
             </p>
@@ -73,7 +116,7 @@ const About = () => {
               <div className="x-visi-ring x-visi-ring2" />
               <div className="x-visi-dot" />
             </div>
-            <div className="x-visi-body">
+            <div className="x-visi-body" style={{ textAlign: 'left' }}>
               <h2>Menjadi platform media digital yang mendorong kreativitas, literasi, dan kontribusi positif generasi muda di era digital.</h2>
               <p>Kami percaya setiap suara punya nilai — dan Sukamuda hadir supaya suara itu terdengar, dibaca, dan berdampak nyata.</p>
             </div>
@@ -86,7 +129,7 @@ const About = () => {
             <span className="x-label">02</span>
             <span className="x-label-text">Misi</span>
           </div>
-          <div className="x-bento">
+          <div className="x-bento" style={{ textAlign: 'left' }}>
             <div className="x-ben x-ben-wide" style={{ transitionDelay: '0ms' }}>
               <div className="x-ben-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -124,7 +167,7 @@ const About = () => {
             <span className="x-label">03</span>
             <span className="x-label-text">Kategori</span>
           </div>
-          <div className="x-kat-grid">
+          <div className="x-kat-grid" style={{ textAlign: 'left' }}>
             {[
               { n: 'Edukasi', d: 'Pengetahuan yang bermanfaat', c: '#4f46e5' },
               { n: 'Teknologi', d: 'Tren & inovasi terkini', c: '#0891b2' },
@@ -141,7 +184,7 @@ const About = () => {
               </div>
             ))}
           </div>
-          <div className="x-alert">
+          <div className="x-alert" style={{ textAlign: 'left' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <p>Semua artikel melewati proses kurasi editorial sebelum tayang — kami menjaga kualitas di atas segalanya.</p>
           </div>
@@ -153,7 +196,7 @@ const About = () => {
             <span className="x-label">04</span>
             <span className="x-label-text">Cara Kerja</span>
           </div>
-          <div className="x-steps">
+          <div className="x-steps" style={{ textAlign: 'left' }}>
             {[
               { t: 'Daftar Akun', d: 'Buat akun gratis — cuma butuh email dan username.', ic: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
               { t: 'Tulis Artikel', d: 'Tuangkan ide, opini, atau pengalamanmu dalam format artikel.', ic: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> },
@@ -181,7 +224,7 @@ const About = () => {
             <span className="x-label">05</span>
             <span className="x-label-text">Komitmen</span>
           </div>
-          <div className="x-com-grid">
+          <div className="x-com-grid" style={{ textAlign: 'left' }}>
             {[
               { t: 'Kualitas Konten', d: 'Zero plagiarisme, 100% orisinal.', ic: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
               { t: 'Privasi Pengguna', d: 'Data kamu prioritas utama kami.', ic: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> },

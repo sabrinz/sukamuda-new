@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import axios from "../utils/axiosConfig";
 import "./Category.css";
 
@@ -15,12 +16,7 @@ const normalizeCategory = (value) => (value || '').toString().toLowerCase().repl
 const slugCategoryMap = {
   sport: ['sport', 'sport & e-sport', 'sport-esport', 'sport e-sport'],
   music: ['music', 'music & film', 'music&film', 'music and film'],
-  
-  // Tambahkan mapping untuk news dan subkategorinya di sini
   news: ['news', 'school', 'college', 'general'], 
-  
-  // Tambahkan mapping untuk lifestyle dan subkategorinya di sini
-  // (Sesuaikan array-nya jika nama subkategorinya berbeda)
   lifestyle: ['lifestyle', 'style', 'health', 'food', 'travel'], 
 };
 
@@ -67,6 +63,9 @@ const Category = () => {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const categoryLabel = displayLabelMap[slug] || slug;
+  const canonicalUrl = `https://sukamuda.co.id/category/${slug}`;
+
   useEffect(() => {
     const fetchArticles = async () => {
       try {
@@ -94,16 +93,67 @@ const Category = () => {
     fetchArticles();
   }, [slug]);
 
+  /* PERBAIKAN SEO: Standar CollectionPage Schema dipisah rapi dengan Breadcrumb & ItemList */
+  const schemaBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Beranda",
+        "item": "https://sukamuda.co.id"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": categoryLabel,
+        "item": canonicalUrl
+      }
+    ]
+  };
+
+  const schemaCollectionPage = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "headline": `Berita ${categoryLabel} Terbaru`,
+    "url": canonicalUrl,
+    "name": `Kategori ${categoryLabel} - SukaMuda`,
+    "description": `Kumpulan berita dan artikel terbaru seputar ${categoryLabel} di SukaMuda.`,
+    "mainEntity": {
+      "@type": "ItemList",
+      "name": `Artikel ${categoryLabel}`,
+      "numberOfItems": articles.length,
+      "itemListElement": articles.slice(0, 20).map((article, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "url": `https://sukamuda.co.id/article/${article.slug}`
+      }))
+    }
+  };
+
   return (
     <div className="category-container">
+      <Helmet>
+        <title>Kategori {categoryLabel} - SukaMuda</title>
+        <link rel="canonical" href={canonicalUrl} />
+        <meta name="description" content={`Baca artikel terbaru di kategori ${categoryLabel} di SukaMuda.`} />
+        <script type="application/ld+json">
+          {JSON.stringify(schemaBreadcrumb)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(schemaCollectionPage)}
+        </script>
+      </Helmet>
+
       <header className="category-header">
         <h2 style={{ textTransform: 'capitalize', color: '#000', marginBottom: '30px' }}>
-          Kategori: {displayLabelMap[slug] || slug}
+          Kategori: {categoryLabel}
         </h2>
       </header>
 
       {loading ? (
-        <div className="category-empty">Memuat Berita {displayLabelMap[slug] || slug}...</div>
+        <div className="category-empty">Memuat Berita {categoryLabel}...</div>
       ) : (
         <div className="article-grid">
           {articles.length > 0 ? (
@@ -177,7 +227,7 @@ const Category = () => {
             })
           ) : (
             <div className="category-empty">
-              <p>Belum ada artikel di kategori <strong>{displayLabelMap[slug] || slug}</strong>.</p>
+              <p>Belum ada artikel di kategori <strong>{categoryLabel}</strong>.</p>
             </div>
           )}
         </div>

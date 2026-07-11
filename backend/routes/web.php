@@ -12,12 +12,10 @@ Route::get('/', function () {
 Route::get('/article/{slug}', function (string $slug) {
     
     $userAgent = request()->userAgent() ?? '';
-    $isBot = str_contains($userAgent, 'facebookexternalhit') || 
-             str_contains($userAgent, 'Facebook') || 
-             str_contains($userAgent, 'WhatsApp') || 
-             str_contains($userAgent, 'Twitterbot') || 
-             str_contains($userAgent, 'TelegramBot') || 
-             str_contains($userAgent, 'LinkedInBot');
+    
+    // PERBAIKAN: Menggunakan Regex komprehensif untuk mendeteksi Bot Media Sosial dan Mesin Pencari Utama (Google, Bing, dll.)
+    $botPattern = '/(googlebot|bingbot|yandexbot|baiduspider|twitterbot|facebookexternalhit|facebook|whatsapp|telegrambot|linkedinbot|embedly|slackbot|vkShare)/i';
+    $isBot = (bool) preg_match($botPattern, $userAgent);
 
     if (!$isBot) {
         if (file_exists(public_path('index.html'))) {
@@ -42,6 +40,7 @@ Route::get('/article/{slug}', function (string $slug) {
             'articleUrl'       => $frontendUrl,
         ]);
     }
+    
     $shareTitle = $article->title . ' - SUKAMUDA';
     $shareDescription = $article->summary 
         ? Str::limit(strip_tags($article->summary), 140, '...')
@@ -54,7 +53,7 @@ Route::get('/article/{slug}', function (string $slug) {
             : secure_asset('storage/' . $article->image);
     }
 
-    // 7. Fallback ambil Thumbnail YouTube jika Podcast Video tapi tidak punya cover
+    // Fallback ambil Thumbnail YouTube jika Podcast Video tapi tidak punya cover
     if (($imageUrl === secure_asset('logo.png')) && $article->video_link) {
         $videoId = null;
         $videoUrl = trim($article->video_link);
@@ -91,10 +90,10 @@ Route::get('/article/{slug}', function (string $slug) {
         }
     }
 
-    // 8. URL artikel yang akan mengarahkan user ke React
+    // URL artikel yang akan mengarahkan user ke React
     $articleUrl = $frontendUrl . '/article/' . $slug;
 
-    // 9. Kirim ke view Blade
+    // Kirim ke view Blade
     return response()->view('article_share', [
         'shareTitle'       => $shareTitle,
         'shareDescription' => $shareDescription,

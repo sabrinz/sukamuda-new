@@ -5,7 +5,6 @@
 }
 
 html, body {
-  /* UBAH: overflow-x: hidden → clip supaya sticky tetap jalan */
   overflow-x: clip !important;
   width: 100% !important;
   max-width: 100vw !important;
@@ -314,12 +313,24 @@ html, body {
 }
 
 .hero-img {
-  width: 90%;
-  max-width: 100%;
-  max-height: 420px;
+  width: 100%;
+  max-width: 1200px;
+  min-width: 1200px; /* PERBAIKAN: Memaksa ukuran minimal lebar 1200px */
+  min-height: 600px; /* PERBAIKAN: Memaksa ukuran minimal tinggi 600px */
+  height: auto;      /* PERBAIKAN: Tinggi dapat menyesuaikan proporsinya */
   object-fit: cover;
   display: block;
 }
+
+/* Memastikan di layar mobile/tablet, gambar tetap responsive dan tidak meluber keluar layar */
+@media (max-width: 1240px) {
+  .hero-img {
+    min-width: 100%;
+    min-height: auto;
+    aspect-ratio: 2 / 1;
+  }
+}
+
 
 .podcast-embed-section {
   width: 100%;
@@ -465,7 +476,7 @@ html, body {
   width: 90%;
   max-width: 100%;
   margin: 0 auto;
-  text-align: justify;
+  text-align: left !important;
   padding: 0;
   font-size: 17.5px;
   line-height: 1.72;
@@ -475,17 +486,35 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Paragraf normal — dipakai untuk DESKTOP & MOBILE (tidak ada lagi override khusus mobile) */
 .text-render p {
-  margin-top: 0;
-  margin-bottom: 6px;
-  line-height: 1.72;
+  margin: 0 0 16px;
+  line-height: 1.7;
   color: #333;
+  text-align: left !important;
   overflow-wrap: break-word;
   word-break: break-word;
 }
 
 .text-render p:last-child {
   margin-bottom: 0;
+}
+
+/* ★ FIX GAP ANTAR PARAGRAF (BERLAKU DESKTOP & MOBILE)
+   Editor artikel (Quill) sering menyisipkan paragraf kosong <p><br></p>
+   setiap kali user menekan Enter dua kali. Paragraf kosong ini ikut kena
+   line-height 1.7 dari .text-render p, sehingga terlihat seperti jarak
+   antar paragraf yang sangat lebar. Rule di bawah ini "meniadakan"
+   paragraf kosong tersebut supaya jarak antar paragraf jadi rapat &
+   konsisten sesuai margin-bottom: 16px di atas. Karena rule ini ada di
+   luar media query, otomatis berlaku juga di layar mobile. */
+.text-render p:empty,
+.text-render p:has(> br:only-child) {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
 .text-render h2,
@@ -517,7 +546,7 @@ html, body {
   max-width: 100%;
 }
 
-.text-render .ql-align-justify { text-align: justify; }
+.text-render .ql-align-justify { text-align: left; }
 
 .text-render p[style*="text-align: center"] img {
   display: block;
@@ -1225,7 +1254,6 @@ figure.ql-image-caption.ql-align-left {
   align-items: stretch;
   width: 100%;
   max-width: 100vw;
-  /* UBAH: overflow-x: hidden → clip */
   overflow-x: clip;
   background-color: #ffffff;
 }
@@ -1234,11 +1262,9 @@ figure.ql-image-caption.ql-align-left {
   flex: 1;
   min-width: 0;
   background-color: #ffffff;
-  /* UBAH: overflow-x: hidden → clip */
   overflow-x: clip;
 }
 
-/* UBAH: hapus overflow:hidden, tambahkan flex column */
 .ad-sidebar {
   flex-shrink: 0;
   width: 160px;
@@ -1247,7 +1273,6 @@ figure.ql-image-caption.ql-align-left {
   flex-direction: column;
 }
 
-/* UBAH: tambahkan align-self: flex-start */
 .ad-sidebar-sticky {
   position: sticky;
   top: 80px;
@@ -1349,6 +1374,12 @@ figure.ql-image-caption.ql-align-left {
   .article-layout-wrapper {
     display: block;
   }
+  
+  .hero-img {
+    min-width: 100%;
+    min-height: auto;
+    aspect-ratio: 2 / 1;
+  }
 
   .main-content-wrapper { grid-template-columns: 1fr; }
 
@@ -1389,14 +1420,9 @@ figure.ql-image-caption.ql-align-left {
     text-align: left !important;
   }
 
-  .text-render p {
-    margin-top: 0;
-    margin-bottom: -5px;
-  }
-
-  .text-render p:last-child {
-    margin-bottom: 0;
-  }
+  /* ★ DIHAPUS: override margin-bottom: -5px yang bikin jarak paragraf
+     beda dari desktop. Sekarang mobile ikut rule dasar .text-render p
+     (margin: 0 0 16px) di atas, sama seperti desktop. */
 
   .text-render h2 {
     font-size: 20px;
@@ -1611,9 +1637,8 @@ figure.ql-image-caption.ql-align-left {
     line-height: 1.7;
   }
 
-  .text-render p {
-    margin-bottom: 4px;
-  }
+  /* ★ DIHAPUS: override margin-bottom: 4px, sekarang ikut rule dasar
+     .text-render p (margin: 0 0 16px), sama seperti desktop. */
 
   .text-render h2 {
     margin: 18px 0 8px;

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import {
     IoDocumentTextOutline,
     IoSparkles,
@@ -10,6 +11,8 @@ import {
 } from 'react-icons/io5';
 import axios from '../utils/axiosConfig';
 import './PublicProfile.css';
+
+const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
 
 function PublicProfile() {
     const { userId } = useParams();
@@ -38,6 +41,10 @@ function PublicProfile() {
     if (error) {
         return (
             <div className="pub-page">
+                <Helmet>
+                    <title>Penulis Tidak Ditemukan - Sukamuda</title>
+                    <link rel="canonical" href={`${baseUrl}/user/${userId}`} />
+                </Helmet>
                 <div className="pub-topbar">
                     <div className="pub-topbar-inner">
                         <Link to="/" className="pub-back">
@@ -66,9 +73,69 @@ function PublicProfile() {
     const initials = author.name?.charAt(0).toUpperCase() || 'P';
     const articles = author.articles || [];
     const articleCount = articles.length;
+    const canonicalUrl = `${baseUrl}/user/${userId}`;
+    const authorAvatar = author.avatar
+        ? (author.avatar.startsWith('http') ? author.avatar : `${baseUrl}/storage/${author.avatar}`)
+        : null;
+
+    const schemaProfile = {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "name": `Profil ${author.name} - Sukamuda`,
+        "url": canonicalUrl,
+        "mainEntity": {
+            "@type": "Person",
+            "name": author.name,
+            "url": canonicalUrl,
+            "jobTitle": author.profession || null,
+            "description": author.bio || null,
+            "image": authorAvatar || null,
+            "worksFor": {
+                "@type": "Organization",
+                "name": "Sukamuda",
+                "url": baseUrl
+            }
+        },
+        "inLanguage": "id-ID"
+    };
+
+    const schemaBreadcrumb = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Beranda",
+                "item": baseUrl
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": author.name
+            }
+        ]
+    };
 
     return (
         <div className="pub-page">
+
+            <Helmet>
+                <title>{author.name} - Sukamuda</title>
+                <link rel="canonical" href={canonicalUrl} />
+                <meta name="description" content={author.bio || `Profil ${author.name} di Sukamuda. ${articleCount} artikel dipublikasikan.`} />
+                <meta property="og:title" content={`${author.name} - Sukamuda`} />
+                <meta property="og:description" content={author.bio || `Profil ${author.name} di Sukamuda.`} />
+                <meta property="og:image" content={authorAvatar || `${baseUrl}/logo.png`} />
+                <meta property="og:url" content={canonicalUrl} />
+                <meta property="og:type" content="profile" />
+                <script type="application/ld+json">
+                    {JSON.stringify(schemaProfile)}
+                </script>
+                <script type="application/ld+json">
+                    {JSON.stringify(schemaBreadcrumb)}
+                </script>
+            </Helmet>
 
             {/* ═══ TOPBAR ═══ */}
             <div className="pub-topbar">
@@ -156,6 +223,9 @@ function PublicProfile() {
                             const date = a.createdAt
                                 ? new Date(a.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                                 : '';
+                            const imgSrc = a.image
+                                ? (a.image.startsWith('http') ? a.image : `${baseUrl}/storage/${a.image}`)
+                                : null;
                             return (
                                 <Link
                                     key={a.id}
@@ -164,8 +234,8 @@ function PublicProfile() {
                                     style={{ animationDelay: `${i * 0.05}s` }}
                                 >
                                     <div className="pub-card-visual">
-                                        {a.image ? (
-                                            <img src={a.image} alt={a.title} loading="lazy" />
+                                        {imgSrc ? (
+                                            <img src={imgSrc} alt={a.title} loading="lazy" />
                                         ) : (
                                             <div className="pub-card-visual-ph">
                                                 <IoDocumentTextOutline size={24} />

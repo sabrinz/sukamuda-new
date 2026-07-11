@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "../utils/axiosConfig";
 import { categoryGroups } from "../data/articles";
@@ -31,44 +32,44 @@ const fetchVideoReels = async () => {
 
 const AD_CONFIG = {
   'news': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "11111111" },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "22222222" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
+    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
   },
   'lifestyle': {
     kanan: { tampil: false },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "33333333" },
+    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
   },
   'sport': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "44444444" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
     bawah: { tampil: false },
   },
   'sport-e-sport': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "44444444" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
     bawah: { tampil: false },
   },
   'music-film': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "55555555" },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "66666666" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
+    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
   },
   'otomotif': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "77777777" },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "88888888" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
+    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
   },
   'science': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "99999999" },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "00000000" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
+    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
   },
   'health': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "12121212" },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "34343434" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
+    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
   },
   'tech': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "56565656" },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "78787878" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
+    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
   },
   'technology': {
-    kanan: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "56565656" },
-    bawah: { tampil: true, adClient: "ca-pub-XXXXXXXXX", adSlot: "78787878" },
+    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
+    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
   }
 };
 
@@ -100,8 +101,8 @@ function Home() {
   const { data: trendingArticles = [], isLoading: trendingLoading, isError: trendingError } = useQuery({
     queryKey: ['trendingArticles'],
     queryFn: fetchTrending,
-    cacheTime: 0, // DITAMBAHKAN: Memaksa React untuk lupa cache lama setiap refresh
-    staleTime: 0, // DITAMBAHKAN: Selalu anggap data sudah basi, jadi wajib fetch ulang
+    cacheTime: 0,
+    staleTime: 0,
     retry: 1
   });
 
@@ -124,10 +125,9 @@ function Home() {
     return map;
   }, [allArticles]);
 
-    const getTrendingImage = (trendingArticle) => {
+  const getTrendingImage = (trendingArticle) => {
     if (!trendingArticle) return '';
     
-    // Langsung ambil gambar dari data trending yang dikirim server
     if (trendingArticle.image) {
       if (trendingArticle.image.startsWith('http://') || trendingArticle.image.startsWith('https://')) {
         return trendingArticle.image;
@@ -135,7 +135,6 @@ function Home() {
       return `${baseUrl}/storage/${trendingArticle.image}`;
     }
 
-    // Fallback ke thumbnail YouTube jika ada
     if (trendingArticle.video_link) {
       const ytThumb = getYoutubeThumbnailUrl(trendingArticle.video_link);
       if (ytThumb) return ytThumb;
@@ -460,8 +459,16 @@ function Home() {
   }, [allArticles]);
 
   const renderCategoryGroup = (group, index) => {
-    const isNewsStyle = index % 2 === 0;
-    const isLifestyleStyle = index % 2 !== 0;
+    const kategori = group.slug.toLowerCase();
+
+    let isNewsStyle = index % 2 === 0;
+    let isLifestyleStyle = index % 2 !== 0;
+
+    if (!isMobile && (kategori === 'news' || kategori === 'otomotif' || kategori === 'sport' || kategori === 'sport-e-sport')) {
+      isNewsStyle = true;
+      isLifestyleStyle = false;
+    }
+
     const maxArticles = isLifestyleStyle ? 10 : 5;
 
     const groupArticles = (Array.isArray(allArticles) ? allArticles : [])
@@ -474,7 +481,6 @@ function Home() {
 
     if (groupArticles.length === 0 && !articleLoading) return null;
 
-    const kategori = group.slug.toLowerCase();
     const adSetting = AD_CONFIG[kategori] || {
       kanan: { tampil: false },
       bawah: { tampil: false }
@@ -528,8 +534,41 @@ function Home() {
     );
   };
 
+  const schemaHomepage = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://sukamuda.co.id/#website",
+        "url": "https://sukamuda.co.id/",
+        "name": "SukaMuda",
+        "description": "Portal Berita Anak Muda",
+        "potentialAction": [{
+          "@type": "SearchAction",
+          "target": "https://sukamuda.co.id/search?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }]
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://sukamuda.co.id/#organization",
+        "name": "SukaMuda",
+        "url": "https://sukamuda.co.id/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://sukamuda.co.id/logo.png"
+        }
+      }
+    ]
+  };
+
   return (
     <div className="home-container">
+      <Helmet>
+        <title>SukaMuda - Portal Berita Anak Muda</title>
+        <link rel="canonical" href="https://sukamuda.co.id/" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaHomepage) }} />
+      </Helmet>
 
       {/* WADAH 1: TRENDING & IKLAN STICKY */}
       <div className="home-layout-wrapper">
@@ -539,8 +578,8 @@ function Home() {
               <AdSlot
                 type="vertical"
                 mode="adsense"
-                adClient="ca-pub-XXXXXXXXX"
-                adSlot="99999991"
+                adClient="ca-pub-7608424206122269"
+                adSlot="9190843316"
               />
             </div>
           </div>
@@ -578,7 +617,7 @@ function Home() {
               <AdSlot
                 type="vertical"
                 mode="adsense"
-                adClient="ca-pub-XXXXXXXXX"
+                adClient="ca-pub-7608424206122269"
                 adSlot="99999992"
               />
             </div>
@@ -588,9 +627,7 @@ function Home() {
 
       {/* WADAH 2: KONTEN BAWAH (REELS, KATEGORI, DLL) */}
       <div className="home-layout-wrapper" style={{ marginTop: '40px' }}>
-
         <div className="home-main-content">
-
           {/* ── VIDEO REELS ── */}
           <section className="home-section section-video-reels">
             <div className="section-header">
@@ -637,20 +674,17 @@ function Home() {
               <p>Belum ada artikel yang diterbitkan saat ini.</p>
             </div>
           )}
-
         </div>
-
       </div>
 
       <div className="ad-before-footer">
         <AdSlot
           type="horizontal"
           mode="adsense"
-          adClient="ca-pub-XXXXXXXXX"
-          adSlot="99999993"
+          adClient="ca-pub-7608424206122269"
+          adSlot="9097520145"
         />
       </div>
-
     </div>
   );
 }

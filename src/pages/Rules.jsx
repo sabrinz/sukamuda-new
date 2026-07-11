@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import './Rules.css';
 
 const Rules = () => {
@@ -27,6 +28,48 @@ const Rules = () => {
 
   return (
     <div className="ru-root">
+      <Helmet>
+        <title>Kebijakan & Privasi - Sukamuda</title>
+        <link rel="canonical" href="https://sukamuda.co.id/rules" />
+        <meta name="description" content="Kebijakan Privasi dan Ketentuan Penggunaan platform Sukamuda." />
+        
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "PrivacyPolicyPage",
+            "name": "Kebijakan dan Privasi - Sukamuda",
+            "description": "Kebijakan Privasi dan Ketentuan Penggunaan platform Sukamuda.",
+            "url": "https://sukamuda.co.id/rules",
+            "isPartOf": {
+              "@type": "WebSite",
+              "name": "Sukamuda",
+              "url": "https://sukamuda.co.id"
+            },
+            "inLanguage": "id-ID"
+          })}
+        </script>
+
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Beranda",
+                "item": "https://sukamuda.co.id"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Kebijakan & Privasi"
+              }
+            ]
+          })}
+        </script>
+      </Helmet>
+
       <div className="ru-grid-bg" />
 
       <div className="ru-wrap">
@@ -72,7 +115,7 @@ const Rules = () => {
             <h2>Kebijakan Privasi</h2>
           </div>
 
-          <div className="ru-items">
+          <div className="ru-items" style={{ textAlign: 'left' }}>
             <div className="ru-item" style={{ transitionDelay: '0ms' }}>
               <div className="ru-item-head">
                 <span className="ru-item-num">01</span>
@@ -177,7 +220,7 @@ const Rules = () => {
             <h2>Kebijakan Penggunaan</h2>
           </div>
 
-          <div className="ru-items">
+          <div className="ru-items" style={{ textAlign: 'left' }}>
             <div className="ru-item" style={{ transitionDelay: '0ms' }}>
               <div className="ru-item-head">
                 <span className="ru-item-num">01</span>

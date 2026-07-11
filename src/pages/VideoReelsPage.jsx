@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Helmet } from 'react-helmet-async';
 import axios from '../utils/axiosConfig';
 import VideoReels from '../components/VideoReels';
 import { FaInstagram, FaTiktok, FaFacebook, FaYoutube } from 'react-icons/fa';
@@ -35,9 +36,59 @@ function VideoReelsPage() {
   ];
 
   const currentData = Array.isArray(reels) ? reels : (reels.data || []);
+  const canonicalUrl = `${baseUrl}/video-reels${selectedPlatform !== 'all' ? `?platform=${selectedPlatform}` : ''}`;
+
+  const schemaWebPage = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Video Reels - Sukamuda",
+    "description": "Koleksi video terbaru dari berbagai platform di Sukamuda.",
+    "url": canonicalUrl,
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Sukamuda",
+      "url": baseUrl
+    },
+    "inLanguage": "id-ID"
+  };
+
+  const schemaBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Beranda",
+        "item": baseUrl
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Video Reels"
+      }
+    ]
+  };
 
   return (
     <div className="video-reels-page">
+
+      <Helmet>
+        <title>Video Reels - Sukamuda</title>
+        <link rel="canonical" href={canonicalUrl} />
+        <meta name="description" content="Koleksi video terbaru dari berbagai platform di Sukamuda." />
+        <meta property="og:title" content="Video Reels - Sukamuda" />
+        <meta property="og:description" content="Koleksi video terbaru dari berbagai platform di Sukamuda." />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json">
+          {JSON.stringify(schemaWebPage)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(schemaBreadcrumb)}
+        </script>
+      </Helmet>
+
       <div className="page-header">
         <h1>Video Reels</h1>
         <p>Koleksi video terbaru dari berbagai platform</p>
@@ -45,20 +96,23 @@ function VideoReelsPage() {
 
       {/* Platform Filter */}
       <div className="platform-filters">
-        {platforms.map(platform => (
-          <button
-            key={platform.id}
-            className={`platform-filter-btn ${selectedPlatform === platform.id ? 'active' : ''}`}
-            onClick={() => setSelectedPlatform(platform.id)}
-            style={{
-              backgroundColor: platform.color,
-              borderColor: platform.color
-            }}
-          >
-            {platform.icon && <platform.icon className="platform-icon-filter" />}
-            <span>{platform.label}</span>
-          </button>
-        ))}
+        {platforms.map(platform => {
+          const IconComponent = platform.icon;
+          return (
+            <button
+              key={platform.id}
+              className={`platform-filter-btn ${selectedPlatform === platform.id ? 'active' : ''}`}
+              onClick={() => setSelectedPlatform(platform.id)}
+              style={{
+                backgroundColor: platform.color,
+                borderColor: platform.color
+              }}
+            >
+              {IconComponent && <IconComponent className="platform-icon-filter" />}
+              <span>{platform.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Loading State */}

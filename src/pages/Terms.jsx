@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import './Terms.css';
 
 const Terms = () => {
@@ -27,6 +28,48 @@ const Terms = () => {
 
   return (
     <div className="tr-root">
+      <Helmet>
+        <title>Syarat & Ketentuan - Sukamuda</title>
+        <link rel="canonical" href="https://sukamuda.co.id/terms" />
+        <meta name="description" content="Syarat dan Ketentuan Penggunaan platform media digital Sukamuda." />
+        
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "Syarat dan Ketentuan Penggunaan",
+            "description": "Syarat dan Ketentuan Penggunaan platform media digital Sukamuda.",
+            "url": "https://sukamuda.co.id/terms",
+            "isPartOf": {
+              "@type": "WebSite",
+              "name": "Sukamuda",
+              "url": "https://sukamuda.co.id"
+            },
+            "inLanguage": "id-ID"
+          })}
+        </script>
+
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Beranda",
+                "item": "https://sukamuda.co.id"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Syarat & Ketentuan"
+              }
+            ]
+          })}
+        </script>
+      </Helmet>
+
       <div className="tr-grid-bg" />
 
       <div className="tr-wrap">
@@ -64,7 +107,7 @@ const Terms = () => {
         </header>
 
         {/* CONTENT */}
-        <main className={`tr-content ${on('content') ? 'tr-on' : ''}`} id="content" ref={(e) => reg(e, 'content')}>
+        <main className={`tr-content ${on('content') ? 'tr-on' : ''}`} id="content" ref={(e) => reg(e, 'content')} style={{ textAlign: 'left' }}>
 
           {/* 1 */}
           <div className="tr-item" style={{ transitionDelay: '0ms' }}>
