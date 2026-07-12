@@ -6,7 +6,8 @@
     <title>{{ $shareTitle }}</title>
     <meta name="description" content="{{ $shareDescription }}">
 
-    <!-- Open Graph / Facebook / WhatsApp -->
+    <link rel="canonical" href="{{ $articleUrl }}" />
+
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="SUKAMUDA">
     <meta property="og:url" content="{{ $articleUrl }}">
@@ -17,14 +18,16 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
 
-    <!-- Twitter (PERBAIKAN: pakai name= bukan property=) -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="{{ $shareUrl }}">
     <meta name="twitter:title" content="{{ $shareTitle }}">
     <meta name="twitter:description" content="{{ $shareDescription }}">
     <meta name="twitter:image" content="{{ $shareImage }}">
 
-    <!-- Redirect fallback -->
+    <script type="application/ld+json">
+        {!! $schemaMarkup !!}
+    </script>
+
     <meta http-equiv="refresh" content="0; url={{ $articleUrl }}">
 
     <style>
@@ -77,7 +80,7 @@
 <body>
     <div class="container">
         <div class="loader"></div>
-        <p>Mengarahkan Anda ke artikel...</p>
+        <p>Mengarahkan Anda ke portal utama SUKAMUDA...</p>
         <p>Jika tidak berpindah otomatis, <a href="{{ $articleUrl }}">klik di sini</a>.</p>
     </div>
 

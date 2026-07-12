@@ -16,26 +16,24 @@ use Illuminate\Support\Facades\DB;
 class ArticleController extends Controller
 {
     private function formatImageUrl($imagePath)
-{
-    if (empty($imagePath) || !is_string($imagePath)) {
-        return null;
+    {
+        if (empty($imagePath) || !is_string($imagePath)) {
+            return null;
+        }
+
+        // kalau sudah URL
+        if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+            // ubah localhost ke domain hosting
+            $imagePath = str_replace(
+                'http://127.0.0.1:8000',
+                'https://sukamuda.co.id',
+                $imagePath
+            );
+            return $imagePath;
+        }
+
+        return 'https://sukamuda.co.id/storage/' . ltrim($imagePath, '/');
     }
-
-    // kalau sudah URL
-    if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
-
-        // ubah localhost ke domain hosting
-        $imagePath = str_replace(
-            'http://127.0.0.1:8000',
-            'https://sukamuda.co.id',
-            $imagePath
-        );
-
-        return $imagePath;
-    }
-
-    return 'https://sukamuda.co.id/storage/' . ltrim($imagePath, '/');
-}
 
     private function transformArticles($articles)
     {
@@ -97,7 +95,6 @@ class ArticleController extends Controller
         $user = $request->user('sanctum');
         
         $query = Article::where('status', 'approved')
-            // Menambahkan 'content' jika kamu pakai cara bypass cPanel sementara
             ->select(['id', 'user_id', 'title', 'slug', 'image', 'summary', 'content', 'category', 'created_at'])
             ->with('user:id,name,avatar')
             ->withCount('likes');
@@ -265,7 +262,6 @@ class ArticleController extends Controller
             'rejection_reason' => 'nullable|string|max:1000',
         ]);
 
-        $oldStatus = $article->status;
         $article->status = $request->status;
         
         if ($request->status === 'rejected') {
@@ -403,7 +399,6 @@ class ArticleController extends Controller
         ]);
     }
 
-    // --- FUNGSI BARU UNTUK MENGATASI ERROR 500 VIEWS ---
     public function incrementView($id)
     {
         try {
@@ -460,7 +455,7 @@ class ArticleController extends Controller
         $article->is_manual_trending = !$article->is_manual_trending;
         $article->save();
         
-        Cache::forget('trending_weekly_' . now()->startOfWeek()->format('Y-m-d'));
+        Cache::forget('trending_weekly_real_7days_' . now()->format('Y-m-d'));
 
         return response()->json([
             'message' => 'Trending manual updated',
@@ -468,65 +463,89 @@ class ArticleController extends Controller
         ]);
     }
 
-   public function shareRender($slug)
-{
-    $article = Article::where('slug', $slug)->firstOrFail();
+    public function shareRender(Request $request, $slug)
+    {
+        $article = Article::where('slug', $slug)->with('user')->firstOrFail();
+        
+        $reactBaseUrl = 'https://sukamuda.co.id';
+        $articleUrl = rtrim($reactBaseUrl, '/') . '/article/' . $article->slug;
 
-   if ($article->image) {
+        $userAgent = $request->header('User-Agent', '');
 
-    if (str_starts_with($article->image, 'http')) {
+        // POLA REGEX KETAT: Menyaring daftar bot crawler media sosial & search engine
+        $botPattern = '/(facebookexternalhit|whatsapp|twitterbot|pinterest|googlebot|bingbot|yandexbot|yahoo|baiduspider|linkedinbot|embedly)/i';
 
-        $shareImage = str_replace(
-            'http://127.0.0.1:8000',
-            'https://sukamuda.co.id',
-            $article->image
+        // JIKA BUKAN BOT (MANUSIA ASLI): Langsung dialihkan ke URL Frontend React
+        if (!preg_match($botPattern, $userAgent)) {
+            return redirect()->away($articleUrl);
+        }
+
+        // JIKA BOT CRAWLER: Sediakan pratinjau data meta dan JSON-LD
+        if ($article->image) {
+            $shareImage = $this->formatImageUrl($article->image);
+        } else {
+            $shareImage = 'https://sukamuda.co.id/images/default-placeholder.png';
+        }
+
+        $cleanDescription = Str::limit(
+            strip_tags($article->summary ?? $article->content),
+            150,
+            '...'
         );
 
-    } else {
+        // Skema Terstruktur JSON-LD standar Google News (Kompas / Detik)
+        $schemaMarkup = [
+            '@context' => 'https://schema.org',
+            '@type' => 'NewsArticle',
+            'mainEntityOfPage' => [
+                '@type' => 'WebPage',
+                '@id' => $articleUrl,
+            ],
+            'headline' => $article->title,
+            'description' => $cleanDescription,
+            'image' => [
+                $shareImage
+            ],
+            'datePublished' => $article->created_at?->toIso8601String() ?? now()->toIso8601String(),
+            'dateModified' => $article->updated_at?->toIso8601String() ?? now()->toIso8601String(),
+            'author' => [
+                '@type' => 'Person',
+                'name' => $article->user?->name ?? 'Redaksi SUKAMUDA',
+            ],
+            'publisher' => [
+                '@type' => 'Organization',
+                'name' => 'SUKAMUDA',
+                'logo' => [
+                    '@type' => 'ImageObject',
+                    'url' => 'https://sukamuda.co.id/images/logo.png'
+                ]
+            ]
+        ];
 
-        $shareImage = asset('storage/' . $article->image);
-
+        return view('article_share', [
+            'shareTitle'       => $article->title . ' - SUKAMUDA',
+            'shareDescription' => $cleanDescription,
+            'shareUrl'         => url('/share/article/' . $article->slug),
+            'shareImage'       => $shareImage,
+            'articleUrl'       => $articleUrl,
+            'schemaMarkup'     => json_encode($schemaMarkup, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
+        ]);
     }
 
-} else {
-
-    $shareImage = asset('images/default-placeholder.png');
-
-}
-
-    $cleanDescription = Str::limit(
-        strip_tags($article->summary ?? $article->content),
-        140,
-        '...'
-    );
-
-    $reactBaseUrl = 'https://sukamuda.co.id'; 
-    $articleUrl = rtrim($reactBaseUrl, '/') . '/article/' . $article->slug;
-
-    return view('article_share', [
-        'shareTitle'       => $article->title . ' - SUKAMUDA',
-        'shareDescription' => $cleanDescription,
-        'shareUrl'         => url('/share/article/' . $article->slug),
-        'shareImage'       => $shareImage,
-        'articleUrl'       => $articleUrl
-    ]);
-}
-
-    // --- FUNGSI TRENDING YANG SUDAH DIPERBAIKI ---
     public function trending()
     {
-        // Ubah nama cache key agar sistem langsung membaca kode yang baru
-        $cacheKey = 'trending_weekly_final_' . now()->startOfWeek()->format('Y-m-d');
+        $cacheKey = 'trending_weekly_real_7days_' . now()->format('Y-m-d');
         
         $articles = Cache::remember($cacheKey, now()->addHour(), function () {
             
-            $startOfWeek = now()->startOfWeek();
+            // Filter kueri kunjungan HANYA dalam rentang 7 hari ke belakang
+            $oneWeekAgo = now()->subDays(7);
             
-            // Ganti bagian $weeklyViews dengan kode ini:
-$weeklyViews = ArticleView::select('article_id', \DB::raw('COUNT(*) as total_views'))
-    ->groupBy('article_id')
-    ->pluck('total_views', 'article_id')
-    ->toArray();
+            $weeklyViews = ArticleView::where('created_at', '>=', $oneWeekAgo)
+                ->select('article_id', DB::raw('COUNT(*) as total_views'))
+                ->groupBy('article_id')
+                ->pluck('total_views', 'article_id')
+                ->toArray();
 
             $articles = Article::where('status', 'approved')
                 ->where(function ($query) {
@@ -543,15 +562,13 @@ $weeklyViews = ArticleView::select('article_id', \DB::raw('COUNT(*) as total_vie
                 ->get();
 
             $articles = $articles->map(function ($article) use ($weeklyViews) {
-                // Menambahkan data sementara untuk di-sorting
                 $article->weekly_views = $weeklyViews[$article->id] ?? 0;
                 return $article;
             })->sortByDesc('weekly_views')->take(5);
 
             foreach ($articles as $article) {
                 if (!$article->is_manual_trending) {
-                    // Gunakan Query Builder langsung agar tidak error column not found
-                    \DB::table('articles')->where('id', $article->id)->update(['is_ever_trending' => 1]);
+                    DB::table('articles')->where('id', $article->id)->update(['is_ever_trending' => 1]);
                     $article->is_ever_trending = 1;
                 }
                 $article->image = $this->formatImageUrl($article->image);
@@ -562,4 +579,4 @@ $weeklyViews = ArticleView::select('article_id', \DB::raw('COUNT(*) as total_vie
 
         return response()->json($articles);
     }
-} 
+}
