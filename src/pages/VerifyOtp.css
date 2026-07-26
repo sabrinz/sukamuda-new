@@ -16,6 +16,7 @@
 
 .otp-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,7 +25,6 @@
   position: relative;
   overflow: hidden;
 }
-
 
 .particles {
   position: fixed;
@@ -266,6 +266,28 @@
   flex-direction: column;
 }
 
+/* ── Pesan feedback (pengganti alert, dipakai VerifyOtp.jsx) ── */
+.otp-message {
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.otp-message.error {
+  background: #FCE9E7;
+  border: 1px solid #E56458;
+  color: #B91C1C;
+}
+
+.otp-message.info {
+  background: #E8F5E9;
+  border: 1px solid #4CAF50;
+  color: #1B5E20;
+}
+
 .otp-input-group {
   display: flex;
   gap: 10px;
@@ -445,6 +467,23 @@
   width: 100%;
 }
 
+/* ── Reset button agar .resend-link & .link-dark (kini <button>) tetap tampil seperti link ── */
+button.resend-link,
+button.link-dark {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  display: inline;
+}
+
+button.resend-link:focus-visible,
+button.link-dark:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ========================================
    RESPONSIF
    ======================================== */
@@ -482,23 +521,34 @@
     padding: 32px 20px 26px;
   }
 
+  .otp-input-group {
+    gap: 6px;
+  }
+
   .otp-individual-box {
     width: 38px;
     height: 44px;
     font-size: 16px;
-    gap: 6px;
   }
 }
 
 /* ========================================
-   REDUCED MOTION
+   REDUCED MOTION (discope ke halaman OTP saja)
    ======================================== */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .otp-page,
+  .otp-page *,
+  .otp-page *::before,
+  .otp-page *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .otp-card,
+  .anim-item,
+  .back-btn {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

@@ -17,12 +17,16 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-   
+    /**
+     * The attributes that are mass assignable.
+     * * Semua kolom profil Sukamuda sudah masuk ke sini agar bisa disimpan lewat ProfileController.
+     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role',
+        // 'role' sengaja TIDAK fillable demi keamanan.
+        // Set role admin langsung lewat phpMyAdmin/database.
         'avatar',
         'cover_photo',
         'bio',
@@ -36,12 +40,19 @@ class User extends Authenticatable implements MustVerifyEmail
         'interests', 
     ];
 
-    
+    /**
+     * The attributes that should be hidden for serialization.
+     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
+    /**
+     * Get the attributes that should be cast.
+     * * Sangat penting: 'interests' => 'array' memastikan data JSON di database 
+     * dikonversi menjadi array murni saat sampai di React (mencegah error .map())
+     */
     protected function casts(): array
     {
         return [
@@ -51,7 +62,9 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-   
+    /**
+     * Relasi ke Artikel yang ditulis oleh user ini.
+     */
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class)->latest();
@@ -83,4 +96,12 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->role === 'admin';
     }
+    
+    public function getAvatarAttribute($value)
+{
+    if ($value) {
+        return url('storage/' . $value);
+    }
+    return null; // atau kembalikan link gambar default
+}
 }

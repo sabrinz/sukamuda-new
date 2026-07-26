@@ -1021,3 +1021,26 @@
     padding: 20px;
   }
 }
+
+/* ===== A11y: indikator fokus keyboard ===== */
+.admin-video-reels-container button:focus-visible,
+.admin-video-reels-container input:focus-visible,
+.admin-video-reels-container select:focus-visible,
+.admin-video-reels-container a:focus-visible,
+.av-modal-btn:focus-visible,
+.av-toast-close:focus-visible {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* ===== Hormati preferensi kurangi animasi ===== */
+@media (prefers-reduced-motion: reduce) {
+  .av-toast,
+  .av-modal-backdrop,
+  .av-modal-box,
+  .av-skel,
+  .admin-video-reels-container * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

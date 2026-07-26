@@ -199,3 +199,19 @@
     font-size: 12px;
   }
 }
+
+/* ===== A11y: indikator fokus keyboard ===== */
+.platform-filter-btn:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 2px;
+}
+
+/* ===== Hormati preferensi kurangi animasi ===== */
+@media (prefers-reduced-motion: reduce) {
+  .platform-filter-btn,
+  .reels-section,
+  .spinner {
+    animation: none !important;
+    transition: none !important;
+  }
+}

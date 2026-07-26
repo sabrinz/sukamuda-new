@@ -121,7 +121,7 @@
   transition: opacity 0.4s ease;
 }
 
-.ad-slot-box.ad-image a imgLoaded::before {
+.ad-slot-box.ad-image a.imgLoaded::before {
   opacity: 0;
   pointer-events: none;
 }
@@ -259,5 +259,14 @@
   .ad-slot-box.vertical {
     width: 180px;
     height: 280px;
+  }
+}
+
+/* Reduced motion: hentikan shimmer & pulse untuk user yang sensitif animasi */
+@media (prefers-reduced-motion: reduce) {
+  .ad-slot-box,
+  .ad-slot-box.ad-image a::before,
+  .ad-adsense-fallback-icon {
+    animation: none !important;
   }
 }

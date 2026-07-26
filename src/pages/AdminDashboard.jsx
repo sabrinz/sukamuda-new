@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from '../utils/axiosConfig';
+import DOMPurify from 'dompurify';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import RejectionModal from '../components/RejectionModal';
@@ -97,6 +98,19 @@ const AdminDashboard = () => {
             navigate('/');
         }
     }, [isLoggedIn, user, navigate]);
+
+    // A11Y: tutup modal apa pun dengan tombol Escape
+    useEffect(() => {
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setPreviewArticle(null);
+                setTrendingTarget(null);
+                setConfirmModal({ isOpen: false, type: '', article: null, title: '', description: '' });
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, []);
 
     const fetchArticles = useCallback(async (isSearch = false) => {
         try {
@@ -380,11 +394,11 @@ const AdminDashboard = () => {
         setTrendingTarget(null);
     };
 
-    const getArticleImage = (art) => {
-        if (!art) return "https://via.placeholder.com/150?text=SukaMuda";
-        if (!art.image) return "https://via.placeholder.com/150?text=SukaMuda";
-        return art.image.startsWith('http') ? art.image : `https://sukamuda.co.id/storage/${art.image}`;
-    };
+const getArticleImage = (art) => {
+    const placeholder = "https://placehold.co/150x150?text=SukaMuda";
+    if (!art || !art.image) return placeholder;
+    return art.image.startsWith('http') ? art.image : `https://sukamuda.co.id/storage/${art.image}`;
+};
 
     const getCategoryLabel = (slug) => {
         const cat = categoryList.find(c => c.slug === slug);
@@ -406,7 +420,7 @@ const AdminDashboard = () => {
     const renderSkeletonRows = (count = 6, cols = 7) => (
         <>
             {Array.from({ length: count }).map((_, i) => (
-                <tr key={`skel-${i}`} className="skeleton-row">
+                <tr key={`skel-${i}`} className="skeleton-row" aria-hidden="true">
                     <td><span className="skeleton-b w20" /></td>
                     <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -433,189 +447,213 @@ const AdminDashboard = () => {
     if (!isLoggedIn || user?.role !== 'admin') {
         return null;
     }
-
+    
     return (
-        <div className="admin-dashboard-container">
-            <header className="admin-header">
-                <div className="admin-header-left">
-                    <div className="admin-logo">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                        </svg>
-                        <div>
-                            <h1>Panel Kendali</h1>
-                            <p>Halo <strong>{user?.name}</strong> — Kelola konten dengan presisi.</p>
-                        </div>
+    <div className="admin-dashboard-container">
+        <header className="admin-header">
+            <div className="admin-header-left">
+                <div className="admin-logo">
+                    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    <div>
+                        <h1>Panel Kendali</h1>
+                        <p>Halo <strong>{user?.name}</strong> — Kelola konten dengan presisi.</p>
                     </div>
                 </div>
-                <div className="admin-header-right">
-                    <button
-                        className={`btn-view-toggle ${activeView === 'stats' ? 'active' : ''}`}
-                        onClick={() => setActiveView('stats')}
-                    >
-                        Statistik
-                    </button>
-                    <button
-                        className={`btn-view-toggle ${activeView === 'articles' ? 'active' : ''}`}
-                        onClick={() => { setActiveView('articles'); setCurrentPage(1); }}
-                    >
-                        Artikel
-                    </button>
-                    <button
-                        className={`btn-view-toggle ${activeView === 'reports' ? 'active' : ''}`}
-                        onClick={() => { setActiveView('reports'); setCurrentPage(1); }}
-                    >
-                        Laporan{reports.length > 0 ? ` (${reports.length})` : ''}
-                    </button>
-                    <button
-                        className={`btn-view-toggle ${activeView === 'trash' ? 'active' : ''}`}
-                        onClick={() => { setActiveView('trash'); setCurrentPage(1); }}
-                    >
-                        Sampah{trash.length > 0 ? ` (${trash.length})` : ''}
-                    </button>
-                    <button
-                        className={`btn-view-toggle ${activeView === 'video-reels' ? 'active' : ''}`}
-                        onClick={() => setActiveView('video-reels')}
-                    >
-                        Video Reels
-                    </button>
-                    <Link to="/write" className="btn-create-new">
-                        + Tulis Baru
-                    </Link>
-                </div>
-            </header>
+            </div>
+            <div className="admin-header-right" role="group" aria-label="Pilihan tampilan dashboard">
+                <button
+                    type="button"
+                    className={`btn-view-toggle ${activeView === 'stats' ? 'active' : ''}`}
+                    aria-pressed={activeView === 'stats'}
+                    onClick={() => setActiveView('stats')}
+                >
+                    Statistik
+                </button>
+                <button
+                    type="button"
+                    className={`btn-view-toggle ${activeView === 'articles' ? 'active' : ''}`}
+                    aria-pressed={activeView === 'articles'}
+                    onClick={() => { setActiveView('articles'); setCurrentPage(1); }}
+                >
+                    Artikel
+                </button>
+                <button
+                    type="button"
+                    className={`btn-view-toggle ${activeView === 'reports' ? 'active' : ''}`}
+                    aria-pressed={activeView === 'reports'}
+                    onClick={() => { setActiveView('reports'); setCurrentPage(1); }}
+                >
+                    Laporan{reports.length > 0 ? ` (${reports.length})` : ''}
+                </button>
+                <button
+                    type="button"
+                    className={`btn-view-toggle ${activeView === 'trash' ? 'active' : ''}`}
+                    aria-pressed={activeView === 'trash'}
+                    onClick={() => { setActiveView('trash'); setCurrentPage(1); }}
+                >
+                    Sampah{trash.length > 0 ? ` (${trash.length})` : ''}
+                </button>
+                <button
+                    type="button"
+                    className={`btn-view-toggle ${activeView === 'video-reels' ? 'active' : ''}`}
+                    aria-pressed={activeView === 'video-reels'}
+                    onClick={() => setActiveView('video-reels')}
+                >
+                    Video Reels
+                </button>
+                <Link to="/write" className="btn-create-new">
+                    + Tulis Baru
+                </Link>
+            </div>
+        </header>
 
-            {activeView === 'articles' && (
-                <div className="admin-stats-grid">
-                    <div className="stat-card stat-total" onClick={() => { setFilterStatus('all'); setFilterCategory('all'); setSearchQuery(''); setCurrentPage(1); }}>
-                        <div className="stat-info">
-                            <span className="stat-number">{loading ? '—' : stats.total}</span>
-                            <span className="stat-label">Total Artikel</span>
-                        </div>
+        {activeView === 'articles' && (
+            <div className="admin-stats-grid">
+                <div
+                    className="stat-card stat-total"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Reset semua filter artikel"
+                    onClick={() => { setFilterStatus('all'); setFilterCategory('all'); setSearchQuery(''); setCurrentPage(1); }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setFilterStatus('all'); setFilterCategory('all'); setSearchQuery(''); setCurrentPage(1);
+                        }
+                    }}
+                >
+                    <div className="stat-info">
+                        <span className="stat-number">{loading ? '—' : stats.total}</span>
+                        <span className="stat-label">Total Artikel</span>
                     </div>
                 </div>
-            )}
+            </div>
+        )}
 
-            {activeView === 'articles' && (
-                <div className="admin-toolbar">
-                    <div className="search-box">
-                        <input
-                            type="text"
-                            placeholder="Cari judul atau penulis..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <div className="toolbar-right">
-                        <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="filter-select">
-                            <option value="all">Semua Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                        <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="filter-select">
-                            <option value="all">Semua Kategori</option>
-                            {categoryList.map(cat => (
-                                <option key={cat.slug} value={cat.slug}>{cat.label}</option>
-                            ))}
-                        </select>
-                    </div>
+        {activeView === 'articles' && (
+            <div className="admin-toolbar">
+                <div className="search-box">
+                    <input
+                        type="text"
+                        placeholder="Cari judul atau penulis..."
+                        aria-label="Cari judul atau penulis"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
-            )}
+                <div className="toolbar-right">
+                    <select aria-label="Filter status artikel" value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="filter-select">
+                        <option value="all">Semua Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <select aria-label="Filter kategori artikel" value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="filter-select">
+                        <option value="all">Semua Kategori</option>
+                        {categoryList.map(cat => (
+                            <option key={cat.slug} value={cat.slug}>{cat.label}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+        )}
 
-            {activeView === 'articles' && (
-                <div className="admin-table-wrapper">
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Artikel</th>
-                                <th>Penulis</th>
-                                <th>Kategori</th>
-                                <th>Status</th>
-                                <th>Aksi</th>
-                                <th>Dilihat</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading && articles.length === 0 ? (
-                                renderSkeletonRows(8)
-                            ) : articles.length > 0 ? articles.map((art, index) => (
-                                <tr key={art.id}>
-                                    <td style={{ color: '#9ca3af', fontSize: '12px' }}>{index + 1 + (currentPage - 1) * 15}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <img
-                                                src={getArticleImage(art)}
-                                                alt=""
-                                                style={{ width: '42px', height: '30px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }}
-                                            />
-                                            <span style={{ fontWeight: 600, color: '#0f172a', lineHeight: 1.3, fontSize: '13px' }}>{art.title}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ color: '#6b7280', fontSize: '12px' }}>{art.user?.name || 'Anonim'}</td>
-                                    <td>
-                                        <span className="badge-category">{getCategoryLabel(art.category)}</span>
-                                    </td>
-                                    <td><span className={`status-badge status-${art.status}`}>{art.status.toUpperCase()}</span></td>
-                                    <td>
-                                        <div className="action-group">
-                                            <button className="btn-action" onClick={() => setPreviewArticle(art)} title="Preview">
-                                                <FaEye />
-                                            </button>
-                                            <button className="btn-action" onClick={() => navigate('/write', { state: { draft: art, returnPath: '/admin' } })} title="Edit">
-                                                <FaPen />
-                                            </button>
-                                            {art.status === 'pending' && (
-                                                <>
-                                                    <button className="btn-action btn-approve" onClick={() => handleUpdateStatus(art.id, 'approved')} disabled={actionLoading === art.id} title="Approve">
-                                                        <FaCheck />
-                                                    </button>
-                                                    <button className="btn-action btn-reject" onClick={() => handleRejectArticle(art.id, art.title)} disabled={actionLoading === art.id} title="Reject">
-                                                        <FaTimes />
-                                                    </button>
-                                                </>
-                                            )}
-                                            {art.status === 'approved' && (
-                                                <button className="btn-action" onClick={() => handleUpdateStatus(art.id, 'pending')} disabled={actionLoading === art.id} title="Tarik ke Pending">
-                                                    <FaUndo />
+        {activeView === 'articles' && (
+            <div className="admin-table-wrapper">
+                <table className="admin-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Artikel</th>
+                            <th scope="col">Penulis</th>
+                            <th scope="col">Kategori</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Aksi</th>
+                            <th scope="col">Dilihat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading && articles.length === 0 ? (
+                            renderSkeletonRows(8)
+                        ) : articles.length > 0 ? articles.map((art, index) => (
+                            <tr key={art.id}>
+                                <td style={{ color: '#9ca3af', fontSize: '12px' }}>{index + 1 + (currentPage - 1) * 15}</td>
+                                <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <img
+                                            src={getArticleImage(art)}
+                                            alt=""
+                                            decoding="async"
+                                            loading="lazy"
+                                            style={{ width: '42px', height: '30px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }}
+                                        />
+                                        <span style={{ fontWeight: 600, color: '#0f172a', lineHeight: 1.3, fontSize: '13px' }}>{art.title}</span>
+                                    </div>
+                                </td>
+                                <td style={{ color: '#6b7280', fontSize: '12px' }}>{art.user?.name || 'Anonim'}</td>
+                                <td>
+                                    <span className="badge-category">{getCategoryLabel(art.category)}</span>
+                                </td>
+                                <td><span className={`status-badge status-${art.status}`}>{art.status.toUpperCase()}</span></td>
+                                <td>
+                                    <div className="action-group">
+                                        <button type="button" className="btn-action" onClick={() => setPreviewArticle(art)} title="Preview" aria-label={`Preview ${art.title}`}>
+                                            <FaEye aria-hidden="true" />
+                                        </button>
+                                        <button type="button" className="btn-action" onClick={() => navigate('/write', { state: { draft: art, returnPath: '/admin' } })} title="Edit" aria-label={`Edit ${art.title}`}>
+                                            <FaPen aria-hidden="true" />
+                                        </button>
+                                        {art.status === 'pending' && (
+                                            <>
+                                                <button type="button" className="btn-action btn-approve" onClick={() => handleUpdateStatus(art.id, 'approved')} disabled={actionLoading === art.id} title="Approve" aria-label={`Setujui ${art.title}`}>
+                                                    <FaCheck aria-hidden="true" />
                                                 </button>
-                                            )}
-                                            <button className="btn-action" onClick={() => openConfirmModal('trash', art)} disabled={actionLoading === art.id} title="Sampah">
-                                                <FaTrash />
+                                                <button type="button" className="btn-action btn-reject" onClick={() => handleRejectArticle(art.id, art.title)} disabled={actionLoading === art.id} title="Reject" aria-label={`Tolak ${art.title}`}>
+                                                    <FaTimes aria-hidden="true" />
+                                                </button>
+                                            </>
+                                        )}
+                                        {art.status === 'approved' && (
+                                            <button type="button" className="btn-action" onClick={() => handleUpdateStatus(art.id, 'pending')} disabled={actionLoading === art.id} title="Tarik ke Pending" aria-label={`Tarik ${art.title} ke pending`}>
+                                                <FaUndo aria-hidden="true" />
                                             </button>
-                                            <button className={`btn-action ${art.is_manual_trending ? 'active-trending' : ''}`} onClick={() => openTrendingConfirm(art)} title="Trending">
-                                                <FaFire />
-                                            </button>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#9ca3af', fontSize: '12px', fontWeight: 500 }}>
-                                            <FaEye style={{ fontSize: '10px' }} /> {art.views || 0}
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan="7" className="empty-state">Tidak ada artikel ditemukan</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
+                                        )}
+                                        <button type="button" className="btn-action" onClick={() => openConfirmModal('trash', art)} disabled={actionLoading === art.id} title="Sampah" aria-label={`Pindahkan ${art.title} ke sampah`}>
+                                            <FaTrash aria-hidden="true" />
+                                        </button>
+                                        <button type="button" className={`btn-action ${art.is_manual_trending ? 'active-trending' : ''}`} onClick={() => openTrendingConfirm(art)} title="Trending" aria-label={`Atur trending ${art.title}`} aria-pressed={!!art.is_manual_trending}>
+                                            <FaFire aria-hidden="true" />
+                                        </button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#9ca3af', fontSize: '12px', fontWeight: 500 }}>
+                                        <FaEye aria-hidden="true" style={{ fontSize: '10px' }} /> {art.views || 0}
+                                    </div>
+                                </td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan="7" className="empty-state" role="status">Tidak ada artikel ditemukan</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        )}
             {activeView === 'reports' && (
                 <div className="admin-table-wrapper">
                     <table className="admin-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Artikel Dilaporkan</th>
-                                <th>Pelapor</th>
-                                <th>Alasan</th>
-                                <th>Tanggal</th>
-                                <th>Aksi</th>
+                                <th scope="col">#</th>
+                                <th scope="col">Artikel Dilaporkan</th>
+                                <th scope="col">Pelapor</th>
+                                <th scope="col">Alasan</th>
+                                <th scope="col">Tanggal</th>
+                                <th scope="col">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -626,7 +664,7 @@ const AdminDashboard = () => {
                                     <td style={{ color: '#9ca3af', fontSize: '12px' }}>{index + 1}</td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <img src={getArticleImage(report.article)} alt="" style={{ width: '42px', height: '30px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} />
+                                            <img src={getArticleImage(report.article)} alt="" decoding="async" loading="lazy" style={{ width: '42px', height: '30px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} />
                                             <div>
                                                 <div style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a' }}>{report.article?.title}</div>
                                                 <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>oleh {report.article?.user?.name}</div>
@@ -638,18 +676,18 @@ const AdminDashboard = () => {
                                     <td style={{ color: '#9ca3af', fontSize: '12px' }}>{new Date(report.created_at).toLocaleDateString('id-ID')}</td>
                                     <td>
                                         <div className="action-group">
-                                            <button className="btn-action" onClick={() => setPreviewArticle(report.article)} title="Lihat">
-                                                <FaEye />
+                                            <button type="button" className="btn-action" onClick={() => setPreviewArticle(report.article)} title="Lihat" aria-label={`Lihat ${report.article?.title || 'artikel'}`}>
+                                                <FaEye aria-hidden="true" />
                                             </button>
-                                            <button className="btn-action" onClick={() => openConfirmModal('trash', report.article)} disabled={actionLoading === report.article?.id} title="Sampah">
-                                                <FaTrash />
+                                            <button type="button" className="btn-action" onClick={() => openConfirmModal('trash', report.article)} disabled={actionLoading === report.article?.id} title="Sampah" aria-label={`Pindahkan ${report.article?.title || 'artikel'} ke sampah`}>
+                                                <FaTrash aria-hidden="true" />
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan="6" className="empty-state">Belum ada laporan masuk</td>
+                                    <td colSpan="6" className="empty-state" role="status">Belum ada laporan masuk</td>
                                 </tr>
                             )}
                         </tbody>
@@ -662,12 +700,12 @@ const AdminDashboard = () => {
                     <table className="admin-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Artikel</th>
-                                <th>Penulis</th>
-                                <th>Kategori</th>
-                                <th>Dihapus</th>
-                                <th>Aksi</th>
+                                <th scope="col">#</th>
+                                <th scope="col">Artikel</th>
+                                <th scope="col">Penulis</th>
+                                <th scope="col">Kategori</th>
+                                <th scope="col">Dihapus</th>
+                                <th scope="col">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -678,7 +716,7 @@ const AdminDashboard = () => {
                                     <td style={{ color: '#9ca3af', fontSize: '12px' }}>{index + 1 + (currentPage - 1) * 15}</td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <img src={getArticleImage(art)} alt="" style={{ width: '42px', height: '30px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} />
+                                            <img src={getArticleImage(art)} alt="" decoding="async" loading="lazy" style={{ width: '42px', height: '30px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} />
                                             <span style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a' }}>{art.title}</span>
                                         </div>
                                     </td>
@@ -689,21 +727,21 @@ const AdminDashboard = () => {
                                     <td style={{ color: '#9ca3af', fontSize: '12px' }}>{new Date(art.deleted_at).toLocaleDateString('id-ID')}</td>
                                     <td>
                                         <div className="action-group">
-                                            <button className="btn-action" onClick={() => setPreviewArticle(art)} title="Preview">
-                                                <FaEye />
+                                            <button type="button" className="btn-action" onClick={() => setPreviewArticle(art)} title="Preview" aria-label={`Preview ${art.title}`}>
+                                                <FaEye aria-hidden="true" />
                                             </button>
-                                            <button className="btn-action" onClick={() => openConfirmModal('restore', art)} disabled={actionLoading === art.id} title="Pulihkan">
-                                                <FaUndo />
+                                            <button type="button" className="btn-action" onClick={() => openConfirmModal('restore', art)} disabled={actionLoading === art.id} title="Pulihkan" aria-label={`Pulihkan ${art.title}`}>
+                                                <FaUndo aria-hidden="true" />
                                             </button>
-                                            <button className="btn-action btn-reject" onClick={() => openConfirmModal('permanent', art)} disabled={actionLoading === art.id} title="Hapus Permanen">
-                                                <FaTimes />
+                                            <button type="button" className="btn-action btn-reject" onClick={() => openConfirmModal('permanent', art)} disabled={actionLoading === art.id} title="Hapus Permanen" aria-label={`Hapus permanen ${art.title}`}>
+                                                <FaTimes aria-hidden="true" />
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan="6" className="empty-state">Sampah kosong</td>
+                                    <td colSpan="6" className="empty-state" role="status">Sampah kosong</td>
                                 </tr>
                             )}
                         </tbody>
@@ -718,8 +756,8 @@ const AdminDashboard = () => {
                     </h2>
 
                     {statsLoading ? (
-                        <div className="inline-loader">
-                            <div className="admin-spinner" />
+                        <div className="inline-loader" role="status">
+                            <div className="admin-spinner" aria-hidden="true" />
                             <span>Memuat data...</span>
                         </div>
                     ) : chartData.length > 0 ? (
@@ -765,7 +803,7 @@ const AdminDashboard = () => {
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="empty-state">Belum ada data artikel yang di-approve</div>
+                        <div className="empty-state" role="status">Belum ada data artikel yang di-approve</div>
                     )}
                 </div>
             )}
@@ -777,18 +815,18 @@ const AdminDashboard = () => {
             )}
 
             {totalPages > 1 && activeView !== 'stats' && activeView !== 'reports' && activeView !== 'video-reels' && (
-                <div className="admin-pagination">
-                    <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>← Sebelumnya</button>
-                    <span className="page-info">{currentPage} / {totalPages}</span>
-                    <button className="page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Selanjutnya →</button>
-                </div>
+                <nav className="admin-pagination" aria-label="Navigasi halaman">
+                    <button type="button" className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>← Sebelumnya</button>
+                    <span className="page-info" aria-current="page">{currentPage} / {totalPages}</span>
+                    <button type="button" className="page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Selanjutnya →</button>
+                </nav>
             )}
 
             {previewArticle && (
                 <div className="modal-overlay" onClick={() => setPreviewArticle(null)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>{previewArticle.title}</h3>
+                            <h3 id="preview-modal-title">{previewArticle.title}</h3>
                         </div>
                         <div className="modal-body">
                             <div className="modal-meta">
@@ -798,10 +836,11 @@ const AdminDashboard = () => {
                                 <img
                                     src={getArticleImage(previewArticle)}
                                     alt="Hero"
+                                    decoding="async"
                                     style={{ width: '100%', borderRadius: '6px', margin: '0 0 18px', display: 'block' }}
                                 />
                             )}
-                            <div className="modal-article-content" dangerouslySetInnerHTML={{ __html: previewArticle.content }} />
+                            <div className="modal-article-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewArticle.content || '') }} />
                         </div>
                     </div>
                 </div>
@@ -809,16 +848,17 @@ const AdminDashboard = () => {
 
             {trendingTarget && (
                 <div className="modal-overlay" onClick={closeTrendingConfirm}>
-                    <div className="modal-content trending-modal" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content trending-modal" role="dialog" aria-modal="true" aria-labelledby="trending-modal-title" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>{trendingTarget.is_manual_trending ? 'Batalkan Trending?' : 'Jadikan Trending?'}</h3>
+                            <h3 id="trending-modal-title">{trendingTarget.is_manual_trending ? 'Batalkan Trending?' : 'Jadikan Trending?'}</h3>
                         </div>
                         <div className="modal-body">
                             <p>{trendingTarget.is_manual_trending ? 'Artikel ini akan dihapus dari tampilan trending.' : 'Artikel ini akan ditampilkan di tampilan trending.'}</p>
                             <p><strong>{trendingTarget.title}</strong></p>
                             <div className="trending-modal-actions">
-                                <button className="btn-action2" onClick={closeTrendingConfirm}>Batal</button>
+                                <button type="button" className="btn-action2" onClick={closeTrendingConfirm}>Batal</button>
                                 <button
+                                    type="button"
                                     className="btn-action active-trending"
                                     onClick={() => handleToggleTrending(trendingTarget)}
                                     disabled={actionLoading === trendingTarget.id}
@@ -833,16 +873,17 @@ const AdminDashboard = () => {
 
             {confirmModal.isOpen && (
                 <div className="modal-overlay" onClick={closeConfirmModal}>
-                    <div className="modal-content trending-modal" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content trending-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-desc" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>{confirmModal.title}</h3>
+                            <h3 id="confirm-modal-title">{confirmModal.title}</h3>
                         </div>
                         <div className="modal-body">
-                            <p>{confirmModal.description}</p>
+                            <p id="confirm-modal-desc">{confirmModal.description}</p>
                             <p><strong>{confirmModal.article?.title}</strong></p>
                             <div className="trending-modal-actions">
-                                <button className="btn-action2" onClick={closeConfirmModal}>Batal</button>
+                                <button type="button" className="btn-action2" onClick={closeConfirmModal}>Batal</button>
                                 <button
+                                    type="button"
                                     className="btn-action btn-reject"
                                     onClick={confirmModalAction}
                                     disabled={actionLoading === confirmModal.article?.id}

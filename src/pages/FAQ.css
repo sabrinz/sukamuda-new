@@ -316,3 +316,10 @@
   .fq-item{opacity:1;transform:none}
   .fq-a{transition:none}
 }
+
+/* ===== A11Y: indikator fokus keyboard ===== */
+.fq-root button:focus-visible,
+.fq-root a:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 3px;
+}

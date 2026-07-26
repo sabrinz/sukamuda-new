@@ -7,26 +7,22 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 1. Inisialisasi auth saat web pertama kali dibuka
   useEffect(() => {
     const initAuth = () => {
       try {
         const savedUser = localStorage.getItem('user');
         const token = localStorage.getItem('token');
 
-        // Pengecekan ketat: data harus ada, bukan string "undefined", dan ada token
         if (savedUser && savedUser !== "undefined" && token) {
           const parsedUser = JSON.parse(savedUser);
           setUser(parsedUser);
           setIsLoggedIn(true);
         }
       } catch (error) {
-        // Jika JSON rusak, bersihkan storage agar tidak whitescreen terus-menerus
         console.error("Gagal memuat sesi login:", error);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       } finally {
-        // Apapun hasilnya, loading selesai agar halaman bisa muncul
         setLoading(false);
       }
     };
@@ -34,9 +30,20 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // 2. Fungsi Login (Dipanggil dari halaman Login)
+  // SYNC FIX: dengarkan event dari axios interceptor (token expired / 401).
+  // Saat token dihapus oleh interceptor, state UI ikut logout otomatis.
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      localStorage.removeItem('user');
+      setUser(null);
+      setIsLoggedIn(false);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
   const login = (userData, token) => {
-    // Pastikan data tidak kosong sebelum disimpan
     if (userData && token) {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
@@ -47,7 +54,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 3. Fungsi Logout
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -55,20 +61,20 @@ export const AuthProvider = ({ children }) => {
     setIsLoggedIn(false);
   };
 
-  // 4. Fungsi Update User (TANPA MENGUBAH LOGIC LOGIN)
-  // Digunakan jika user update profil (nama/foto) agar sidebar/navbar langsung berubah tanpa logout
+  // FIX: pakai functional setState agar tidak menimpa update sebelumnya (stale closure)
   const updateUser = (newUserData) => {
     if (newUserData) {
-      const updatedUser = { ...user, ...newUserData };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      setUser((prevUser) => {
+        const updatedUser = { ...prevUser, ...newUserData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      });
     }
   };
 
   return (
     <AuthContext.Provider value={{ isLoggedIn, user, login, logout, updateUser, loading }}>
-      {/* Jika masih loading, jangan tampilkan apa-apa dulu untuk mencegah error variabel kosong */}
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

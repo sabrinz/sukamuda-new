@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Login.css';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios, { ensureCsrfToken } from '../utils/axiosConfig';
 import logoSukaMuda from '../assets/logo.png';
@@ -8,21 +8,26 @@ import logoSukaMuda from '../assets/logo.png';
 const Login = () => {
   const { login, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  /* ── Sudah login? langsung lempar ke home ── */
+  /* Halaman asal (dikirim ProtectedRoute) — default ke home */
+  const redirectTo = location.state?.from?.pathname || '/';
+
+  /* ── Sudah login? langsung lempar balik ── */
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true });
+      navigate(redirectTo, { replace: true });
       return;
     }
     const t = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(t);
-  }, [user, navigate]);
+  }, [user, navigate, redirectTo]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -31,6 +36,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg('');
 
     try {
       /* 1. Pastikan cookie CSRF sudah ada sebelum POST */
@@ -55,17 +61,26 @@ const Login = () => {
       /* 4. Update AuthContext → navbar langsung berubah */
       login(userData, token);
 
-      /* 5. Reset form & pindah halaman (replace = tidak bisa back ke login) */
+      /* 5. Reset form & balik ke halaman asal (replace = tidak bisa back ke login) */
       setFormData({ email: '', password: '' });
-      navigate('/', { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (error) {
       let message = 'Email atau kata sandi salah.';
-      if (error.response?.data?.message) {
+
+      /* Error validasi Laravel (422): ambil pesan pertama */
+      const validationErrors = error.response?.data?.errors;
+      if (validationErrors && typeof validationErrors === 'object') {
+        const firstField = Object.values(validationErrors)[0];
+        if (Array.isArray(firstField) && firstField[0]) {
+          message = firstField[0];
+        }
+      } else if (error.response?.data?.message) {
         message = error.response.data.message;
       } else if (error.message && !error.message.includes('Respons')) {
         message = error.message;
       }
-      alert(message);
+
+      setErrorMsg(message);
     } finally {
       setLoading(false);
     }
@@ -132,6 +147,8 @@ const Login = () => {
             src={logoSukaMuda}
             alt="Logo SUKAMUDA"
             className="logo-img"
+            width="96"
+            height="96"
             onError={handleLogoError}
           />
           <span className="logo-fallback" aria-hidden="true">S</span>
@@ -142,6 +159,13 @@ const Login = () => {
         </h1>
 
         <form className="login-form" onSubmit={handleLogin} noValidate>
+          {/* ── Pesan error inline (a11y: dibaca screen reader) ── */}
+          {errorMsg && (
+            <div className="login-error" role="alert">
+              {errorMsg}
+            </div>
+          )}
+
           {/* ── Email ── */}
           <div className="input-group anim-item" style={{ '--i': 2 }}>
             <label htmlFor="login-email">Email</label>
@@ -208,7 +232,6 @@ const Login = () => {
                 className="toggle-pw"
                 onClick={() => setShowPw((v) => !v)}
                 aria-label={showPw ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-                tabIndex={-1}
               >
                 {showPw ? (
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

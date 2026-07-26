@@ -6,6 +6,7 @@ import axios from "../utils/axiosConfig";
 import { useAuth } from "../context/AuthContext";
 import { categories } from "../data/articles";
 import AdSlot from '../components/AdSlot';
+import DOMPurify from "dompurify";
 import "./ArticleDetail.css";
 
 const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
@@ -139,8 +140,9 @@ const StableHtmlRenderer = React.memo(({ html, className }) => {
   const ref = useRef(null);
 
   useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== html) {
-      ref.current.innerHTML = html;
+    const clean = DOMPurify.sanitize(html || "");
+    if (ref.current && ref.current.innerHTML !== clean) {
+      ref.current.innerHTML = clean;
     }
   }, [html]);
 
@@ -198,7 +200,8 @@ const ArticleDetail = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const articleFromList = useMemo(() => {
+  // ✅ Cari artikel dari list dulu
+    const articleFromList = useMemo(() => {
     if (!slug || !allArticles.length) return null;
     const safeSlug = String(slug).toLowerCase();
     return allArticles.find((item) => {
@@ -208,34 +211,34 @@ const ArticleDetail = () => {
     }) || null;
   }, [slug, allArticles]);
 
-  const { data: articleDetail } = useQuery({
-    queryKey: ['article', slug],
-    queryFn: async () => {
-      const res = await axios.get(`/api/articles/${slug}`);
-      return res.data.data;
-    },
-    enabled: !!slug,
-  });
+// Ambil detail artikel langsung berdasarkan slug
+const { data: articleDetail } = useQuery({
+  queryKey: ['article', slug],
+  queryFn: async () => {
+    const res = await axios.get(`/api/articles/${slug}`);
+    return res.data.data;
+  },
+  enabled: !!slug,
+});
 
-  useEffect(() => {
-    const source = articleFromList || articleDetail;
+useEffect(() => {
+  const source = articleFromList || articleDetail;
 
-    setArticle(source);
+  setArticle(source);
 
-    if (source) {
-      setLikeCount(source.likes_count || 0);
-      setIsLiked(source.is_liked_by_user || false);
-      setIsBookmarked(source.is_bookmarked_by_user || false);
-      setViewCount(source.views_count || source.views || 0);
-    }
+  if (source) {
+    setLikeCount(source.likes_count || 0);
+    setIsLiked(source.is_liked_by_user || false);
+    setIsBookmarked(source.is_bookmarked_by_user || false);
+    setViewCount(source.views_count || source.views || 0);
+  }
 
-    setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
-    setHasAwardedRead(false);
-    hasAwardedReadRef.current = false;
-    window.scrollTo(0, 0);
+  setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
+  setHasAwardedRead(false);
+  hasAwardedReadRef.current = false;
+  window.scrollTo(0, 0);
 
-  }, [slug, articleFromList, articleDetail]);
-
+}, [slug, articleFromList, articleDetail]);
   const awardReadPoint = async () => {
     if (hasAwardedReadRef.current || !article?.id) return;
     hasAwardedReadRef.current = true;
@@ -366,6 +369,7 @@ const ArticleDetail = () => {
     );
   }
 
+  // PERBAIKAN: Cegah error jika slug kosong/invalid setelah dibersihkan
   if (!slug || slug.length < 2) {
     return (
       <div className="error-container">
@@ -381,6 +385,7 @@ const ArticleDetail = () => {
       <div className="error-container">
         <h2>Waduh!</h2>
         <p>Artikelnya nggak ketemu.</p>
+        {/* PERBAIKAN: Hapus debug slug yang memperlihatkan rawSlug ke user */}
         <Link to="/">Balik ke Home</Link>
       </div>
     );
@@ -431,47 +436,86 @@ const ArticleDetail = () => {
     });
   };
 
-  const schemaOrgJSONLD = {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": shareUrl
-    },
-    "headline": article.title,
-    "image": [
-      imageUrl
-    ],
-    "datePublished": article.created_at,
-    "dateModified": article.updated_at || article.created_at,
-    "author": {
-      "@type": "Person",
-      "name": article.user?.name || "Anonim",
-      "url": `${baseUrl}${authorProfileUrl}`
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Sukamuda",
-      "logo": {
-        "@type": "ImageObject",
-        "url": `${baseUrl}/logo.png`
-      }
-    },
-    "description": article.summary || article.title
-  };
-
   return (
     <>
       <Helmet>
-        <title>{article.title}</title>
+        <title>{`${article.title} - SukaMuda`}</title>
+        <meta name="description" content={article.summary || article.title} />
         <link rel="canonical" href={shareUrl} />
+
+        {/* Open Graph */}
+        <meta property="og:site_name" content="SukaMuda" />
+        <meta property="og:type" content="article" />
         <meta property="og:title" content={article.title} />
         <meta property="og:description" content={article.summary || article.title} />
         <meta property="og:image" content={imageUrl} />
         <meta property="og:url" content={shareUrl} />
-        <meta property="og:type" content="article" />
+        <meta property="og:locale" content="id_ID" />
+        <meta property="article:published_time" content={article.created_at} />
+        <meta property="article:modified_time" content={article.updated_at || article.created_at} />
+        <meta property="article:section" content={categoryLabel} />
+        {tagsArray.map((tag) => (
+          <meta key={tag} property="article:tag" content={tag} />
+        ))}
+
+        {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrgJSONLD) }} />
+        <meta name="twitter:title" content={article.title} />
+        <meta name="twitter:description" content={article.summary || article.title} />
+        <meta name="twitter:image" content={imageUrl} />
+
+        {/* JSON-LD: NewsArticle (author Person + publisher Organization + VideoObject utk podcast) */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            mainEntityOfPage: { "@type": "WebPage", "@id": shareUrl },
+            headline: article.title,
+            description: article.summary || article.title,
+            image: [imageUrl],
+            datePublished: article.created_at,
+            dateModified: article.updated_at || article.created_at,
+            articleSection: categoryLabel,
+            keywords: tagsArray.join(", "),
+            inLanguage: "id-ID",
+            author: {
+              "@type": "Person",
+              name: article.user?.name || "Redaksi SukaMuda",
+              url: article.user?.id ? `${baseUrl}/user/${article.user.id}` : baseUrl,
+            },
+            publisher: {
+              "@type": "Organization",
+              name: "SukaMuda",
+              url: baseUrl,
+              logo: { "@type": "ImageObject", url: `${baseUrl}/logo.png` },
+            },
+            ...(isPodcast && article.video_link
+              ? {
+                  video: {
+                    "@type": "VideoObject",
+                    name: article.title,
+                    description: article.summary || article.title,
+                    thumbnailUrl: imageUrl,
+                    uploadDate: article.created_at,
+                    embedUrl: youtubeEmbedUrl || article.video_link,
+                  },
+                }
+              : {}),
+          })}
+        </script>
+
+        {/* JSON-LD: BreadcrumbList */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Beranda", item: baseUrl },
+              { "@type": "ListItem", position: 2, name: categoryLabel, item: `${baseUrl}/category/${article.category}` },
+              { "@type": "ListItem", position: 3, name: article.title, item: shareUrl },
+            ],
+          })}
+        </script>
       </Helmet>
 
       <div className="reading-progress-bar" style={{ width: `${readProgress}%` }} />
@@ -748,7 +792,7 @@ const ArticleDetail = () => {
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
                       </button>
                       <button onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, "_blank")} className="soc-btn li" title="LinkedIn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0h.003z" /></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
                       </button>
                       <button onClick={() => window.open(`mailto:?subject=${encodedTitle}&body=${encodedUrl}`, "_blank")} className="soc-btn email" title="Email">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

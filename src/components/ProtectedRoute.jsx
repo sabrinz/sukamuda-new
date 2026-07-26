@@ -1,22 +1,27 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
   const { isLoggedIn, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
-      <div style={{
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#000',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        margin: 0,
-        padding: 0
-      }}>
+      <div
+        role="status"
+        aria-label="Memuat halaman"
+        style={{
+          width: '100%',
+          height: '100vh',
+          backgroundColor: '#000',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          margin: 0,
+          padding: 0
+        }}
+      >
         <div style={{
           width: '30px',
           height: '30px',
@@ -29,13 +34,17 @@ const ProtectedRoute = ({ children }) => {
           @keyframes spin {
             to { transform: rotate(360deg); }
           }
+            @media (prefers-reduced-motion: reduce) {
+            [role="status"] > div { animation: none !important; }
+            }
         `}</style>
       </div>
     );
   }
 
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
+    // Simpan halaman asal supaya setelah login bisa balik ke sini
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   return children;

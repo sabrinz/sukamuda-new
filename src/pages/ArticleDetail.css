@@ -313,24 +313,12 @@ html, body {
 }
 
 .hero-img {
-  width: 100%;
-  max-width: 1200px;
-  min-width: 1200px; /* PERBAIKAN: Memaksa ukuran minimal lebar 1200px */
-  min-height: 600px; /* PERBAIKAN: Memaksa ukuran minimal tinggi 600px */
-  height: auto;      /* PERBAIKAN: Tinggi dapat menyesuaikan proporsinya */
+  width: 90%;
+  max-width: 100%;
+  max-height: 420px;
   object-fit: cover;
   display: block;
 }
-
-/* Memastikan di layar mobile/tablet, gambar tetap responsive dan tidak meluber keluar layar */
-@media (max-width: 1240px) {
-  .hero-img {
-    min-width: 100%;
-    min-height: auto;
-    aspect-ratio: 2 / 1;
-  }
-}
-
 
 .podcast-embed-section {
   width: 100%;
@@ -476,7 +464,7 @@ html, body {
   width: 90%;
   max-width: 100%;
   margin: 0 auto;
-  text-align: left !important;
+  text-align: justify;
   padding: 0;
   font-size: 17.5px;
   line-height: 1.72;
@@ -491,7 +479,6 @@ html, body {
   margin: 0 0 16px;
   line-height: 1.7;
   color: #333;
-  text-align: left !important;
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -546,7 +533,7 @@ html, body {
   max-width: 100%;
 }
 
-.text-render .ql-align-justify { text-align: left; }
+.text-render .ql-align-justify { text-align: justify; }
 
 .text-render p[style*="text-align: center"] img {
   display: block;
@@ -1374,12 +1361,6 @@ figure.ql-image-caption.ql-align-left {
   .article-layout-wrapper {
     display: block;
   }
-  
-  .hero-img {
-    min-width: 100%;
-    min-height: auto;
-    aspect-ratio: 2 / 1;
-  }
 
   .main-content-wrapper { grid-template-columns: 1fr; }
 
@@ -1675,5 +1656,24 @@ figure.ql-image-caption.ql-align-left {
 
   .related-card img {
     min-height: 75px;
+  }
+}
+
+/* ===== A11Y: indikator fokus keyboard ===== */
+.article-detail-page a:focus-visible,
+.article-detail-page button:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 3px;
+}
+
+/* ===== A11Y: kurangi animasi jika diminta pengguna ===== */
+@media (prefers-reduced-motion: reduce) {
+  .article-detail-page *,
+  .article-detail-page *::before,
+  .article-detail-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

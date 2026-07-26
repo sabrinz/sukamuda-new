@@ -1,914 +1,146 @@
-:root {
-  --bg-white: #ffffff;
-  --bg-subtle: #f8f9fa;
-  --text-dark: #111111;
-  --text-muted: #555555;
-  --border-color: #eaeaea;
-  --card-radius: 12px;
-  --transition-smooth: all 0.3s ease;
-}
-
-/* ================================================= */
-/* ===== RESET & BASE ===== */
-/* ================================================= */
-*, *::before, *::after {
-  box-sizing: border-box;
+/* ===== Reset ===== */
+* {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 html {
-  -webkit-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
   overflow-x: hidden;
 }
 
 body {
   overflow-x: hidden;
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  text-align: left;
+}
+
+/* ===== Base Theme =====
+  FIX penting:
+  - jangan set default color jadi putih
+  - kalau belum siap dark-mode beneran, pakai light supaya kontras stabil
+*/
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;      /* sebelumnya: light dark */
+  color: #213547;           /* sebelumnya: rgba(255,255,255,0.87) */
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
+/* Links */
 a {
-  text-decoration: none;
-  color: inherit;
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
 }
 
-/* ================================================= */
-/* ===== 1. CONTAINER & MAIN LAYOUT ===== */
-/* ================================================= */
-.home-container {
-  width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
-  background: white;
-  color: var(--text-dark);
+/* Body defaults */
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
 }
 
-.home-layout-wrapper {
-  display: flex;
-  gap: 16px;
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 16px;
-  box-sizing: border-box;
-}
-
-.home-main-content {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.ad-sidebar {
-  width: 160px;
-  flex-shrink: 0;
-}
-
-.ad-sidebar-sticky {
-  position: sticky;
-  top: 80px;
-}
-
-/* ================================================= */
-/* ===== 2. SECTIONS & HEADERS ===== */
-/* ================================================= */
-.home-section {
-  margin-bottom: 40px;
-  overflow: hidden;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  text-align: left;
-}
-
-.section-header h2 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 800;
-  text-align: left;
-}
-
-.section-link {
-  font-size: 14px;
-  color: #1e88e5;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.trending-count {
-  font-size: 13px;
-  color: #888;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* ================================================= */
-/* ===== 3. TRENDING SECTION ===== */
-/* ================================================= */
-.section-trending {
-  margin-bottom: 40px;
-  overflow: hidden;
-}
-
-.trending-grid {
-  border-top: 1px solid var(--border-color);
-  overflow: hidden;
-}
-
-.trending-item {
-  display: flex;
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border-color);
-  text-align: left;
-}
-
-.trending-rank {
-  width: 34px;
-  font-size: 24px;
-  font-weight: 800;
-  color: black;
-  flex-shrink: 0;
-  text-align: left;
-}
-
-.trending-thumb {
-  width: 95px;
-  height: 70px;
-  overflow: hidden;
+button {
   border-radius: 8px;
-  flex-shrink: 0;
-  background: #f3f3f3;
-}
-
-.trending-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.trending-details {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-}
-
-.trending-details h4 {
-  margin: 4px 0;
-  font-size: 15px;
-  line-height: 1.5;
-  font-weight: 700;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-align: left;
-}
-
-.tag-category {
-  font-size: 11px;
-  font-weight: 700;
-  color: black;
-  text-align: left;
-}
-
-.meta-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #777;
-  text-align: left;
-}
-
-.author-avatar-xs {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #eee;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-weight: 700;
-  color: #999;
-  flex-shrink: 0;
-}
-
-.author-avatar-xs img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* ================================================= */
-/* ===== 4. GENERAL PORTAL NEWS CARDS ===== */
-/* ================================================= */
-.article-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.article-card {
-  display: block;
-  overflow: hidden;
-  border-radius: var(--card-radius);
-  background: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: 0.25s;
-  text-align: left;
-}
-
-.article-card:hover {
-  transform: translateY(-3px);
-}
-
-.article-image-wrapper {
-  width: 100%;
-  overflow: hidden;
-  background: #eee;
-}
-
-.article-image-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.card-content {
-  padding: 10px 12px 12px;
-  text-align: left;
-}
-
-.card-content h3 {
-  margin: 0 0 10px;
-  color: #111;
-  text-align: left;
-}
-
-.card-meta {
-  margin-top: 4px;
-}
-
-.card-author {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: left;
-}
-
-.card-author-avatar-wrap {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #eee;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.card-author-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.card-author-initials {
-  font-size: 8px;
-  font-weight: 700;
-  color: #999;
-}
-
-.card-author-name {
-  font-size: 12px;
-  color: #777;
-}
-
-/* HERO CARD */
-.article-card--hero {
-  grid-column: 1 / -1;
-}
-.article-card--hero .article-image-wrapper {
-  height: 260px;
-}
-.article-card--hero .card-content {
-  padding: 14px;
-}
-.article-card--hero h3 {
-  font-size: 22px;
-  line-height: 1.4;
-  font-weight: 800;
-}
-
-/* SMALL CARD */
-.article-card:not(.article-card--hero) {
-  border-radius: 8px;
-  overflow: hidden;
-}
-.article-card:not(.article-card--hero) .article-image-wrapper {
-  height: 160px;
-}
-.article-card:not(.article-card--hero) .card-content {
-  padding: 6px 8px 8px;
-}
-.article-card:not(.article-card--hero) h3 {
-  font-size: 11px;
-  line-height: 1.35;
-  margin-bottom: 4px;
-  font-weight: 700;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.article-card:not(.article-card--hero) .card-author-name {
-  font-size: 9px;
-}
-.article-card:not(.article-card--hero) .card-author-avatar-wrap {
-  width: 15px;
-  height: 15px;
-}
-
-/* PODCAST STUFF */
-.podcast-badge {
-  display: inline-block;
-  margin-top: 10px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: #1db954;
-  border-radius: 999px;
-  text-transform: uppercase;
-}
-.podcast-toggle-btn {
-  margin-top: 12px;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  background: #1e76d0;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
   cursor: pointer;
-  transition: var(--transition-smooth);
-}
-.podcast-toggle-btn:hover {
-  background: #1558a0;
-}
-.podcast-player-panel {
-  margin-top: 14px;
-  display: grid;
-  gap: 12px;
-}
-.podcast-embed {
-  width: 100%;
-  overflow: hidden;
-  border-radius: 12px;
-  box-shadow: 0 2px 14px rgba(0,0,0,0.08);
-  background: #000;
-}
-.podcast-player-placeholder {
-  margin: 0;
-  padding: 16px;
-  border-radius: 12px;
-  background: #f5f7fb;
-  color: #555;
-  font-size: 14px;
+  transition: border-color 0.25s;
 }
 
-/* EMPTY STATE */
-.empty-state {
-  padding: 100px 20px;
-  text-align: center;
-  color: #888;
+button:hover {
+  border-color: #646cff;
 }
 
-/* ================================================= */
-/* ===== 5. TAMPILAN KHUSUS KATEGORI NEWS ===== */
-/* ================================================= */
-.news-section-special {
-  margin-bottom: 40px;
-  overflow: hidden;
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
 }
 
-.news-with-sidebar-wrapper {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 32px;
-  width: 100%;
-  overflow: hidden;
+/* (Optional) light preference tweaks */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
 }
 
-.news-article-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 24px !important;
-  min-width: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-.news-article-grid .article-card--hero {
-  grid-column: 1 / -1;
-  margin-bottom: 8px;
-  box-shadow: none;
-  border: 1px solid var(--border-color);
-}
-.news-sidebar-static > div {
-  height: 100% !important;
-  width: 100% !important;
-}
-
-/* Berita Kecil Khusus News (Menyamping) */
-.article-card.article-card--news-small {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: flex-start !important;
-  gap: 16px !important;
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  padding: 0 !important;
-  text-align: left !important;
-}
-.article-card.article-card--news-small:hover {
-  transform: none !important;
-}
-.article-card.article-card--news-small .article-image-wrapper {
-  width: 140px !important;
-  height: 90px !important;
-  flex-shrink: 0 !important;
-  border-radius: 8px !important;
-  margin: 0 !important;
-}
-.article-card.article-card--news-small .card-content {
-  flex: 1 !important;
-  padding: 0 !important;
-  text-align: left !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: flex-start !important;
-  min-width: 0 !important;
-}
-.article-card.article-card--news-small h3 {
-  font-size: 15px !important;
-  font-weight: 700 !important;
-  line-height: 1.4 !important;
-  color: #111 !important;
-  margin: -2px 0 6px 0 !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 3 !important;
-  -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
-  text-align: left !important;
-}
-.article-card.article-card--news-small .card-author {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  text-align: left !important;
-}
-.article-card.article-card--news-small .card-author-avatar-wrap {
-  width: 18px !important;
-  height: 18px !important;
-  flex-shrink: 0 !important;
-  border-radius: 50% !important;
-  overflow: hidden !important;
-}
-.article-card.article-card--news-small .card-author-name {
-  font-size: 11px !important;
-  color: #888 !important;
-  font-weight: 600 !important;
-  margin: 0 !important;
-}
-
-/* Iklan Kanan Static */
-.news-sidebar-right {
-  width: 100%;
-}
-.news-sidebar-static {
-  position: relative !important;
-  width: 100%;
-  height: 600px;
-  background: transparent !important;
-  border: none !important;
+/* =========================================================
+   App layout (Navbar - Main - Footer)
+   penting untuk <main class="app-main"> di App.jsx
+   ========================================================= */
+.app-container {
+  min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
 }
 
-.ad-news-horizontal, .ad-before-footer {
-  margin-top: 24px;
-  width: 100%;
-  overflow: hidden;
+.app-main {
+  flex: 1;
+  min-height: 80vh;
 }
 
-/* ================================================= */
-/* ===== 7. TAMPILAN KHUSUS KATEGORI LIFESTYLE ===== */
-/* ================================================= */
-.lifestyle-section-special {
-  margin-bottom: 50px;
-  overflow: hidden;
-}
-
-.lifestyle-article-grid {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  gap: 20px !important;
-  align-items: start;
-  overflow: hidden;
-}
-
-.lifestyle-article-grid .article-card--hero {
-  grid-column: span 2;
-  grid-row: span 3;
-  height: 100%;
-}
-
-.lifestyle-article-grid .article-card--news-small .article-image-wrapper {
-  width: 105px !important;
-  height: 75px !important;
-}
-
-.lifestyle-article-grid .article-card--news-small h3 {
-  font-size: 13px !important;
-  -webkit-line-clamp: 2 !important;
-}
-
-/* ================================================= */
-/* ===== 8. SECTION RANDOM (3 KOLOM) ===== */
-/* ================================================= */
-.random-section {
-  margin-top: 60px;
-  margin-bottom: 50px;
-  padding-top: 40px;
-  border-top: 2px solid var(--bg-subtle);
-  overflow: hidden;
-}
-
-.random-article-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  overflow: hidden;
-}
-
-.random-article-grid .article-card {
-  border: none;
-  box-shadow: none;
-  background: transparent;
-}
-
-.random-article-grid .article-image-wrapper {
-  height: 220px !important;
-  border-radius: 12px;
-  margin-bottom: 12px;
-}
-
-.random-article-grid .card-content {
-  padding: 0 !important;
-}
-
-.random-article-grid h3 {
-  font-size: 18px !important;
-  line-height: 1.4 !important;
-  font-weight: 800 !important;
-  -webkit-line-clamp: 3 !important;
+/* =========================================================
+   SEO: Body content rata kiri
+   ========================================================= */
+.article-content,
+.article-body,
+.post-content,
+.entry-content,
+.detail-content,
+.content-body,
+.page-content {
   text-align: left !important;
 }
 
-.random-article-grid > *:nth-child(4) {
-  display: none;
+/* =========================================================
+   SEO: Image detail article minimal 1200x600 — hanya halaman detail
+   ========================================================= */
+.article-container .article-image-wrapper,
+.article-container .featured-image-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 24px;
+  overflow: hidden;
+  border-radius: 8px;
 }
 
-/* ================================================= */
-/* ===== 9. SKELETON LOADING ===== */
-/* ================================================= */
-.skeleton-img {
-  background: linear-gradient(110deg, #f0f0f0 8%, #e8e8e8 18%, #f0f0f0 33%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s linear infinite;
+.article-container .article-image-wrapper img,
+.article-container .featured-image-wrapper img {
+  width: 100%;
+  height: auto;
+  min-height: 500px;
+  object-fit: cover;
+  display: block;
 }
 
-.skeleton-line {
-  height: 12px;
-  border-radius: 6px;
-  background: linear-gradient(110deg, #f0f0f0 8%, #e8e8e8 18%, #f0f0f0 33%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s linear infinite;
-}
-
-.skeleton-line.short { width: 40%; }
-.skeleton-line.long { width: 100%; }
-.skeleton-line.medium { width: 70%; }
-
-.skeleton-box {
-  width: 30px;
-  height: 24px;
-  border-radius: 6px;
-  background: linear-gradient(110deg, #f0f0f0 8%, #e8e8e8 18%, #f0f0f0 33%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s linear infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* ================================================= */
-/* ===== 10. RESPONSIVE ===== */
-/* ================================================= */
-
-/* TABLET & SMALL DESKTOP */
-@media (max-width: 1100px) {
-  .ad-sidebar {
-    display: none;
-  }
-
-  .news-with-sidebar-wrapper {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-  .news-sidebar-static {
-    height: 250px;
-  }
-
-  .lifestyle-article-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-  .lifestyle-article-grid .article-card--hero {
-    grid-column: 1 / -1;
-    grid-row: auto;
-  }
-
-  .random-article-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-  }
-}
-
-/* MOBILE */
-@media (max-width: 768px) {
-  .home-layout-wrapper {
-    padding: 0 10px;
-  }
-  .home-section {
-    margin-bottom: 32px;
-  }
-  .section-header {
-    margin-bottom: 12px;
-    text-align: left;
-  }
-  .section-header h2 {
-    font-size: 20px;
-    text-align: left;
-  }
-  .section-link {
-    font-size: 12px;
-  }
-
-  .article-grid {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-  }
-
-  .article-card--hero .article-image-wrapper {
-    height: 170px;
-  }
-  .article-card--hero .card-content {
-    padding: 10px;
-  }
-  .article-card--hero h3 {
-    font-size: 15px;
-    text-align: left;
-  }
-
-  .article-card:not(.article-card--hero) .article-image-wrapper {
-    height: 120px;
-  }
-  .article-card:not(.article-card--hero) .card-content {
-    padding: 6px 8px 8px;
-  }
-  .article-card:not(.article-card--hero) h3 {
-    font-size: 11px;
-    text-align: left;
-  }
-  .card-author-avatar-wrap {
-    width: 15px;
-    height: 15px;
-  }
-  .card-author-name {
-    font-size: 9px;
-  }
-
-  .news-article-grid {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
-
-  .news-sidebar-static {
-    height: 200px;
-  }
-
-  .article-card.article-card--news-small {
-    gap: 12px !important;
-  }
-  .article-card.article-card--news-small .article-image-wrapper {
-    width: 110px !important;
-    height: 75px !important;
-  }
-  .article-card.article-card--news-small h3 {
-    font-size: 13px !important;
-    text-align: left !important;
-  }
-
-  /* Trending Mobile */
-  .trending-item {
-    gap: 10px;
-    padding: 12px 0;
-    text-align: left;
-  }
-  .trending-thumb {
-    width: 78px;
-    height: 58px;
-  }
-  .trending-details h4 {
-    font-size: 13px;
-    text-align: left;
-  }
-  .trending-rank {
-    width: 26px;
-    font-size: 20px;
-    text-align: left;
-  }
-
-  /* Lifestyle card vertikal di mobile */
-  .random-article-grid > *:nth-child(4) {
-    display: block;
-  }
-  .lifestyle-article-grid .article-card--news-small {
-    flex-direction: column !important;
-  }
-  .lifestyle-article-grid .article-card--news-small .article-image-wrapper {
-    width: 100% !important;
-    height: 160px !important;
-  }
-  .lifestyle-article-grid .article-card--news-small .card-content {
-    margin-top: 8px;
-  }
-  .lifestyle-article-grid .article-card--news-small h3 {
-    font-size: 14px !important;
-    -webkit-line-clamp: 2 !important;
-    text-align: left !important;
-  }
-  .lifestyle-article-grid .article-card--news-small .card-author {
-    margin-top: auto;
-  }
-
-  .ad-before-footer {
-    margin: 18px 0 10px;
-  }
-
-  /* ===== FIX: Paksa Layout & Teks Rata Kiri di Mobile ===== */
-  .home-container,
-  .home-layout-wrapper,
-  .home-main-content,
-  .home-section {
-    direction: ltr !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    margin-left: 0 !important;
-    margin-right: auto !important;
-  }
-
-  .article-grid,
-  .news-article-grid,
-  .lifestyle-article-grid,
-  .random-article-grid,
-  .trending-grid {
-    display: grid !important;
-    justify-content: start !important;
-    justify-items: start !important;
-    width: 100% !important;
-    padding: 0 !important;
-    margin-left: 0 !important;
-  }
-
-  .article-card,
-  .article-card--hero,
-  .article-card.article-card--news-small,
-  .trending-item {
-    width: 100% !important;
-    margin-left: 0 !important;
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
-    text-align: left !important;
-  }
-
-  .section-header {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    width: 100% !important;
-    gap: 12px !important;
-  }
-
-  .section-header h2 {
-    text-align: left !important;
-    margin: 0 !important;
-    flex: 1 !important;
-    white-space: normal !important; 
-    word-break: break-word !important;
-  }
-
-  .section-header .section-link,
-  .section-header .trending-count {
-    text-align: right !important;
-    flex-shrink: 0 !important;
-    margin-left: auto !important; 
-  }
-  
-  .card-content,
-  .card-content h3,
-  .trending-details h4,
-  .card-author,
-  .card-author-name,
-  .tag-category,
-  .meta-info,
-  .trending-rank {
-    text-align: left !important;
-    width: 100% !important;
-  }
-}
-
-/* SMALL PHONE */
-@media (max-width: 400px) {
-  .home-layout-wrapper {
-    padding: 0 8px;
-  }
-  .section-header h2 {
-    font-size: 18px;
-  }
-  .trending-rank {
-    width: 22px;
-    font-size: 16px;
-  }
-  .trending-thumb {
-    width: 65px;
-    height: 50px;
-  }
-  .trending-details h4 {
-    font-size: 12px;
-  }
-  .trending-item {
-    gap: 8px;
-  }
-  .article-card:not(.article-card--hero) .article-image-wrapper {
-    height: 100px;
-  }
-  .article-card--hero .article-image-wrapper {
-    height: 140px;
-  }
-  .article-card--hero h3 {
-    font-size: 14px;
-  }
-  .article-card.article-card--news-small .article-image-wrapper {
-    width: 95px !important;
-    height: 65px !important;
-  }
-  .article-card.article-card--news-small h3 {
-    font-size: 12px !important;
-  }
-
-  /* ===== FIX: paksa rata kiri khusus small phone ===== */
-  .section-header h2,
-  .trending-details h4,
-  .article-card--hero h3,
-  .article-card.article-card--news-small h3 {
-    text-align: left !important;
+@media (min-width: 1240px) {
+  .article-container .article-image-wrapper img,
+  .article-container .featured-image-wrapper img {
+    min-width: 1200px;
+    min-height: 600px;
   }
 }

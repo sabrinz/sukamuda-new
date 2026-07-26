@@ -11,7 +11,10 @@ const Help = () => {
   const emailTujuan = "bantuan@sukamuda50.com";
   const subjek = "Bantuan Layanan SukaMuda";
   const isiPesan = "Halo Tim SukaMuda,\n\nSaya butuh bantuan/ingin bertanya mengenai:\n\n[Tulis pesanmu di sini...]";
-  const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailTujuan}&su=${encodeURIComponent(subjek)}&body=${encodeURIComponent(isiPesan)}`;
+  const gmailLink =
+    "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(emailTujuan) +
+    "&su=" + encodeURIComponent(subjek) +
+    "&body=" + encodeURIComponent(isiPesan);
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -85,18 +88,18 @@ const Help = () => {
         </script>
       </Helmet>
 
-      <div className="hl-grid-bg" />
+      <div className="hl-grid-bg" aria-hidden="true" />
 
       <div className="hl-wrap">
 
         {/* NAV */}
         <nav className={`hl-nav ${on('nav') ? 'hl-on' : ''}`} id="nav" ref={(e) => reg(e, 'nav')}>
-          <button className="hl-back" onClick={() => navigate(-1)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          <button type="button" className="hl-back" onClick={() => navigate(-1)} aria-label="Kembali ke halaman sebelumnya">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </button>
           <span className="hl-nav-title">Bantuan</span>
           <div className="hl-nav-right">
-            <span className="hl-nav-line" />
+            <span className="hl-nav-line" aria-hidden="true" />
             <span className="hl-nav-tag">Support</span>
           </div>
         </nav>
@@ -105,7 +108,7 @@ const Help = () => {
         <header className={`hl-hero ${on('hero') ? 'hl-on' : ''}`} id="hero" ref={(e) => reg(e, 'hero')}>
           <div className="hl-hero-top">
             <div className="hl-hero-badge">
-              <span className="hl-badge-dot" />
+              <span className="hl-badge-dot" aria-hidden="true" />
               <span>Pusat Bantuan</span>
             </div>
           </div>
@@ -119,7 +122,7 @@ const Help = () => {
             </p>
           </div>
           <div className="hl-hero-bottom">
-            <div className="hl-hero-bar" />
+            <div className="hl-hero-bar" aria-hidden="true" />
           </div>
         </header>
 
@@ -130,15 +133,16 @@ const Help = () => {
             target="_blank"
             rel="noopener noreferrer"
             className="hl-email-card"
+            aria-label="Hubungi via email bantuan@sukamuda50.com (tab baru)"
           >
-            <div className="hl-email-icon">
+            <div className="hl-email-icon" aria-hidden="true">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg>
             </div>
             <div className="hl-email-body">
               <h3>Hubungi via Email</h3>
               <p>bantuan@sukamuda50.com</p>
             </div>
-            <div className="hl-email-arrow">
+            <div className="hl-email-arrow" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
             </div>
           </a>
@@ -148,14 +152,14 @@ const Help = () => {
         <section className={`hl-sec ${on('info') ? 'hl-on' : ''}`} id="info" ref={(e) => reg(e, 'info')} style={{ textAlign: 'left' }}>
           <div className="hl-info-grid">
             <div className="hl-info-card" style={{ transitionDelay: '0ms' }}>
-              <div className="hl-info-icon">
+              <div className="hl-info-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <h4>Waktu Respons</h4>
               <p>Kami akan merespons dalam 1×24 jam kerja.</p>
             </div>
             <div className="hl-info-card" style={{ transitionDelay: '60ms' }}>
-              <div className="hl-info-icon">
+              <div className="hl-info-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
               <h4>Sampaikan Detail</h4>
@@ -167,23 +171,23 @@ const Help = () => {
         {/* FAQ TEASER */}
         <section className={`hl-sec ${on('tease') ? 'hl-on' : ''}`} id="tease" ref={(e) => reg(e, 'tease')} style={{ textAlign: 'left' }}>
           <div className="hl-tease-card">
-            <div className="hl-tease-icon">
+            <div className="hl-tease-icon" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
             <div className="hl-tease-body">
               <h4>Pertanyaan yang Sering Ditanyakan</h4>
               <p>Mungkin jawaban yang kamu cari sudah ada di halaman FAQ.</p>
             </div>
-            <button className="hl-tease-btn" onClick={() => navigate('/faq')}>
+            <button type="button" className="hl-tease-btn" onClick={() => navigate('/faq')}>
               Lihat FAQ
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
         </section>
 
         {/* FOOTER */}
         <footer className="hl-foot">
-          <div className="hl-foot-line" />
+          <div className="hl-foot-line" aria-hidden="true" />
           <div className="hl-foot-in">
             <span className="hl-foot-logo">sukamuda</span>
             <span className="hl-foot-c">© {new Date().getFullYear()} — Dibuat untuk generasi muda Indonesia</span>

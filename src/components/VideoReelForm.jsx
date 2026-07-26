@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from '../utils/axiosConfig'; // Sesuaikan dengan lokasi axiosConfig-mu
 import { FaLink, FaImage } from 'react-icons/fa';
 import './VideoReelForm.css';
+
+const ALLOWED_THUMB_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +21,14 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Simpan blob URL aktif agar bisa di-revoke (anti memory leak)
+  const blobUrlRef = useRef(null);
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    };
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -32,6 +42,13 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validasi tipe file (accept di input hanya saran browser)
+      if (!ALLOWED_THUMB_TYPES.includes(file.type)) {
+        setError('Format tidak didukung! Gunakan JPG, PNG, atau WEBP.');
+        e.target.value = ''; // Reset input file
+        setThumbnailFile(null);
+        return;
+      }
       // Validasi ukuran maksimal 2MB
       if (file.size > 2097152) {
         setError('Ukuran gambar terlalu besar! Maksimal 2MB.');
@@ -40,8 +57,12 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
         return;
       }
       setThumbnailFile(file);
+      // Revoke preview lama sebelum membuat yang baru (anti memory leak)
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+      const url = URL.createObjectURL(file);
+      blobUrlRef.current = url;
       // Membuat URL preview lokal untuk ditampilkan di form
-      setPreviewUrl(URL.createObjectURL(file));
+      setPreviewUrl(url);
       setError('');
     }
   };
@@ -132,6 +153,7 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
             platform: 'auto',
           });
           setThumbnailFile(null);
+          if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
           setPreviewUrl('');
         }
       }, 1000);
@@ -158,12 +180,12 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
       <form onSubmit={handleSubmit} className="video-reel-form">
         <h3>{initialData?.id ? 'Edit Video Reel' : 'Tambah Video Reel Baru'}</h3>
 
-        {error && <div className="form-error">{error}</div>}
-        {success && <div className="form-success">{success}</div>}
+        {error && <div className="form-error" role="alert">{error}</div>}
+        {success && <div className="form-success" role="status">{success}</div>}
 
         <div className="form-group">
           <label htmlFor="title">
-            Judul <span className="required">*</span>
+            Judul <span className="required" aria-hidden="true">*</span>
           </label>
           <input
             type="text"
@@ -174,6 +196,7 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
             placeholder="Contoh: Tutorial React Hooks"
             maxLength={255}
             disabled={submitting || isLoading}
+            required
           />
           <span className="char-count">{formData.title.length}/255</span>
         </div>
@@ -195,10 +218,10 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
 
         <div className="form-group">
           <label htmlFor="video_url">
-            URL Video <span className="required">*</span>
+            URL Video <span className="required" aria-hidden="true">*</span>
           </label>
           <div className="url-input-wrapper">
-            <FaLink className="icon" />
+            <FaLink className="icon" aria-hidden="true" />
             <input
               type="url"
               id="video_url"
@@ -207,10 +230,11 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
               onChange={handleChange}
               placeholder="https://instagram.com/... atau https://tiktok.com/..."
               disabled={submitting || isLoading}
+              required
             />
           </div>
           {formData.video_url && (
-            <div className="platform-preview">
+            <div className="platform-preview" role="status">
               <span className="label">Platform Terdeteksi:</span>
               <span className={`badge badge-${detectedPlatform}`}>
                 {platformLabels[detectedPlatform]}
@@ -256,7 +280,7 @@ const VideoReelForm = ({ onSuccess, initialData = null, isLoading = false }) => 
               <div className="image-preview" style={{ marginTop: '10px' }}>
                 <img 
                   src={previewUrl} 
-                  alt="Preview" 
+                  alt="Preview thumbnail" 
                   style={{ width: '100%', maxWidth: '200px', borderRadius: '8px', border: '1px solid #ccc' }} 
                 />
               </div>

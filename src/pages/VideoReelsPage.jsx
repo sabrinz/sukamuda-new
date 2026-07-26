@@ -36,7 +36,7 @@ function VideoReelsPage() {
   ];
 
   const currentData = Array.isArray(reels) ? reels : (reels.data || []);
-  const canonicalUrl = `${baseUrl}/video-reels${selectedPlatform !== 'all' ? `?platform=${selectedPlatform}` : ''}`;
+  const canonicalUrl = baseUrl + "/video-reels";
 
   const schemaWebPage = {
     "@context": "https://schema.org",
@@ -95,20 +95,22 @@ function VideoReelsPage() {
       </div>
 
       {/* Platform Filter */}
-      <div className="platform-filters">
+      <div className="platform-filters" role="group" aria-label="Filter platform">
         {platforms.map(platform => {
           const IconComponent = platform.icon;
           return (
             <button
               key={platform.id}
+              type="button"
               className={`platform-filter-btn ${selectedPlatform === platform.id ? 'active' : ''}`}
               onClick={() => setSelectedPlatform(platform.id)}
+              aria-pressed={selectedPlatform === platform.id}
               style={{
                 backgroundColor: platform.color,
                 borderColor: platform.color
               }}
             >
-              {IconComponent && <IconComponent className="platform-icon-filter" />}
+              {IconComponent && <IconComponent className="platform-icon-filter" aria-hidden="true" />}
               <span>{platform.label}</span>
             </button>
           );
@@ -117,15 +119,15 @@ function VideoReelsPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="loading-state">
-          <div className="spinner"></div>
+        <div className="loading-state" role="status">
+          <div className="spinner" aria-hidden="true"></div>
           <p>Memuat video reels...</p>
         </div>
       )}
 
       {/* Error State */}
       {error && (
-        <div className="error-state">
+        <div className="error-state" role="alert">
           <p>Terjadi kesalahan saat memuat video reels</p>
         </div>
       )}
@@ -139,7 +141,7 @@ function VideoReelsPage() {
             </div>
           ) : (
             <>
-              <div className="reels-count">
+              <div className="reels-count" role="status">
                 Menampilkan <strong>{currentData.length}</strong> video
               </div>
               <VideoReels reels={currentData} />

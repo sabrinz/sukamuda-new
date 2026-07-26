@@ -859,3 +859,24 @@
     padding: 3px 8px;
   }
 }
+
+/* ===== A11y: indikator fokus keyboard ===== */
+.pub-back:focus-visible,
+.pub-card:focus-visible,
+.pub-error-btn:focus-visible {
+  outline: 3px solid #f97316;
+  outline-offset: 2px;
+}
+
+/* ===== Hormati preferensi kurangi animasi ===== */
+@media (prefers-reduced-motion: reduce) {
+  .pub-card,
+  .pub-skel,
+  .pub-skel-bg,
+  .pub-skel-circle,
+  .pub-skel-img,
+  .pub-skel-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}

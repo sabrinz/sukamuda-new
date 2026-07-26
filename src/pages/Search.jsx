@@ -14,11 +14,15 @@ const Search = () => {
   const query = new URLSearchParams(useLocation().search).get("q") || "";
 
   useEffect(() => {
+    // Guard anti race-condition: abaikan respons lama kalau query sudah berganti
+    let active = true;
+
     const fetchSearch = async () => {
       try {
         setLoading(true);
         const response = await axios.get('/api/public-articles');
-        
+        if (!active) return;
+
         // Filter berita yang judul atau isinya mengandung kata kunci
         const filtered = response.data.filter((item) => {
           const searchContent = ((item.title || '') + (item.content || '')).toLowerCase();
@@ -29,7 +33,7 @@ const Search = () => {
       } catch (error) {
         console.error("Gagal mencari berita:", error);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
@@ -39,10 +43,14 @@ const Search = () => {
       setArticles([]);
       setLoading(false);
     }
+
+    return () => { active = false; };
   }, [query]);
 
   // Membuat URL Canonical Dinamis untuk Halaman Pencarian
   const canonicalUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
+
+  const pageTitle = query ? `Hasil Pencarian: "${query}" - SukaMuda` : "Pencarian - SukaMuda";
 
   // Struktur Data JSON-LD untuk Search Results
   const schemaSearchResults = {
@@ -58,12 +66,12 @@ const Search = () => {
   return (
     <div className="category-container" style={{ marginTop: "40px" }}>
       <Helmet>
-        <title>{query ? `Hasil Pencarian: "${query}"` : "Pencarian"} - SukaMuda</title>
+        <title>{pageTitle}</title>
         <link rel="canonical" href={canonicalUrl} />
         
         {/* STANDAR PORTAL BERITA: Hasil internal search sebaiknya noindex agar tidak dianggap spam duplikasi konten oleh Google */}
         <meta name="robots" content="noindex, follow" />
-        <meta property="og:title" content={`Hasil Pencarian: "${query}" - SukaMuda`} />
+        <meta property="og:title" content={pageTitle} />
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="website" />
         
@@ -74,13 +82,13 @@ const Search = () => {
       </Helmet>
 
       <header className="category-header">
-        <h2 style={{ textTransform: 'none', color: '#000', marginBottom: '30px' }}>
+        <h1 style={{ textTransform: 'none', color: '#000', marginBottom: '30px', fontSize: '1.5em' }}>
           {query ? `Hasil Pencarian untuk: "${query}"` : "Pencarian Artikel"}
-        </h2>
+        </h1>
       </header>
 
       {loading ? (
-        <div className="category-empty">Mencari berita SukaMuda...</div>
+        <div className="category-empty" role="status">Mencari berita SukaMuda...</div>
       ) : (
         <div className="article-grid">
           {articles.length > 0 ? (
@@ -92,6 +100,10 @@ const Search = () => {
                       ? (article.image.startsWith('http') ? article.image : `${baseUrl}/storage/${article.image}`)
                       : "https://via.placeholder.com/400x250"}
                     alt={article.title}
+                    width="400"
+                    height="225"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/400x250"; }}
                   />
                 </div>
@@ -114,4 +126,4 @@ const Search = () => {
   );
 };
 
-export default Search;  
+export default Search;

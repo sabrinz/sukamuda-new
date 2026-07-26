@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Halaman privat / tidak perlu diindeks
+Disallow: /admin
+Disallow: /profile
+Disallow: /notifications
+Disallow: /write
+Disallow: /write-success
+Disallow: /login
+Disallow: /register
+Disallow: /verify-otp
+Disallow: /forgot-password
+Disallow: /interests
+Disallow: /success
+Disallow: /api/
+Disallow: /sanctum/
+
+# Sitemap (digenerate oleh backend Laravel)
+Sitemap: https://sukamuda.co.id/sitemap.xml
+Sitemap: https://sukamuda.co.id/sitemap-news.xml
+Sitemap: https://sukamuda.co.id/sitemap-images.xml
+Sitemap: https://sukamuda.co.id/sitemap-videos.xml

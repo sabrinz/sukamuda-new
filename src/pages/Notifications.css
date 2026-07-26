@@ -249,3 +249,26 @@
     font-size: 12px;
   }
 }
+
+/* ===== A11Y: indikator fokus keyboard ===== */
+.notif-page-wrapper button:focus-visible,
+.notif-page-wrapper .notif-row-item:focus-visible {
+  outline: 3px solid #3498db;
+  outline-offset: 3px;
+}
+
+/* ===== A11Y: kurangi animasi jika diminta pengguna ===== */
+@media (prefers-reduced-motion: reduce) {
+  .notif-page-wrapper *,
+  .notif-page-wrapper *::before,
+  .notif-page-wrapper *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .notif-page-wrapper .notif-row-item:hover {
+    transform: none;
+  }
+}

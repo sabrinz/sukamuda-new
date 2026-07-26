@@ -1,0 +1,18 @@
+# SukaMuda
+
+> SukaMuda adalah platform berita dan artikel gaya hidup yang fokus pada isu generasi milenial dan Gen Z, mencakup teknologi, sejarah, olahraga, dan hiburan.
+
+## Core Navigation
+- [Home](http://127.0.0.1:5174/) - Berita terbaru dan trending mingguan.
+- [Video Reels](http://127.0.0.1:5174/reels) - Konten video pendek (Gentalks).
+- [Category: Tech](http://127.0.0.1:5174/category/tech) - Berita teknologi terbaru.
+
+## Key Content Structures
+- **Trending Mingguan**: Top 5 berita dengan interaksi tertinggi.
+- **Article Grid**: Daftar artikel lengkap dengan metadata penulis dan tanggal.
+- **Gentalks**: Seri video pendek vertikal tentang fakta unik dan inspirasi.
+
+## Technical Metadata
+- **Main Landmark**: Konten utama berada di dalam tag `<main>`.
+- **Primary Headings**: H1 untuk judul halaman, H2 untuk judul bagian, H3 untuk judul artikel.
+- **API Endpoint**: Jika tersedia, dokumentasikan endpoint publik untuk ekstraksi data di sini.

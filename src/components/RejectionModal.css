@@ -167,3 +167,24 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ===== A11y: indikator fokus keyboard ===== */
+.rejection-modal-close:focus-visible,
+.btn-cancel:focus-visible,
+.btn-reject:focus-visible {
+  outline: 3px solid #e74c3c;
+  outline-offset: 2px;
+}
+
+/* ===== Hormati preferensi kurangi animasi ===== */
+@media (prefers-reduced-motion: reduce) {
+  .rejection-modal {
+    animation: none !important;
+  }
+  .rejection-modal-close,
+  .rejection-reason-textarea,
+  .btn-cancel,
+  .btn-reject {
+    transition: none !important;
+  }
+}

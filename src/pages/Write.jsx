@@ -18,6 +18,7 @@ class ImageCaptionBlot extends BlockEmbed {
 
     let img = document.createElement('img');
     img.setAttribute('src', value.url);
+    img.setAttribute('alt', value.caption || 'Gambar artikel');
     node.appendChild(img);
 
     if (value.caption) {
@@ -87,7 +88,7 @@ const getSpotifyEmbedUrl = (url) => {
     if (normalized.startsWith('spotify:')) {
       const parts = normalized.split(':').filter(Boolean);
       if (parts.length >= 3) {
-        return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
+        return "https://open.spotify.com/embed/" + parts[1] + "/" + parts[2];
       }
       return '';
     }
@@ -98,7 +99,7 @@ const getSpotifyEmbedUrl = (url) => {
       parts.shift();
     }
     if (parts.length >= 2) {
-      return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
+      return "https://open.spotify.com/embed/" + parts[0] + "/" + parts[1];
     }
     return '';
   } catch {
@@ -131,7 +132,7 @@ const getYoutubeEmbedUrl = (url) => {
       }
     }
 
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+    return videoId ? ("https://www.youtube.com/embed/" + videoId) : '';
   } catch {
     return '';
   }
@@ -162,7 +163,7 @@ const getYoutubeThumbnailUrl = (url) => {
       }
     }
 
-    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+    return videoId ? ("https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg") : '';
   } catch {
     return '';
   }
@@ -206,14 +207,22 @@ function Write() {
   const [insertImageCaption, setInsertImageCaption] = useState("");
   const currentSelectionRef = useRef(null);
 
+  // A11y: buka pemilih file dengan Enter/Spasi di drop zone
+  const dropZoneKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInputRef.current?.click();
+    }
+  };
+
   const handleModalFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) {
       setInsertImageBase64(null);
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Ukuran file maksimal 5MB.");
+    if (file.size > 1 * 1024 * 1024) {
+      alert("Ukuran file maksimal 1MB.");
       e.target.value = "";
       setInsertImageBase64(null);
       return;
@@ -229,8 +238,8 @@ function Write() {
   };
 
   const processFile = (file) => {
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, image: "Ukuran file maksimal 5MB." }));
+    if (file.size > 1 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, image: "Ukuran file maksimal 1MB." }));
       return;
     }
     setThumbnailFile(file);
@@ -425,8 +434,6 @@ function Write() {
     setLoading(true);
 
     // ─── FIX UTAMA: Podcast content hanya placeholder teks ───
-    // iframe dirender di ArticleDetail dari field audio_link & video_link
-    // Ini yang mencegah blackscreen saat scroll
     const contentHtml = isPodcast
       ? buildPodcastContentHtml()
       : quillRef.current?.root?.innerHTML || "";
@@ -440,9 +447,6 @@ function Write() {
     formData.append('image_caption', form.thumbnailCaption);
     formData.append('thumbnailCaption', form.thumbnailCaption);
 
-    // ─── FIX KRITIS: Selalu kirim audio_link & video_link ke database ───
-    // Dikirim untuk semua status (draft maupun publish), bukan hanya isPodcast
-    // Ini yang menyebabkan podcast tidak muncul — link tidak tersimpan
     if (isPodcast) {
       formData.append('audio_link', form.audioLink.trim());
       formData.append('video_link', form.videoLink.trim());
@@ -502,24 +506,25 @@ function Write() {
     setShowModal(true);
   };
 
-  return (
+    return (
     <div className="page menulis-form-page">
       <main className="content">
         <section className="write-form">
 
           {/* Header */}
           <div className="write-header">
-            <button className="back-link-btn" onClick={() => navigate(returnPath)}>
-              <span className="back-icon"> ← </span>
+            <button className="back-link-btn" onClick={() => navigate(returnPath)} aria-label="Kembali">
+              <span className="back-icon" aria-hidden="true"> ← </span>
             </button>
-            <h2 className="write-heading">WRITE</h2>
+            <h1 className="write-heading">WRITE</h1>
             <div />
           </div>
 
           {/* Category */}
           <div className="form-row">
-            <label className="form-label">Category</label>
+            <label className="form-label" htmlFor="write-category">Category</label>
             <select
+              id="write-category"
               className="form-select"
               value={form.category}
               onChange={handleCategoryChange}
@@ -529,43 +534,46 @@ function Write() {
                 <option key={item.slug} value={item.slug}>{item.label}</option>
               ))}
             </select>
-            {errors.category && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.category}</small>}
+            {errors.category && <small role="alert" style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.category}</small>}
           </div>
 
           {/* Title */}
           <div className="form-row">
-            <label className="form-label">Title</label>
+            <label className="form-label" htmlFor="write-title">Title</label>
             <input
+              id="write-title"
               className="form-input"
               placeholder="Write Here"
               value={form.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
             />
-            {errors.title && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.title}</small>}
+            {errors.title && <small role="alert" style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.title}</small>}
           </div>
 
           {isPodcast ? (
             <>
               <div className="form-row">
-                <label className="form-label">Link Spotify</label>
+                <label className="form-label" htmlFor="write-spotify">Link Spotify</label>
                 <input
+                  id="write-spotify"
                   className="form-input"
                   placeholder="Masukkan link Spotify episode"
                   value={form.audioLink}
                   onChange={(e) => handleInputChange('audioLink', e.target.value)}
                 />
-                {errors.audioLink && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.audioLink}</small>}
+                {errors.audioLink && <small role="alert" style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.audioLink}</small>}
               </div>
 
               <div className="form-row">
-                <label className="form-label">Link YouTube</label>
+                <label className="form-label" htmlFor="write-youtube">Link YouTube</label>
                 <input
+                  id="write-youtube"
                   className="form-input"
                   placeholder="Masukkan link YouTube video"
                   value={form.videoLink}
                   onChange={(e) => handleInputChange('videoLink', e.target.value)}
                 />
-                {errors.videoLink && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.videoLink}</small>}
+                {errors.videoLink && <small role="alert" style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.videoLink}</small>}
               </div>
 
               <div className="form-row">
@@ -573,6 +581,10 @@ function Write() {
                 <div className="thumbnail-upload-row">
                   <div
                     className="thumbnail-drop-mini"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Pilih file thumbnail"
+                    onKeyDown={dropZoneKeyDown}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       e.preventDefault();
@@ -589,6 +601,8 @@ function Write() {
                       type="file"
                       accept="image/*"
                       onChange={handleThumbnailChange}
+                      aria-hidden="true"
+                      tabIndex={-1}
                     />
                     <span>Choose File</span>
                   </div>
@@ -598,11 +612,12 @@ function Write() {
                       <img
                         className="thumbnail-preview-mini"
                         src={thumbnailPreview}
-                        alt="Preview"
+                        alt="Preview thumbnail"
                       />
                       <button
                         type="button"
                         className="remove-thumbnail-btn"
+                        aria-label="Hapus thumbnail"
                         onClick={(e) => {
                           e.stopPropagation();
                           setThumbnailPreview(null);
@@ -615,12 +630,13 @@ function Write() {
                     </div>
                   )}
                 </div>
-                {errors.image && <small style={{ color: "red", marginTop: 4, display: "block" }}>{errors.image}</small>}
+                {errors.image && <small role="alert" style={{ color: "red", marginTop: 4, display: "block" }}>{errors.image}</small>}
               </div>
 
               <div className="form-row">
-                <label className="form-label">Caption Thumbnail (opsional)</label>
+                <label className="form-label" htmlFor="write-thumb-caption">Caption Thumbnail (opsional)</label>
                 <input
+                  id="write-thumb-caption"
                   className="form-input"
                   placeholder="Tulis caption thumbnail jika ingin"
                   value={form.thumbnailCaption}
@@ -636,6 +652,10 @@ function Write() {
                 <div className="thumbnail-upload-row">
                   <div
                     className="thumbnail-drop-mini"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Pilih file thumbnail"
+                    onKeyDown={dropZoneKeyDown}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       e.preventDefault();
@@ -652,15 +672,18 @@ function Write() {
                       type="file"
                       accept="image/*"
                       onChange={handleThumbnailChange}
+                      aria-hidden="true"
+                      tabIndex={-1}
                     />
                     <span>Choose File</span>
                   </div>
                   {thumbnailPreview && (
                     <div className="thumbnail-preview-box">
-                      <img className="thumbnail-preview-mini" src={thumbnailPreview} alt="Preview" />
+                      <img className="thumbnail-preview-mini" src={thumbnailPreview} alt="Preview thumbnail" />
                       <button
                         type="button"
                         className="remove-thumbnail-btn"
+                        aria-label="Hapus thumbnail"
                         onClick={(e) => {
                           e.stopPropagation();
                           setThumbnailPreview(null);
@@ -673,14 +696,15 @@ function Write() {
                     </div>
                   )}
                 </div>
-                {errors.image && <small style={{ color: "red", marginTop: 4, display: "block" }}>{errors.image}</small>}
+                {errors.image && <small role="alert" style={{ color: "red", marginTop: 4, display: "block" }}>{errors.image}</small>}
               </div>
 
               {/* Caption Thumbnail */}
               <div className="form-row">
-                <label className="form-label">Caption Thumbnail</label>
+                <label className="form-label" htmlFor="write-thumb-caption">Caption Thumbnail</label>
                 <div>
                   <input
+                    id="write-thumb-caption"
                     className="form-input"
                     placeholder="Tulis caption gambar thumbnail"
                     value={form.thumbnailCaption}
@@ -692,33 +716,34 @@ function Write() {
 
               <div className="editor-wrapper">
                 <div id="quill-toolbar" className="editor-toolbar">
-                  <button className="ql-undo" type="button">
+                  <button className="ql-undo" type="button" aria-label="Urungkan">
                     <svg viewBox="0 0 18 18"><polygon className="ql-fill ql-stroke" points="6 10 4 12 2 10 6 10"></polygon><path className="ql-stroke" d="M6,10a4,4,0,1,1,1.5,3.1"></path></svg>
                   </button>
-                  <button className="ql-redo" type="button">
+                  <button className="ql-redo" type="button" aria-label="Ulangi">
                     <svg viewBox="0 0 18 18"><polygon className="ql-fill ql-stroke" points="12 10 14 12 16 10 12 10"></polygon><path className="ql-stroke" d="M12,10a4,4,0,1,0-1.5,3.1"></path></svg>
                   </button>
-                  <button className="ql-bold" type="button" />
-                  <button className="ql-italic" type="button" />
-                  <button className="ql-strike" type="button" />
-                  <button className="ql-underline" type="button" />
-                  <button className="ql-blockquote" type="button" />
-                  <button className="ql-list" value="ordered" type="button" />
-                  <button className="ql-list" value="bullet" type="button" />
-                  <button className="ql-align" value="" type="button" />
-                  <button className="ql-align" value="center" type="button" />
-                  <button className="ql-align" value="right" type="button" />
-                  <button className="ql-link" type="button" />
-                  <button className="ql-image" type="button" />
+                  <button className="ql-bold" type="button" aria-label="Tebal" />
+                  <button className="ql-italic" type="button" aria-label="Miring" />
+                  <button className="ql-strike" type="button" aria-label="Coret" />
+                  <button className="ql-underline" type="button" aria-label="Garis bawah" />
+                  <button className="ql-blockquote" type="button" aria-label="Kutipan" />
+                  <button className="ql-list" value="ordered" type="button" aria-label="Daftar bernomor" />
+                  <button className="ql-list" value="bullet" type="button" aria-label="Daftar poin" />
+                  <button className="ql-align" value="" type="button" aria-label="Rata kiri" />
+                  <button className="ql-align" value="center" type="button" aria-label="Rata tengah" />
+                  <button className="ql-align" value="right" type="button" aria-label="Rata kanan" />
+                  <button className="ql-link" type="button" aria-label="Sisipkan tautan" />
+                  <button className="ql-image" type="button" aria-label="Sisipkan gambar" />
                   <button className="related-button" type="button" onClick={openRelatedModal}>+ Baca Juga</button>
                 </div>
                 <div ref={editorRef} className="editor-body" />
-                {errors.content && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.content}</small>}
+                {errors.content && <small role="alert" style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.content}</small>}
               </div>
 
               <div className="form-row">
-                <label className="form-label">Description</label>
+                <label className="form-label" htmlFor="write-desc">Description</label>
                 <input
+                  id="write-desc"
                   className="form-input"
                   placeholder="Write Here"
                   value={form.teaser}
@@ -730,14 +755,15 @@ function Write() {
           )}
 
           <div className="form-row">
-            <label className="form-label">Tag</label>
+            <label className="form-label" htmlFor="write-tags">Tag</label>
             <input
+              id="write-tags"
               className="form-input"
               placeholder="Pisahkan dengan koma"
               value={form.tags}
               onChange={(e) => handleInputChange('tags', e.target.value)}
             />
-            {errors.tags && <small style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.tags}</small>}
+            {errors.tags && <small role="alert" style={{ color: 'red', marginTop: 4, display: 'block' }}>{errors.tags}</small>}
           </div>
 
           {/* Action buttons */}
@@ -754,8 +780,8 @@ function Write() {
       {/* Modal Submit */}
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal-container">
-            <h2 className="modal-title">
+          <div className="modal-container" role="alertdialog" aria-modal="true" aria-labelledby="submit-modal-title">
+            <h2 className="modal-title" id="submit-modal-title">
               {modalType === 'draft' ? 'Simpan sebagai Draft?' : 'Kirim artikel untuk ditinjau admin?'}
             </h2>
             <p className="modal-subtitle">
@@ -781,24 +807,26 @@ function Write() {
       {/* Modal Insert Gambar Quill */}
       {insertImageModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-container">
-            <h2 className="modal-title" style={{ marginBottom: '24px' }}>Sisipkan Gambar</h2>
+          <div className="modal-container" role="dialog" aria-modal="true" aria-labelledby="insert-image-title">
+            <h2 className="modal-title" id="insert-image-title" style={{ marginBottom: '24px' }}>Sisipkan Gambar</h2>
 
             <div className="form-row" style={{ gridTemplateColumns: '1fr', textAlign: 'left', gap: '8px', marginBottom: '16px' }}>
-              <label className="form-label" style={{ marginBottom: '0' }}>Pilih Gambar</label>
+              <label className="form-label" htmlFor="insert-image-file" style={{ marginBottom: '0' }}>Pilih Gambar</label>
               <input
+                id="insert-image-file"
                 type="file"
                 accept="image/*"
                 className="form-input"
                 onChange={handleModalFileChange}
                 style={{ padding: '10px' }}
               />
-              {insertImageBase64 && <p style={{ fontSize: '12px', color: 'green', margin: 0 }}>Gambar berhasil dipilih dan divalidasi.</p>}
+              {insertImageBase64 && <p role="status" style={{ fontSize: '12px', color: 'green', margin: 0 }}>Gambar berhasil dipilih dan divalidasi.</p>}
             </div>
 
             <div className="form-row" style={{ gridTemplateColumns: '1fr', textAlign: 'left', gap: '8px', marginBottom: '28px' }}>
-              <label className="form-label" style={{ marginBottom: '0' }}>Keterangan Gambar (Opsional)</label>
+              <label className="form-label" htmlFor="insert-image-caption" style={{ marginBottom: '0' }}>Keterangan Gambar (Opsional)</label>
               <input
+                id="insert-image-caption"
                 type="text"
                 className="form-input"
                 placeholder="Ilustrasi - Keterangan gambar..."
@@ -833,18 +861,18 @@ function Write() {
       {/* Modal Baca Juga */}
       {relatedModalOpen && (
         <div className="modal-overlay">
-          <div className="related-modal-container">
+          <div className="related-modal-container" role="dialog" aria-modal="true" aria-labelledby="related-modal-title">
             <div className="modal-header-row">
               <div>
-                <h2 className="modal-title">Pilih Artikel Baca Juga</h2>
+                <h2 className="modal-title" id="related-modal-title">Pilih Artikel Baca Juga</h2>
                 <p className="modal-subtitle">Menampilkan artikel dengan kategori yang sama: {form.category || 'Belum dipilih'}</p>
               </div>
               <button className="btn-batal" onClick={() => setRelatedModalOpen(false)}>Tutup</button>
             </div>
             {relatedLoading ? (
-              <p style={{ textAlign: 'center', marginTop: 18 }}>Memuat artikel...</p>
+              <p role="status" style={{ textAlign: 'center', marginTop: 18 }}>Memuat artikel...</p>
             ) : relatedError ? (
-              <p style={{ color: '#d83a34', textAlign: 'center', marginTop: 18 }}>{relatedError}</p>
+              <p role="alert" style={{ color: '#d83a34', textAlign: 'center', marginTop: 18 }}>{relatedError}</p>
             ) : relatedArticles.length === 0 ? (
               <p style={{ textAlign: 'center', marginTop: 18 }}>Tidak ada artikel dalam kategori ini.</p>
             ) : (

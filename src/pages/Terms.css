@@ -320,3 +320,10 @@
   .tr-nav,.tr-hero,.tr-content{opacity:1;transform:none}
   .tr-on .tr-item{opacity:1;transform:none}
 }
+
+/* ===== A11Y: indikator fokus keyboard ===== */
+.tr-root button:focus-visible,
+.tr-root a:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 3px;
+}

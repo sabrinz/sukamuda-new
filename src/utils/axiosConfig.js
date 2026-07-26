@@ -1,11 +1,13 @@
 import axios from 'axios';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL;
+
 const normalizeUrl = (url) => {
   if (!url) return null;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   return `https://${url}`;
 };
+
 const baseURL = normalizeUrl(apiBaseUrl) || 'https://sukamuda.co.id';
 
 // 1. Konfigurasi Dasar (Wajib agar Session & Cookie sinkron)
@@ -33,12 +35,12 @@ export const getCookie = (name) => {
 export const ensureCsrfToken = async () => {
   try {
     const existingToken = getCookie('XSRF-TOKEN');
-    
+
     if (!existingToken) {
       await axios.get('/sanctum/csrf-cookie');
-      await new Promise(resolve => setTimeout(resolve, 300)); 
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
-    
+
     return true;
   } catch (error) {
     console.error('Gagal mengambil CSRF Token:', error);
@@ -47,14 +49,26 @@ export const ensureCsrfToken = async () => {
 };
 
 /**
+ * Helper: cek apakah request menuju API kita sendiri.
+ * SECURITY FIX: token Bearer TIDAK BOLEH dikirim ke domain luar.
+ */
+const isOwnApiRequest = (config) => {
+  const url = config.url || '';
+  // URL relatif ("/api/...") selalu menuju baseURL kita
+  if (!/^https?:\/\//i.test(url)) return true;
+  // URL absolut: hanya kirim token kalau masih ke API kita
+  return url.startsWith(baseURL);
+};
+
+/**
  * 4. INTERCEPTOR OTOMATIS (Solusi Unauthenticated)
- * Fungsi ini bakal nge-cek localStorage setiap kali lo ngirim data ke Laravel.
- * Kalau ada token, langsung ditempel ke Header.
+ * Cek localStorage setiap kirim data ke Laravel.
+ * SECURITY FIX: token hanya ditempel untuk request ke API sendiri.
  */
 axios.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token'); // Ambil token dari storage
-    if (token) {
+    const token = localStorage.getItem('token');
+    if (token && isOwnApiRequest(config)) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -65,16 +79,19 @@ axios.interceptors.request.use(
 );
 
 /**
- * 5. RESPONSE INTERCEPTOR (Opsional tapi Penting)
- * Kalau tiba-tiba token mati (expired), otomatis bisa lo arahin ke login.
+ * 5. RESPONSE INTERCEPTOR
+ * Kalau token mati (expired/revoked):
+ * - Hapus token dari storage (mencegah state "login palsu")
+ * - Broadcast event supaya AuthContext bisa update state tanpa hard redirect
  */
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.warn("Sesi kamu habis, silakan login ulang.");
-      // localStorage.removeItem('token'); // Bisa hapus token kalau mau
-      // window.location.href = '/login';  // Bisa redirect otomatis kalau mau
+      console.warn('Sesi kamu habis, silakan login ulang.');
+      localStorage.removeItem('token');
+      // Kabari AuthContext / komponen lain tanpa memaksa redirect
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
     }
     return Promise.reject(error);
   }

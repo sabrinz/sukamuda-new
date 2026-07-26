@@ -2,45 +2,117 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SukaMuda</title>
+    <title>SukaMuda - Portal Berita & Informasi Anak Muda</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta
+      name="description"
+      content="Portal berita dan informasi terpercaya untuk anak muda. Temukan artikel menarik, berita terkini, dan komunitas kreatif."
+    />
+    <meta name="google-adsense-account" content="ca-pub-7608424206122269" />
+    <meta
+      name="google-site-verification"
+      content="2r5DSOWKoJyIeErpnxasGg33eClplXtw_dTRLO64ZCU"
+    />
     <link rel="canonical" href="https://sukamuda.co.id/" />
 
-    <meta name="google-adsense-account" content="ca-pub-7608424206122269">
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="SukaMuda" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="id_ID" />
+    <meta
+      property="og:title"
+      content="SukaMuda - Portal Berita & Informasi Anak Muda"
+    />
+    <meta
+      property="og:description"
+      content="Portal berita dan informasi terpercaya untuk anak muda. Temukan artikel menarik, berita terkini, dan komunitas kreatif."
+    />
+    <meta property="og:url" content="https://sukamuda.co.id/" />
+    <meta property="og:image" content="https://sukamuda.co.id/logo.png" />
 
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269" crossorigin="anonymous"></script>
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="SukaMuda - Portal Berita & Informasi Anak Muda" />
+    <meta
+      name="twitter:description"
+      content="Portal berita dan informasi terpercaya untuk anak muda."
+    />
+    <meta name="twitter:image" content="https://sukamuda.co.id/logo.png" />
 
+    <!-- RSS Feed -->
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="SukaMuda RSS Feed"
+      href="https://sukamuda.co.id/feed"
+    />
+
+    <!-- Preconnect ke Domain Iklan & Analytics untuk Performa -->
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
+    <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+
+    <!-- Google tag (gtag.js) - GA4 -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-3YC85W3DEJ"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      // SPA (React Router): page_view dikirim manual dari App.jsx
+      gtag("config", "G-3YC85W3DEJ", { send_page_view: false });
+    </script>
+
+    <!-- Schema.org JSON-LD: WebSite + SearchAction -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Sukamuda",
-      "url": "https://sukamuda.co.id",
-      "description": "Portal berita dan informasi terpercaya untuk anak muda",
-      "inLanguage": "id-ID",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://sukamuda.co.id/search?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      },
-      "publisher": {
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "SukaMuda",
+        "url": "https://sukamuda.co.id",
+        "description": "Portal berita dan informasi terpercaya untuk anak muda",
+        "inLanguage": "id-ID",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://sukamuda.co.id/search?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+
+    <!-- Schema.org JSON-LD: Organization -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "Sukamuda",
+        "name": "SukaMuda",
         "url": "https://sukamuda.co.id",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://sukamuda.co.id/logo.png",
-          "width": 200,
-          "height": 60
-        }
+          "url": "https://sukamuda.co.id/logo.png"
+        },
+        "sameAs": []
       }
-    }
     </script>
-
   </head>
   <body>
     <div id="root"></div>
+    <!-- Script Utama Aplikasi -->
     <script type="module" src="/src/main.jsx"></script>
+    <!-- AdSense: taruh di bawah agar tidak menghambat render awal -->
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
+      crossorigin="anonymous"
+    ></script>
   </body>
 </html>

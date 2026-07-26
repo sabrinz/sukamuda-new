@@ -7,12 +7,14 @@ import App from './App.jsx';
 import './index.css';
 import './utils/axiosConfig.js';
 
+// Inisialisasi QueryClient di luar komponen untuk mencegah re-instansiasi
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
-      cacheTime: 1000 * 60 * 10,
+      gcTime: 1000 * 60 * 10, 
       refetchOnWindowFocus: false,
+      retry: 1, 
     },
   },
 });

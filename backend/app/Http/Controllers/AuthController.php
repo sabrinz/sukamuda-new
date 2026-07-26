@@ -19,22 +19,19 @@ class AuthController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Email tidak terdaftar!'], 404);
         }
-
-        // 1. GANTI rand() JADI random_int() (Lebih aman dari tebakan pola)
+        
         $otp = random_int(100000, 999999);
         
-        // 2. SIMPAN OTP YANG SUDAH DI-HASH, DAN SET WAKTU KADALUARSA (5 MENIT)
         DB::table('otps')->updateOrInsert(
             ['email' => $request->email],
             [
-                'otp' => Hash::make($otp), // Wajib di-hash!
-                'expires_at' => now()->addMinutes(5), // OTP hangus dalam 5 menit
+                'otp' => Hash::make($otp), 
+                'expires_at' => now()->addMinutes(15), 
                 'created_at' => now(),
             ]
         );
 
         try {
-            // 3. YANG DIKIRIM KE EMAIL TETAP ANGKA ASLI (POLOSAN)
             Mail::to($request->email)->send(new ResetPasswordMail($otp));
             return response()->json(['message' => 'OTP berhasil dikirim ke email!']);
         } catch (\Exception $e) {

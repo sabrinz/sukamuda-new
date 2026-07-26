@@ -15,20 +15,25 @@ use Illuminate\Support\Facades\DB;
 
 class ArticleController extends Controller
 {
+    /**
+     * PERBAIKAN: Dipastikan mengembalikan domain utama HTTPS absolut agar thumbnail valid
+     */
     private function formatImageUrl($imagePath)
     {
         if (empty($imagePath) || !is_string($imagePath)) {
-            return null;
+            return 'https://sukamuda.co.id/images/default-placeholder.png';
         }
 
         // kalau sudah URL
         if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
-            // ubah localhost ke domain hosting
+
+            // ubah localhost ke domain hosting utama
             $imagePath = str_replace(
-                'http://127.0.0.1:8000',
+                ['http://127.0.0.1:8000', 'https://api.sukamuda.co.id'],
                 'https://sukamuda.co.id',
                 $imagePath
             );
+
             return $imagePath;
         }
 
@@ -95,7 +100,8 @@ class ArticleController extends Controller
         $user = $request->user('sanctum');
         
         $query = Article::where('status', 'approved')
-            ->select(['id', 'user_id', 'title', 'slug', 'image', 'summary', 'content', 'category', 'created_at'])
+            // Menambahkan 'content' jika kamu pakai cara bypass cPanel sementara
+            ->select(['id', 'user_id', 'title', 'slug', 'image', 'image_caption', 'summary', 'content', 'category', 'created_at'])
             ->with('user:id,name,avatar')
             ->withCount('likes');
 
@@ -105,7 +111,7 @@ class ArticleController extends Controller
             }]);
         }
 
-        $articles = $query->latest()->paginate(50);
+        $articles = $query->latest()->paginate(500);
         
         $articles->getCollection()->transform(function ($article) {
             $article->image = $this->formatImageUrl($article->image);
@@ -133,9 +139,12 @@ class ArticleController extends Controller
         $user = $request->user();
         $imagePath = $request->hasFile('image') ? $request->file('image')->store('articles', 'public') : null;
 
-        $finalStatus = $request->status;
-        if (!$finalStatus || $finalStatus === 'published' || $finalStatus === 'review') {
-            $finalStatus = ($user->role === 'admin') ? 'approved' : 'pending';
+        // KEAMANAN: hanya admin yang boleh langsung approve.
+        // User biasa maksimal draft/pending, apapun yang dia kirim.
+        if ($user->role === 'admin') {
+            $finalStatus = in_array($request->status, ['draft', 'pending', 'approved']) ? $request->status : 'approved';
+        } else {
+            $finalStatus = ($request->status === 'draft') ? 'draft' : 'pending';
         }
 
         $article = Article::create([
@@ -238,8 +247,14 @@ class ArticleController extends Controller
         $article->audio_link = $request->audio_link;
         $article->video_link = $request->video_link;
         $article->slug = Article::generateUniqueSlug($request->title, $article->id);
+        // KEAMANAN: hanya admin yang boleh set status apa pun.
+        // Penulis hanya boleh draft (simpan) atau pending (ajukan review).
         if ($request->has('status')) {
-            $article->status = $request->status;
+            if ($user->role === 'admin') {
+                $article->status = $request->status;
+            } elseif (in_array($request->status, ['draft', 'pending'])) {
+                $article->status = $request->status;
+            }
         }
 
         $article->save();
@@ -262,6 +277,7 @@ class ArticleController extends Controller
             'rejection_reason' => 'nullable|string|max:1000',
         ]);
 
+        $oldStatus = $article->status;
         $article->status = $request->status;
         
         if ($request->status === 'rejected') {
@@ -455,7 +471,7 @@ class ArticleController extends Controller
         $article->is_manual_trending = !$article->is_manual_trending;
         $article->save();
         
-        Cache::forget('trending_weekly_real_7days_' . now()->format('Y-m-d'));
+        Cache::forget('trending_weekly_v2_' . now()->startOfWeek()->format('Y-m-d'));
 
         return response()->json([
             'message' => 'Trending manual updated',
@@ -463,29 +479,29 @@ class ArticleController extends Controller
         ]);
     }
 
+    /**
+     * PERBAIKAN TOTAL: Validasi Bot via Regex Keras & Mengirim JSON-LD Schema Struktural
+     */
     public function shareRender(Request $request, $slug)
     {
         $article = Article::where('slug', $slug)->with('user')->firstOrFail();
-        
-        $reactBaseUrl = 'https://sukamuda.co.id';
+
+        $reactBaseUrl = 'https://sukamuda.co.id'; 
         $articleUrl = rtrim($reactBaseUrl, '/') . '/article/' . $article->slug;
 
+        // 1. Ambil info pengakses via User-Agent header
         $userAgent = $request->header('User-Agent', '');
 
-        // POLA REGEX KETAT: Menyaring daftar bot crawler media sosial & search engine
+        // 2. VALIDASI BOT VIA REGEX KETAT: Menyaring bot pencari & crawler media sosial
         $botPattern = '/(facebookexternalhit|whatsapp|twitterbot|pinterest|googlebot|bingbot|yandexbot|yahoo|baiduspider|linkedinbot|embedly)/i';
 
-        // JIKA BUKAN BOT (MANUSIA ASLI): Langsung dialihkan ke URL Frontend React
+        // 3. JIKA MANUSIA ASLI: Langsung arahkan (redirect) ke portal utama React
         if (!preg_match($botPattern, $userAgent)) {
             return redirect()->away($articleUrl);
         }
 
-        // JIKA BOT CRAWLER: Sediakan pratinjau data meta dan JSON-LD
-        if ($article->image) {
-            $shareImage = $this->formatImageUrl($article->image);
-        } else {
-            $shareImage = 'https://sukamuda.co.id/images/default-placeholder.png';
-        }
+        // 4. JIKA BOT CRAWLER: Sediakan tautan gambar HTTPS absolut & Schema Data Terstruktur
+        $shareImage = $this->formatImageUrl($article->image);
 
         $cleanDescription = Str::limit(
             strip_tags($article->summary ?? $article->content),
@@ -493,7 +509,7 @@ class ArticleController extends Controller
             '...'
         );
 
-        // Skema Terstruktur JSON-LD standar Google News (Kompas / Detik)
+        // Schema Markup JSON-LD terstruktur standar Google News
         $schemaMarkup = [
             '@context' => 'https://schema.org',
             '@type' => 'NewsArticle',
@@ -503,9 +519,7 @@ class ArticleController extends Controller
             ],
             'headline' => $article->title,
             'description' => $cleanDescription,
-            'image' => [
-                $shareImage
-            ],
+            'image' => [$shareImage],
             'datePublished' => $article->created_at?->toIso8601String() ?? now()->toIso8601String(),
             'dateModified' => $article->updated_at?->toIso8601String() ?? now()->toIso8601String(),
             'author' => [
@@ -525,56 +539,72 @@ class ArticleController extends Controller
         return view('article_share', [
             'shareTitle'       => $article->title . ' - SUKAMUDA',
             'shareDescription' => $cleanDescription,
-            'shareUrl'         => url('/share/article/' . $article->slug),
+            'shareUrl'         => url('/api/share/article/' . $article->slug),
             'shareImage'       => $shareImage,
             'articleUrl'       => $articleUrl,
             'schemaMarkup'     => json_encode($schemaMarkup, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
         ]);
     }
 
+    // --- FUNGSI TRENDING BAWAAN CPANEL DIJAGA TETAP UTUH ---
     public function trending()
     {
-        $cacheKey = 'trending_weekly_real_7days_' . now()->format('Y-m-d');
-        
+        $cacheKey = 'trending_weekly_v2_' . now()->startOfWeek()->format('Y-m-d');
+
         $articles = Cache::remember($cacheKey, now()->addHour(), function () {
-            
-            // Filter kueri kunjungan HANYA dalam rentang 7 hari ke belakang
-            $oneWeekAgo = now()->subDays(7);
-            
-            $weeklyViews = ArticleView::where('created_at', '>=', $oneWeekAgo)
+            $startOfWeek = now()->startOfWeek();
+
+            $weeklyViewsSubquery = ArticleView::where('viewed_at', '>=', $startOfWeek)
                 ->select('article_id', DB::raw('COUNT(*) as total_views'))
-                ->groupBy('article_id')
-                ->pluck('total_views', 'article_id')
-                ->toArray();
+                ->groupBy('article_id');
 
-            $articles = Article::where('status', 'approved')
-                ->where(function ($query) {
-                    $query->whereNull('is_ever_trending')
-                          ->orWhere('is_ever_trending', 0)
-                          ->orWhere('is_manual_trending', 1);
+            return Article::query()
+                ->leftJoinSub($weeklyViewsSubquery, 'weekly_views', function ($join) {
+                    $join->on('articles.id', '=', 'weekly_views.article_id');
                 })
-                ->select([
-                    'id', 'user_id', 'title', 'slug', 'image', 
-                    'summary', 'category', 'created_at', 'views',
-                    'is_ever_trending', 'is_manual_trending'
+                ->leftJoin('users', 'articles.user_id', '=', 'users.id')
+                ->where('articles.status', 'approved')
+                ->orderByDesc(DB::raw('COALESCE(weekly_views.total_views, 0)'))
+                ->orderByDesc('articles.created_at')
+                ->limit(5)
+                ->get([
+                    'articles.id',
+                    'articles.user_id',
+                    'articles.title',
+                    'articles.slug',
+                    'articles.image',
+                    'articles.summary',
+                    'articles.category',
+                    'articles.created_at',
+                    'articles.views',
+                    DB::raw('COALESCE(weekly_views.total_views, 0) as weekly_views'),
+                    DB::raw('users.name as author_name'),
+                    DB::raw('users.avatar as author_avatar'),
                 ])
-                ->with('user:id,name')
-                ->get();
+                ->map(function ($article) {
+                    $article->image = $this->formatImageUrl($article->image);
 
-            $articles = $articles->map(function ($article) use ($weeklyViews) {
-                $article->weekly_views = $weeklyViews[$article->id] ?? 0;
-                return $article;
-            })->sortByDesc('weekly_views')->take(5);
-
-            foreach ($articles as $article) {
-                if (!$article->is_manual_trending) {
-                    DB::table('articles')->where('id', $article->id)->update(['is_ever_trending' => 1]);
-                    $article->is_ever_trending = 1;
-                }
-                $article->image = $this->formatImageUrl($article->image);
-            }
-            
-            return $articles->values();
+                    return [
+                        'id' => $article->id,
+                        'user_id' => $article->user_id,
+                        'title' => $article->title,
+                        'slug' => $article->slug,
+                        'image' => $article->image,
+                        'summary' => $article->summary,
+                        'category' => $article->category,
+                        'created_at' => $article->created_at,
+                        'views' => $article->views,
+                        'weekly_views' => (int) $article->weekly_views,
+                        'author_name' => $article->author_name,
+                        'author_avatar' => $article->author_avatar,
+                        'user' => $article->author_name ? [
+                            'id' => $article->user_id,
+                            'name' => $article->author_name,
+                            'avatar' => $article->author_avatar,
+                        ] : null,
+                    ];
+                })
+                ->values();
         });
 
         return response()->json($articles);

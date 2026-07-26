@@ -30,7 +30,7 @@ const ToastContainer = ({ toasts, onRemove }) => (
         className={`av-toast av-toast-${t.type} ${t.exiting ? 'av-toast-exit' : ''}`}
         role="alert"
       >
-        <span className="av-toast-icon">
+        <span className="av-toast-icon" aria-hidden="true">
           {t.type === 'success' && <FaCheckCircle />}
           {t.type === 'error' && <FaTimesCircle />}
           {t.type === 'warning' && <FaExclamationTriangle />}
@@ -42,7 +42,7 @@ const ToastContainer = ({ toasts, onRemove }) => (
           onClick={() => onRemove(t.id)}
           aria-label="Tutup"
         >
-          <FaTimes />
+          <FaTimes aria-hidden="true" />
         </button>
       </div>
     ))}
@@ -53,16 +53,33 @@ const ToastContainer = ({ toasts, onRemove }) => (
    Confirm Modal
    ============================== */
 const ConfirmModal = ({ open, title, message, onConfirm, onCancel, loading }) => {
+  // Tutup dengan tombol Escape
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !loading) onCancel();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, loading, onCancel]);
+
   if (!open) return null;
 
   return (
     <div className="av-modal-backdrop" onClick={onCancel}>
-      <div className="av-modal-box" onClick={(e) => e.stopPropagation()}>
-        <div className="av-modal-icon av-modal-danger">
+      <div
+        className="av-modal-box"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="av-modal-title"
+        aria-describedby="av-modal-message"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="av-modal-icon av-modal-danger" aria-hidden="true">
           <FaExclamationTriangle />
         </div>
-        <h3 className="av-modal-title">{title}</h3>
-        <p className="av-modal-message">{message}</p>
+        <h3 className="av-modal-title" id="av-modal-title">{title}</h3>
+        <p className="av-modal-message" id="av-modal-message">{message}</p>
         <div className="av-modal-actions">
           <button
             className="av-modal-btn av-modal-btn-cancel"
@@ -88,7 +105,7 @@ const ConfirmModal = ({ open, title, message, onConfirm, onCancel, loading }) =>
    Skeleton Loader
    ============================== */
 const SkeletonTable = () => (
-  <div className="reels-table-wrapper">
+  <div className="reels-table-wrapper" aria-busy="true" aria-hidden="true">
     <table className="reels-table">
       <thead>
         <tr>
@@ -155,14 +172,14 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   };
 
   return (
-    <div className="pagination">
+    <nav className="pagination" aria-label="Navigasi halaman">
       <button
         className="pagination-btn"
         disabled={currentPage === 1}
         onClick={() => onPageChange(currentPage - 1)}
         aria-label="Halaman sebelumnya"
       >
-        <FaChevronLeft style={{ fontSize: 11 }} />
+        <FaChevronLeft aria-hidden="true" style={{ fontSize: 11 }} />
       </button>
 
       {getPageNumbers().map((page, idx) =>
@@ -173,6 +190,8 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
             key={page}
             className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
             onClick={() => onPageChange(page)}
+            aria-label={`Halaman ${page}`}
+            aria-current={currentPage === page ? 'page' : undefined}
           >
             {page}
           </button>
@@ -185,9 +204,9 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
         onClick={() => onPageChange(currentPage + 1)}
         aria-label="Halaman berikutnya"
       >
-        <FaChevronRight style={{ fontSize: 11 }} />
+        <FaChevronRight aria-hidden="true" style={{ fontSize: 11 }} />
       </button>
-    </div>
+    </nav>
   );
 };
 
@@ -200,6 +219,7 @@ const AdminVideoReels = () => {
   const [editingReel, setEditingReel] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPlatform, setFilterPlatform] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -217,6 +237,15 @@ const AdminVideoReels = () => {
     onConfirm: null,
     loading: false
   });
+
+  // Debounce search: tunggu 400ms setelah user berhenti mengetik, lalu reset ke halaman 1
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   /* ---- Toast helpers ---- */
   const addToast = useCallback((message, type = 'info') => {
@@ -260,7 +289,7 @@ const AdminVideoReels = () => {
           page: currentPage,
           status: filterStatus !== 'all' ? filterStatus : null,
           platform: filterPlatform !== 'all' ? filterPlatform : null,
-          search: searchQuery || null
+          search: debouncedSearch || null
         },
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -273,7 +302,7 @@ const AdminVideoReels = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filterStatus, filterPlatform, searchQuery, addToast]);
+  }, [currentPage, filterStatus, filterPlatform, debouncedSearch, addToast]);
 
   useEffect(() => {
     fetchReels();
@@ -383,7 +412,7 @@ const AdminVideoReels = () => {
     );
   };
 
-  /* ---- Render ---- */
+    /* ---- Render ---- */
   return (
     <>
       {/* Toast Container */}
@@ -412,7 +441,7 @@ const AdminVideoReels = () => {
                 setShowForm(true);
               }}
             >
-              <FaVideo />
+              <FaVideo aria-hidden="true" />
               Tambah Video Reel
             </button>
           )}
@@ -432,7 +461,7 @@ const AdminVideoReels = () => {
                 setEditingReel(null);
               }}
             >
-              <FaTimes style={{ fontSize: 11 }} />
+              <FaTimes aria-hidden="true" style={{ fontSize: 11 }} />
               Tutup Form
             </button>
           </div>
@@ -444,6 +473,7 @@ const AdminVideoReels = () => {
             <input
               type="text"
               placeholder="Cari judul atau deskripsi..."
+              aria-label="Cari judul atau deskripsi video reel"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -456,6 +486,7 @@ const AdminVideoReels = () => {
                 setCurrentPage(1);
               }}
               className="filter-select"
+              aria-label="Filter status"
             >
               <option value="all">Semua Status</option>
               <option value="active">Active</option>
@@ -470,6 +501,7 @@ const AdminVideoReels = () => {
                 setCurrentPage(1);
               }}
               className="filter-select"
+              aria-label="Filter platform"
             >
               <option value="all">Semua Platform</option>
               <option value="instagram">Instagram</option>
@@ -485,8 +517,8 @@ const AdminVideoReels = () => {
 
         {/* Empty State */}
         {!loading && reels.length === 0 && (
-          <div className="empty-state">
-            <div className="empty-state-icon">
+          <div className="empty-state" role="status">
+            <div className="empty-state-icon" aria-hidden="true">
               <FaVideo />
             </div>
             <p>Belum ada video reel</p>
@@ -522,11 +554,12 @@ const AdminVideoReels = () => {
                         {reel.thumbnail_url ? (
                           <img
                             src={reel.thumbnail_url}
-                            alt={reel.title}
+                            alt={reel.title || 'Thumbnail video'}
                             loading="lazy"
+                            decoding="async"
                           />
                         ) : (
-                          <div className="placeholder-thumb">
+                          <div className="placeholder-thumb" aria-hidden="true">
                             <FaImage />
                           </div>
                         )}
@@ -565,8 +598,9 @@ const AdminVideoReels = () => {
                           onClick={() => handleEdit(reel)}
                           disabled={actionLoading === reel.id}
                           title="Edit"
+                          aria-label={`Edit ${reel.title || 'video reel'}`}
                         >
-                          <FaEdit />
+                          <FaEdit aria-hidden="true" />
                         </button>
 
                         {reel.status === 'draft' && (
@@ -575,8 +609,9 @@ const AdminVideoReels = () => {
                             onClick={() => handleApprove(reel.id)}
                             disabled={actionLoading === reel.id}
                             title="Setujui"
+                            aria-label={`Setujui ${reel.title || 'video reel'}`}
                           >
-                            <FaCheck />
+                            <FaCheck aria-hidden="true" />
                           </button>
                         )}
 
@@ -586,8 +621,9 @@ const AdminVideoReels = () => {
                             onClick={() => handleReject(reel.id)}
                             disabled={actionLoading === reel.id}
                             title="Tolak"
+                            aria-label={`Tolak ${reel.title || 'video reel'}`}
                           >
-                            <FaTimes />
+                            <FaTimes aria-hidden="true" />
                           </button>
                         )}
 
@@ -596,8 +632,9 @@ const AdminVideoReels = () => {
                           onClick={() => handleDelete(reel.id, reel.title)}
                           disabled={actionLoading === reel.id}
                           title="Hapus"
+                          aria-label={`Hapus ${reel.title || 'video reel'}`}
                         >
-                          <FaTrash />
+                          <FaTrash aria-hidden="true" />
                         </button>
                       </div>
                     </td>

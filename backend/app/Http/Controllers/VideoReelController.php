@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\VideoReel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage; // Tambahan wajib untuk menghapus gambar lama
+use Illuminate\Support\Facades\Storage;
 
 class VideoReelController extends Controller
 {
@@ -44,7 +43,7 @@ class VideoReelController extends Controller
     }
 
     /**
-     * Get limited reels for homepage (8-12 random active reels)
+     * Get limited reels for homepage
      */
     public function getHomepageReels()
     {
@@ -58,13 +57,10 @@ class VideoReelController extends Controller
     }
 
     /**
-     * Get all reels (admin only)
+     * Get all reels (admin)
      */
     public function index(Request $request)
     {
-        // Jika kamu butuh cek admin, gunakan Gate seperti ini:
-        // Gate::authorize('isAdmin');
-
         $query = VideoReel::with('user');
 
         if ($request->has('search') && $request->search != '') {
@@ -103,17 +99,16 @@ class VideoReelController extends Controller
     }
 
     /**
-     * Store video reel (admin/creator)
+     * Store video reel
      */
     public function store(Request $request)
     {
-        // 1. UBAH VALIDASI: thumbnail sekarang adalah file image, bukan string url
         $request->validate([
             'title'        => 'required|string|max:255',
             'description'  => 'nullable|string|max:500',
             'video_url'    => 'required|string|url',
             'platform'     => 'nullable|string|in:instagram,tiktok,facebook,youtube,auto',
-            'thumbnail'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // <--- INI PENTING
+            'thumbnail'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         $user = Auth::guard('sanctum')->user();
@@ -121,45 +116,48 @@ class VideoReelController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        // 2. Ambil semua data request KECUALI file gambar
         $videoReel = new VideoReel($request->except('thumbnail'));
         
-        // Auto-detect platform jika tidak ditentukan atau 'auto'
         if (empty($request->platform) || $request->platform === 'auto') {
             $videoReel->platform = $videoReel->detectPlatform($request->video_url);
         }
 
-        // 3. PROSES UPLOAD GAMBAR BARU
         if ($request->hasFile('thumbnail')) {
             $file = $request->file('thumbnail');
-            // Simpan gambar ke storage/app/public/reels
             $path = $file->store('reels', 'public');
-            // Simpan URL lengkapnya ke database
-            $videoReel->thumbnail_url = env('APP_URL') . '/storage/' . $path;
+            $videoReel->thumbnail_url = config('app.url') . '/storage/' . $path;
         }
         
         $videoReel->user_id = $user->id;
-        $videoReel->status = Auth::guard('sanctum')->user()->role === 'admin' ? 'active' : 'draft';
+        $videoReel->status = $user->role === 'admin' ? 'active' : 'draft';
         $videoReel->save();
 
         return response()->json($videoReel, 201);
     }
 
     /**
-     * Update video reel (admin/creator)
+     * Update video reel
      */
-    public function update(Request $request, VideoReel $reel)
+    public function update(Request $request, $id) // <-- Diubah menggunakan $id
     {
-        Gate::authorize('update', $reel);
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
 
-        // 1. UBAH VALIDASI: thumbnail sekarang adalah file image
+        $reel = VideoReel::findOrFail($id); // <-- Pencarian manual
+
+        if ($user->role !== 'admin' && $user->id !== $reel->user_id) {
+            return response()->json(['error' => 'Forbidden. Kamu tidak punya izin mengedit video ini.'], 403);
+        }
+
         $request->validate([
             'title'        => 'sometimes|string|max:255',
             'description'  => 'nullable|string|max:500',
             'video_url'    => 'sometimes|string|url',
             'platform'     => 'nullable|string|in:instagram,tiktok,facebook,youtube,auto',
             'status'       => 'sometimes|string|in:active,inactive,draft',
-            'thumbnail'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // <--- INI PENTING
+            'thumbnail'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($request->has('video_url') && $request->video_url !== $reel->video_url) {
@@ -168,33 +166,35 @@ class VideoReelController extends Controller
             }
         }
 
-        // 2. PROSES UPLOAD GAMBAR BARU SAAT EDIT
         if ($request->hasFile('thumbnail')) {
-            // Hapus gambar lama jika ada (Biar harddisk nggak penuh)
             if ($reel->thumbnail_url) {
-                // Ekstrak nama path-nya saja (misal: reels/namafile.jpg)
-                $oldPath = str_replace(env('APP_URL') . '/storage/', '', $reel->thumbnail_url);
+                $oldPath = str_replace(config('app.url') . '/storage/', '', $reel->thumbnail_url);
                 if (Storage::disk('public')->exists($oldPath)) {
                     Storage::disk('public')->delete($oldPath);
                 }
             }
 
-            // Simpan gambar baru
             $file = $request->file('thumbnail');
             $path = $file->store('reels', 'public');
-            $reel->thumbnail_url = env('APP_URL') . '/storage/' . $path;
+            $reel->thumbnail_url = config('app.url') . '/storage/' . $path;
         }
 
-        // Update data lainnya KECUALI file thumbnail
-        $reel->update($request->except('thumbnail'));
+        $data = $request->except('thumbnail');
+        // KEAMANAN: views & user_id tidak boleh diubah lewat request
+        unset($data['views'], $data['user_id']);
+        // KEAMANAN: hanya admin yang boleh mengubah status reel (anti bypass moderasi)
+        if ($user->role !== 'admin') {
+            unset($data['status']);
+        }
+        $reel->update($data);
         
         return response()->json($reel);
     }
 
     /**
-     * Delete video reel (admin/creator)
+     * Delete video reel (permanen)
      */
-    public function destroy(VideoReel $reel)
+    public function destroy($id) // <-- Diubah menggunakan $id
     {
         $user = Auth::guard('sanctum')->user();
 
@@ -202,11 +202,14 @@ class VideoReelController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        Gate::forUser($user)->authorize('delete', $reel); 
+        $reel = VideoReel::findOrFail($id); // <-- Pencarian manual
 
-        // Hapus juga file fisiknya kalau mau bersih
+        if ($user->role !== 'admin' && $user->id !== $reel->user_id) {
+            return response()->json(['error' => 'Forbidden. Kamu tidak punya izin menghapus video ini.'], 403);
+        }
+
         if ($reel->thumbnail_url) {
-            $oldPath = str_replace(env('APP_URL') . '/storage/', '', $reel->thumbnail_url);
+            $oldPath = str_replace(config('app.url') . '/storage/', '', $reel->thumbnail_url);
             if (Storage::disk('public')->exists($oldPath)) {
                 Storage::disk('public')->delete($oldPath);
             }
@@ -218,32 +221,36 @@ class VideoReelController extends Controller
     }
 
     /**
+     * Approve reel (admin) - dipanggil PATCH /video-reels/{reel}/approve
+     */
+    public function approve($id)
+    {
+        $reel = VideoReel::findOrFail($id);
+        $reel->status = 'active';
+        $reel->save();
+
+        return response()->json(['message' => 'Video reel disetujui', 'data' => $reel->load('user')]);
+    }
+
+    /**
+     * Reject reel (admin) - dipanggil PATCH /video-reels/{reel}/reject
+     */
+    public function reject($id)
+    {
+        $reel = VideoReel::findOrFail($id);
+        $reel->status = 'inactive';
+        $reel->save();
+
+        return response()->json(['message' => 'Video reel ditolak', 'data' => $reel->load('user')]);
+    }
+
+    /**
      * Get single reel
      */
-    public function show(VideoReel $reel)
+    public function show($id) // <-- Diubah menggunakan $id
     {
+        $reel = VideoReel::findOrFail($id); // <-- Pencarian manual
+        
         return response()->json($reel->load('user'));
-    }
-
-    /**
-     * Approve reel (admin only)
-     */
-    public function approve(Request $request, VideoReel $reel)
-    {
-        Gate::authorize('isAdmin');
-        
-        $reel->update(['status' => 'active']);
-        return response()->json(['message' => 'Video reel disetujui', 'reel' => $reel]);
-    }
-
-    /**
-     * Reject reel (admin only)
-     */
-    public function reject(Request $request, VideoReel $reel)
-    {
-        Gate::authorize('isAdmin');
-        
-        $reel->update(['status' => 'inactive']);
-        return response()->json(['message' => 'Video reel ditolak', 'reel' => $reel]);
     }
 }

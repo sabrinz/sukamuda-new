@@ -1,21 +1,35 @@
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+/* ===== Reset ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-body{
-  overflow-x:hidden;
+html {
+  overflow-x: hidden;
 }
 
+body {
+  overflow-x: hidden;
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  text-align: left;
+}
+
+/* ===== Base theme =====
+   FIX penting:
+   - Jangan set default color jadi putih (rgba(255,255,255,0.87))
+   - Kalau belum siap dark mode, pakai light saja agar kontras stabil
+*/
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: white;
+  color-scheme: light;      /* sebelumnya: light dark */
+  color: #213547;           /* sebelumnya: putih */
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -23,6 +37,7 @@ body{
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ===== Links ===== */
 a {
   font-weight: 500;
   color: #646cff;
@@ -32,18 +47,13 @@ a:hover {
   color: #535bf2;
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  text-align: left;
-}
-
+/* ===== Headings ===== */
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
 
+/* ===== Buttons ===== */
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -52,6 +62,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
+  color: #ffffff; /* FIX kontras: teks tombol default harus terang di bg gelap */
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -63,6 +74,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* (opsional) kalau kamu tetap mau prefer light tweaks */
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -73,10 +85,37 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+    color: #213547; /* FIX kontras: teks gelap di bg terang */
   }
 }
 
-/* Perbaikan SEO: Body content rata kiri */
+/* =========================================================
+   FIX untuk App.jsx (Navbar - Main - Footer)
+   ========================================================= */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  min-height: 80vh; /* bantu cegah footer “loncat” saat halaman masih loading */
+}
+
+/* Fallback Suspense (App.jsx) - cegah CLS saat pindah halaman */
+.loading-screen {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #595959;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* =========================================================
+   SEO: Body content rata kiri
+   ========================================================= */
 .article-content,
 .article-body,
 .post-content,
@@ -87,7 +126,9 @@ button:focus-visible {
   text-align: left !important;
 }
 
-/* Perbaikan SEO: Image detail article minimal 1200x600 — HANYA berlaku di halaman detail */
+/* =========================================================
+   SEO: Image detail article minimal 1200x600 — hanya halaman detail
+   ========================================================= */
 .article-container .article-image-wrapper,
 .article-container .featured-image-wrapper {
   width: 100%;

@@ -35,7 +35,10 @@
 }
 
 .logo-circle img {
-  width: 120%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .search-bar {
@@ -64,6 +67,11 @@
   font-size: 14px;
   color: #333;
   background: transparent;
+}
+
+.search-icon {
+  color: #000 !important;
+  flex-shrink: 0;
 }
 
 .auth-buttons {
@@ -882,7 +890,7 @@
   .search-bar { width: 100%; padding: 7px 12px; }
   .search-bar:focus-within { width: 100%; }
   .search-bar input { font-size: 13px; padding-left: 10px; }
-  .search-icon { font-size: 13px; }
+  .search-icon { font-size: 13px; color: black; }
 
   .auth-buttons { display: flex; gap: 6px; }
   .btn-daftar { padding: 7px 16px; font-size: 12px; }
@@ -925,7 +933,7 @@
   .logo-circle { width: 42px; height: 42px; }
   .search-bar { padding: 6px 10px; }
   .search-bar input { font-size: 13px; padding-left: 8px; }
-  .search-icon { font-size: 12px; }
+  .search-icon { font-size: 12px; color: black; }
   .auth-buttons { gap: 5px; }
   .btn-daftar { padding: 6px 14px; font-size: 11px; }
   .btn-masuk { padding: 6px 14px; font-size: 11px; }
@@ -957,7 +965,7 @@
   .logo-circle { width: 38px; height: 38px; }
   .search-bar { padding: 5px 8px; }
   .search-bar input { font-size: 12px; padding-left: 8px; }
-  .search-icon { font-size: 11px; }
+  .search-icon { font-size: 11px; color: black; }
   .auth-buttons { gap: 4px; }
   .btn-daftar { padding: 6px 12px; font-size: 11px; }
   .btn-masuk { padding: 6px 12px; font-size: 11px; }
@@ -989,7 +997,7 @@
   .logo-circle { width: 34px; height: 34px; }
   .search-bar { padding: 5px 8px; }
   .search-bar input { font-size: 11px; padding-left: 6px; }
-  .search-icon { font-size: 10px; }
+  .search-icon { font-size: 10px; color: black; }
   .auth-buttons { gap: 4px; }
   .btn-daftar { padding: 5px 10px; font-size: 10px; }
   .btn-masuk { padding: 5px 10px; font-size: 10px; }
@@ -1022,7 +1030,7 @@
   .logo-circle { width: 30px; height: 30px; }
   .search-bar { padding: 4px 6px; }
   .search-bar input { font-size: 10px; padding-left: 5px; }
-  .search-icon { font-size: 9px; }
+  .search-icon { font-size: 9px; color: black; }
   .auth-buttons { gap: 3px; }
   .btn-daftar { padding: 5px 8px; font-size: 9px; }
   .btn-masuk { padding: 5px 8px; font-size: 9px; }
@@ -1048,4 +1056,403 @@
   .menu-item-icon { width: 26px; font-size: 13px; }
   .logout-icon-glow { width: 24px; height: 24px; font-size: 12px; }
   .premium-logout-btn { font-size: 11px; padding: 9px 8px; gap: 6px; border-radius: 10px; }
+}
+
+/* ===================================================================== */
+/* ===== FIX A11Y: RESET BUTTON + FOCUS-VISIBLE (tambahan, aman) ===== */
+/* ===================================================================== */
+
+/* Reset agar button baru tampil sama persis seperti div/span sebelumnya */
+button.logo-circle {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+button.search-icon {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: inherit;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
+}
+
+/* Outline hanya muncul saat navigasi keyboard (Tab), tidak saat klik mouse */
+button.logo-circle:focus-visible,
+button.search-icon:focus-visible,
+.icon-btn:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+.btn-masuk:focus-visible,
+.btn-daftar:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+.dropdown-menu li:focus-visible,
+.mobile-dropdown-fixed li:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: -2px;
+}
+
+.sidebar-menu-item:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: -2px;
+}
+
+.sidebar-close-btn:focus-visible {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.premium-logout-btn:focus-visible {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+}
+
+/* Reduced motion: matikan animasi navbar & sidebar saja (tidak global) */
+@media (prefers-reduced-motion: reduce) {
+  .navbar-container *,
+  .sidebar-overlay,
+  .sidebar-container,
+  .sidebar-container * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .x-line-1 { transform: translate(-50%, -50%) rotate(45deg) scaleX(1); opacity: 1; }
+  .x-line-2 { transform: translate(-50%, -50%) rotate(-45deg) scaleX(1); opacity: 1; }
+}
+
+/* ===== Semantic navigation buttons (li tetap list item) ===== */
+.menu-header,
+.nav-item-button,
+.dropdown-menu button,
+.mobile-dropdown-fixed button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.menu-header,
+.nav-item-button {
+  padding: 0;
+  white-space: nowrap;
+}
+
+.dropdown-menu button,
+.mobile-dropdown-fixed button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+}
+
+.sidebar-menu-list > li {
+  margin: 0;
+  padding: 0;
+}
+
+button.sidebar-menu-item {
+  width: 100%;
+  border: 0;
+  background-color: transparent;
+  font-family: inherit;
+  text-align: left;
+}
+
+.menu-header:focus-visible,
+.nav-item-button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.dropdown-menu button:focus-visible,
+.mobile-dropdown-fixed button:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: -2px;
+}
+
+
+/* ===================================================================== */
+/* ===== PREMIUM VISUAL UPGRADE (murni tampilan, tanpa ubah logic) ===== */
+/* Ditambahkan di akhir file: hanya override warna/bayangan/animasi.     */
+/* Semua ukuran, breakpoint, dan struktur layout tetap sama persis.      */
+/* ===================================================================== */
+
+/* ---------- Navbar atas: putih bersih + garis aksen halus ---------- */
+.navbar-container {
+  border-bottom: none;
+  background-color: rgba(255, 255, 255, 0.96);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  backdrop-filter: saturate(180%) blur(14px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 8px 24px -18px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- Logo: lingkaran dengan ring lembut saat hover ---------- */
+button.logo-circle {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), filter 0.35s ease;
+}
+
+button.logo-circle:hover {
+  transform: translateY(-50%) scale(1.05);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.18));
+}
+
+/* Di mobile logo-circle position: static + transform: none, jadi hover-nya dipisah */
+@media (max-width: 768px) {
+  button.logo-circle:hover {
+    transform: scale(1.05);
+  }
+}
+
+/* ---------- Search bar: pill lembut + focus glow elegan ---------- */
+.search-bar {
+  border: 1px solid #e7e7e7;
+  background-color: #f5f6f7;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.3s ease, background-color 0.3s ease,
+    box-shadow 0.3s ease, width 0.3s ease, transform 0.3s ease;
+}
+
+.search-bar:hover {
+  border-color: #cfcfcf;
+  background-color: #fbfbfb;
+}
+
+.search-bar:focus-within {
+  background-color: #ffffff;
+  border-color: #111;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08), 0 10px 24px -12px rgba(0, 0, 0, 0.25);
+}
+
+.search-bar input::placeholder {
+  color: #9aa0a6;
+  transition: color 0.3s ease;
+}
+
+.search-bar:focus-within input::placeholder {
+  color: #c3c7cc;
+}
+
+button.search-icon {
+  transition: transform 0.25s ease;
+}
+
+button.search-icon:hover {
+  transform: scale(1.12);
+}
+
+/* ---------- Tombol Daftar / Masuk: gradien + efek kilau ---------- */
+.btn-daftar {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #111 0%, #2b2b2b 60%, #111 100%);
+  box-shadow: 0 2px 10px -4px rgba(0, 0, 0, 0.4);
+}
+
+.btn-daftar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.btn-daftar:hover::after {
+  left: 130%;
+}
+
+.btn-daftar:hover {
+  background: linear-gradient(135deg, #000 0%, #333 60%, #000 100%);
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.45);
+}
+
+.btn-masuk {
+  border-color: #dcdcdc;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.btn-masuk:hover {
+  border-color: #111;
+  background: #fff;
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- Ikon login: lift halus + badge notif berdenyut ---------- */
+.icon,
+.icon-btn {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+}
+
+.icon:hover,
+.icon-btn:hover {
+  transform: translateY(-2px) scale(1.08);
+}
+
+.notif-badge {
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(239, 68, 68, 0.5);
+  animation: navBadgePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes navBadgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+/* ---------- Navbar bawah: gradien gelap premium + aksen atas ---------- */
+.navbar-bottom {
+  background: linear-gradient(180deg, #171717 0%, #0c0c0c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Item menu: underline animasi elegan ---------- */
+.nav-item {
+  transition: color 0.25s ease, opacity 0.25s ease;
+}
+
+.nav-item::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffffff, #9ca3af);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.nav-item:hover::after,
+.nav-item:focus-within::after {
+  transform: scaleX(1);
+}
+
+.nav-item:hover {
+  color: #fff;
+}
+
+/* ---------- Dropdown desktop: kaca gelap + animasi masuk ---------- */
+.dropdown-menu {
+  background-color: rgba(20, 20, 20, 0.92);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+  animation: navDropIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  padding: 8px 0;
+}
+
+@keyframes navDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-menu li {
+  position: relative;
+  color: #d1d5db;
+  transition: background-color 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
+}
+
+.dropdown-menu li::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 60%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff, #9ca3af);
+  transition: transform 0.2s ease;
+}
+
+.dropdown-menu li:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding-left: 26px;
+}
+
+.dropdown-menu li:hover::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+/* ---------- Dropdown mobile (fixed): kartu kaca gelap ---------- */
+.mobile-dropdown-fixed {
+  background-color: rgba(20, 20, 20, 0.94);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.55);
+  animation: navDropIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Aksesibilitas: hormati pengguna yang mengurangi animasi ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .notif-badge,
+  .dropdown-menu,
+  .mobile-dropdown-fixed {
+    animation: none !important;
+  }
+
+  .nav-item::after,
+  .dropdown-menu li,
+  .dropdown-menu li::before,
+  .btn-daftar::after,
+  button.logo-circle,
+  button.search-icon,
+  .icon,
+  .icon-btn,
+  .search-bar {
+    transition: none !important;
+  }
 }

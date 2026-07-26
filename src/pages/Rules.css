@@ -344,3 +344,10 @@
   .ru-nav,.ru-hero,.ru-section,.ru-divider{opacity:1;transform:none}
   .ru-on .ru-item{opacity:1;transform:none}
 }
+
+/* ===== A11Y: indikator fokus keyboard ===== */
+.ru-root button:focus-visible,
+.ru-root a:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 3px;
+}

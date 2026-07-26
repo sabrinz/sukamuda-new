@@ -21,19 +21,21 @@ function PublicProfile() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        let active = true;
         const fetchAuthor = async () => {
             setLoading(true);
             setError(null);
             try {
                 const response = await axios.get(`/api/users/${userId}`);
-                setAuthor(response.data.data);
+                if (active) setAuthor(response.data.data);
             } catch (err) {
-                setError(err.response?.data?.message || 'Gagal memuat profil penulis.');
+                if (active) setError(err.response?.data?.message || 'Gagal memuat profil penulis.');
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
         if (userId) fetchAuthor();
+        return () => { active = false; };
     }, [userId]);
 
     if (loading) return <PublicSkeleton />;
@@ -43,25 +45,26 @@ function PublicProfile() {
             <div className="pub-page">
                 <Helmet>
                     <title>Penulis Tidak Ditemukan - Sukamuda</title>
-                    <link rel="canonical" href={`${baseUrl}/user/${userId}`} />
+                    <meta name="robots" content="noindex" />
+                    <link rel="canonical" href={baseUrl + "/user/" + userId} />
                 </Helmet>
                 <div className="pub-topbar">
                     <div className="pub-topbar-inner">
                         <Link to="/" className="pub-back">
-                            <IoArrowBack size={15} />
+                            <IoArrowBack size={15} aria-hidden="true" />
                             <span>Beranda</span>
                         </Link>
                     </div>
                 </div>
                 <div className="pub-error-wrap">
                     <div className="pub-error">
-                        <div className="pub-error-ring">
+                        <div className="pub-error-ring" aria-hidden="true">
                             <span>!</span>
                         </div>
                         <h3>Profil Tidak Ditemukan</h3>
-                        <p>{error}</p>
+                        <p role="alert">{error}</p>
                         <Link to="/" className="pub-error-btn">
-                            <IoArrowBack size={13} />
+                            <IoArrowBack size={13} aria-hidden="true" />
                             Kembali ke Beranda
                         </Link>
                     </div>
@@ -73,9 +76,9 @@ function PublicProfile() {
     const initials = author.name?.charAt(0).toUpperCase() || 'P';
     const articles = author.articles || [];
     const articleCount = articles.length;
-    const canonicalUrl = `${baseUrl}/user/${userId}`;
+    const canonicalUrl = baseUrl + "/user/" + userId;
     const authorAvatar = author.avatar
-        ? (author.avatar.startsWith('http') ? author.avatar : `${baseUrl}/storage/${author.avatar}`)
+        ? (author.avatar.startsWith('http') ? author.avatar : baseUrl + "/storage/" + author.avatar)
         : null;
 
     const schemaProfile = {
@@ -126,7 +129,7 @@ function PublicProfile() {
                 <meta name="description" content={author.bio || `Profil ${author.name} di Sukamuda. ${articleCount} artikel dipublikasikan.`} />
                 <meta property="og:title" content={`${author.name} - Sukamuda`} />
                 <meta property="og:description" content={author.bio || `Profil ${author.name} di Sukamuda.`} />
-                <meta property="og:image" content={authorAvatar || `${baseUrl}/logo.png`} />
+                <meta property="og:image" content={authorAvatar || baseUrl + "/logo.png"} />
                 <meta property="og:url" content={canonicalUrl} />
                 <meta property="og:type" content="profile" />
                 <script type="application/ld+json">
@@ -141,7 +144,7 @@ function PublicProfile() {
             <div className="pub-topbar">
                 <div className="pub-topbar-inner">
                     <Link to="/" className="pub-back">
-                        <IoArrowBack size={15} />
+                        <IoArrowBack size={15} aria-hidden="true" />
                         <span>Beranda</span>
                     </Link>
                 </div>
@@ -153,9 +156,11 @@ function PublicProfile() {
                     <div
                         className="pub-cover"
                         style={author.coverPhoto ? { backgroundImage: `url(${author.coverPhoto})` } : undefined}
+                        role={author.coverPhoto ? 'img' : undefined}
+                        aria-label={author.coverPhoto ? 'Foto sampul profil' : undefined}
                     >
-                        <div className="pub-cover-grad" />
-                        <div className="pub-cover-noise" />
+                        <div className="pub-cover-grad" aria-hidden="true" />
+                        <div className="pub-cover-noise" aria-hidden="true" />
                     </div>
                 </div>
             </header>
@@ -166,8 +171,13 @@ function PublicProfile() {
 
                     <div className="pub-avatar-area">
                         <div className="pub-avatar-ring">
-                            <div className="pub-avatar" style={author.avatar ? { backgroundImage: `url(${author.avatar})` } : undefined}>
-                                {!author.avatar && <span className="pub-avatar-letter">{initials}</span>}
+                            <div
+                                className="pub-avatar"
+                                style={author.avatar ? { backgroundImage: `url(${author.avatar})` } : undefined}
+                                role={author.avatar ? 'img' : undefined}
+                                aria-label={author.avatar ? `Foto profil ${author.name}` : undefined}
+                            >
+                                {!author.avatar && <span className="pub-avatar-letter" aria-hidden="true">{initials}</span>}
                             </div>
                         </div>
                     </div>
@@ -178,7 +188,7 @@ function PublicProfile() {
                         <div className="pub-meta-line">
                             {author.profession && (
                                 <span className="pub-role-chip">
-                                    <IoSparkles size={11} />
+                                    <IoSparkles size={11} aria-hidden="true" />
                                     {author.profession}
                                 </span>
                             )}
@@ -198,7 +208,7 @@ function PublicProfile() {
                                 </div>
                             )}
                             <div className="pub-count-badge">
-                                <IoNewspaperOutline size={14} />
+                                <IoNewspaperOutline size={14} aria-hidden="true" />
                                 <strong>{articleCount}</strong>
                                 <span>Artikel</span>
                             </div>
@@ -211,7 +221,7 @@ function PublicProfile() {
             <main className="pub-main">
                 <div className="pub-section-head">
                     <div className="pub-section-title">
-                        <IoGridOutline size={16} />
+                        <IoGridOutline size={16} aria-hidden="true" />
                         <h2>Semua Artikel</h2>
                     </div>
                     <span className="pub-section-count">{articleCount} dipublikasikan</span>
@@ -224,7 +234,7 @@ function PublicProfile() {
                                 ? new Date(a.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                                 : '';
                             const imgSrc = a.image
-                                ? (a.image.startsWith('http') ? a.image : `${baseUrl}/storage/${a.image}`)
+                                ? (a.image.startsWith('http') ? a.image : baseUrl + "/storage/" + a.image)
                                 : null;
                             return (
                                 <Link
@@ -235,14 +245,14 @@ function PublicProfile() {
                                 >
                                     <div className="pub-card-visual">
                                         {imgSrc ? (
-                                            <img src={imgSrc} alt={a.title} loading="lazy" />
+                                            <img src={imgSrc} alt={a.title || 'Thumbnail artikel'} loading="lazy" decoding="async" width={400} height={225} />
                                         ) : (
-                                            <div className="pub-card-visual-ph">
+                                            <div className="pub-card-visual-ph" aria-hidden="true">
                                                 <IoDocumentTextOutline size={24} />
                                             </div>
                                         )}
                                         {a.category && <span className="pub-card-tag">{a.category}</span>}
-                                        <div className="pub-card-visual-shade" />
+                                        <div className="pub-card-visual-shade" aria-hidden="true" />
                                     </div>
                                     <div className="pub-card-body">
                                         <p className="pub-card-date">{date}</p>
@@ -250,7 +260,7 @@ function PublicProfile() {
                                         {a.summary && <p className="pub-card-excerpt">{a.summary}</p>}
                                         <div className="pub-card-read">
                                             Baca Selengkapnya
-                                            <IoArrowForward size={12} />
+                                            <IoArrowForward size={12} aria-hidden="true" />
                                         </div>
                                     </div>
                                 </Link>
@@ -259,7 +269,7 @@ function PublicProfile() {
                     </div>
                 ) : (
                     <div className="pub-empty">
-                        <div className="pub-empty-visual">
+                        <div className="pub-empty-visual" aria-hidden="true">
                             <IoDocumentTextOutline size={28} />
                         </div>
                         <p className="pub-empty-title">Belum Ada Artikel</p>
@@ -273,16 +283,16 @@ function PublicProfile() {
 
 /* ═══ SKELETON ═══ */
 const PublicSkeleton = () => (
-    <div className="pub-page">
-        <div className="pub-topbar">
+    <div className="pub-page" aria-busy="true" aria-label="Memuat profil penulis">
+        <div className="pub-topbar" aria-hidden="true">
             <div className="pub-topbar-inner">
                 <div className="pub-skel w80 h7" />
             </div>
         </div>
-        <header className="pub-hero">
+        <header className="pub-hero" aria-hidden="true">
             <div className="pub-cover-wrap"><div className="pub-cover pub-skel-bg"><div className="pub-cover-grad" /><div className="pub-cover-noise" /></div></div>
         </header>
-        <section className="pub-info">
+        <section className="pub-info" aria-hidden="true">
             <div className="pub-info-inner">
                 <div className="pub-avatar-area">
                     <div className="pub-skel-circle-wrap">
@@ -297,7 +307,7 @@ const PublicSkeleton = () => (
                 </div>
             </div>
         </section>
-        <main className="pub-main">
+        <main className="pub-main" aria-hidden="true">
             <div className="pub-skel w25 h6 mb16" />
             <div className="pub-grid">
                 {[1, 2, 3, 4].map((i) => (

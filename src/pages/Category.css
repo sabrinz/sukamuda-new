@@ -16,6 +16,7 @@
   margin-bottom: 24px;
 }
 
+.category-header h1,
 .category-header h2 {
   margin: 0;
 }
@@ -172,4 +173,37 @@
     grid-template-columns: 1fr;
     gap: 16px;
   }
+}
+
+/* Aksesibilitas: outline saat navigasi keyboard */
+.article-card:focus-visible {
+  outline: 2px solid #d83a34;
+  outline-offset: 2px;
+}
+
+/* Reduced motion (discope, tidak global) */
+@media (prefers-reduced-motion: reduce) {
+  .article-card,
+  .article-image-wrapper img {
+    transition: none;
+  }
+  .article-card:hover {
+    transform: none;
+  }
+  .article-card:hover .article-image-wrapper img {
+    transform: none;
+  }
+}
+
+/* Judul bagian tetap tersedia untuk screen reader tanpa mengubah tampilan. */
+.category-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

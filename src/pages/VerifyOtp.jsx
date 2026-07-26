@@ -10,11 +10,12 @@ const VerifyOtp = () => {
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(60);
   const [mounted, setMounted] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' }); // 'error' | 'info'
   const { login } = useAuth();
   const inputRefs = useRef([]);
-
   const navigate = useNavigate();
   const location = useLocation();
+
   const userData = location.state;
 
   useEffect(() => {
@@ -24,12 +25,12 @@ const VerifyOtp = () => {
 
   useEffect(() => {
     if (!userData) {
-      navigate('/register');
+      navigate('/register', { replace: true });
       return;
     }
     if (timer > 0) {
-      const interval = setInterval(() => setTimer(timer - 1), 1000);
-      return () => clearInterval(interval);
+      const t = setTimeout(() => setTimer((prev) => prev - 1), 1000);
+      return () => clearTimeout(t);
     }
   }, [userData, navigate, timer]);
 
@@ -52,48 +53,71 @@ const VerifyOtp = () => {
     }
   };
 
+  /* UX: support paste kode OTP dari email */
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData.getData('text') || '')
+      .replace(/\D/g, '')
+      .slice(0, 6);
+    if (!pasted) return;
+
+    const newOtp = new Array(6).fill("");
+    pasted.split('').forEach((ch, i) => { newOtp[i] = ch; });
+    setOtp(newOtp);
+
+    const nextIndex = Math.min(pasted.length, 5);
+    inputRefs.current[nextIndex]?.focus();
+  };
+
   const handleResend = async () => {
     if (timer > 0) return;
+    setMessage({ type: '', text: '' });
     try {
       await axios.post('/api/resend-otp', { email: userData?.email });
-      alert("Kode baru terkirim!");
+      setMessage({ type: 'info', text: 'Kode baru terkirim! Cek email kamu.' });
       setTimer(60);
       setOtp(new Array(6).fill(""));
       inputRefs.current[0].focus();
     } catch (error) {
-      alert(error.response?.data?.message || "Gagal kirim ulang kode.");
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Gagal kirim ulang kode.',
+      });
     }
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
 
-  try {
-    const response = await axios.post('/api/verify-otp', {
-      email: userData?.email,
-      name: userData?.name,
-      password: userData?.password,
-      otp: otp.join(""),
-    });
+    try {
+      /* SECURITY FIX: password tidak dikirim lagi —
+         akun sudah dibuat saat /api/register, verifikasi cukup email + otp */
+      const response = await axios.post('/api/verify-otp', {
+        email: userData?.email,
+        name: userData?.name,
+        otp: otp.join(""),
+      });
 
-    // Langsung login pakai data & token dari response
-    login(response.data.user, response.data.token);
+      // Langsung login pakai data & token dari response
+      const token = response.data.access_token || response.data.token;
+      login(response.data.user, token);
 
-    alert("Verifikasi berhasil! Yuk pilih minatmu.");
-    navigate('/interests', { state: userData });
-
-  } catch (error) {
-    alert(error.response?.data?.message || "OTP Salah atau Expired!");
-  } finally {
-    setLoading(false);
-  }
-};
+      navigate('/interests', { state: userData, replace: true });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'OTP Salah atau Expired!',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- RENDER ---
   return (
     <div className={`otp-page ${mounted ? 'is-mounted' : ''}`}>
-
       {/* Background Decorations */}
       <div className="particles" aria-hidden="true">
         {[...Array(6)].map((_, i) => (
@@ -117,7 +141,7 @@ const VerifyOtp = () => {
       <div className="deco-shape deco-shape-2" aria-hidden="true" />
 
       {/* Back Button */}
-      <button className="back-btn" onClick={() => navigate('/register')} aria-label="Kembali">
+      <button type="button" className="back-btn" onClick={() => navigate('/register')} aria-label="Kembali ke pendaftaran">
         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none">
           <line x1="19" y1="12" x2="5" y2="12" />
           <polyline points="12 19 5 12 12 5" />
@@ -126,19 +150,26 @@ const VerifyOtp = () => {
 
       {/* Card */}
       <div className="otp-card">
-
         {/* Header */}
         <div className="logo-wrap anim-item" style={{ '--i': 0 }}>
-          <img src={logoSukaMuda} alt="Logo SUKAMUDA" className="logo-img" />
+          <img src={logoSukaMuda} alt="Logo SUKAMUDA" className="logo-img" width="96" height="96" />
         </div>
+
         <h1 className="otp-heading anim-item" style={{ '--i': 1 }}>Verifikasi Akun</h1>
         <p className="otp-subtext anim-item" style={{ '--i': 2 }}>
-          Masukkan 6 digit kode yang dikirim ke
+          Masukkan 6 digit kode yang dikirim ke{' '}
           <span className="otp-email-highlight">{userData?.email}</span>
         </p>
 
         {/* Form */}
         <form className="otp-form" onSubmit={handleSubmit}>
+          {/* Pesan feedback (pengganti alert) */}
+          {message.text && (
+            <div className={`otp-message ${message.type}`} role="alert">
+              {message.text}
+            </div>
+          )}
+
           <div className="otp-input-group anim-item" style={{ '--i': 3 }}>
             {otp.map((data, index) => (
               <input
@@ -150,7 +181,12 @@ const VerifyOtp = () => {
                 ref={(el) => (inputRefs.current[index] = el)}
                 onChange={(e) => handleChange(e, index)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
-                autoComplete="off"
+                onPaste={index === 0 ? handlePaste : undefined}
+                autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                aria-label={`Digit ${index + 1} dari 6`}
+                disabled={loading}
               />
             ))}
           </div>
@@ -161,7 +197,7 @@ const VerifyOtp = () => {
             style={{ '--i': 4 }}
             disabled={loading || otp.join("").length < 6}
           >
-            {loading ? <span className="spinner" /> : 'Verifikasi Sekarang'}
+            {loading ? <span className="spinner" aria-hidden="true" /> : 'Verifikasi Sekarang'}
           </button>
         </form>
 
@@ -170,14 +206,22 @@ const VerifyOtp = () => {
           {timer > 0 ? (
             <p>Kirim ulang dalam <b>{timer}</b> detik</p>
           ) : (
-            <p>Tidak terima kode? <span className="resend-link" onClick={handleResend}>Kirim Ulang</span></p>
+            <p>
+              Tidak terima kode?{' '}
+              <button type="button" className="resend-link" onClick={handleResend}>
+                Kirim Ulang
+              </button>
+            </p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="otp-sep" />
+        <div className="otp-sep" aria-hidden="true" />
         <p className="otp-footer anim-item" style={{ '--i': 6 }}>
-          Salah alamat email? <span className="link-dark" onClick={() => navigate('/register')}>Daftar Ulang</span>
+          Salah alamat email?{' '}
+          <button type="button" className="link-dark" onClick={() => navigate('/register')}>
+            Daftar Ulang
+          </button>
         </p>
       </div>
     </div>

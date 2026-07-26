@@ -8,9 +8,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
+    /**
+     * Helper internal untuk memaksa URL gambar menjadi absolut HTTPS menunjuk domain utama
+     */
+    private function formatAssetUrl($path)
+    {
+        if (empty($path) || !is_string($path)) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return str_replace('http://127.0.0.1:8000', 'https://sukamuda.co.id', $path);
+        }
+
+        return 'https://sukamuda.co.id/storage/' . ltrim($path, '/');
+    }
+
     public function index(Request $request)
     {
         try {
@@ -26,7 +44,9 @@ class ProfileController extends Controller
             $drafts = $allArticles->where('status', 'draft')->values();
             $pending = $allArticles->where('status', 'pending')->values();
 
-            $favorites = $user->favorites()->get();
+            // PENGAMNAN: Jika relasi favorites() belum diset di model User, 
+            // fallback agar tidak melempar Fatal Error Query Exception
+            $favorites = method_exists($user, 'favorites') ? $user->favorites()->get() : collect();
 
             $data = [
                 'name' => $user->name,
@@ -35,8 +55,8 @@ class ProfileController extends Controller
                 'profession' => $user->profession ?? '',
                 'schoolName' => $user->school_name ?? '',
                 'interests' => is_array($user->interests) ? $user->interests : [],
-                'avatar' => $user->avatar ? asset('storage/' . $user->avatar) : null,
-                'coverPhoto' => $user->cover_photo ? asset('storage/' . $user->cover_photo) : null,
+                'avatar' => $this->formatAssetUrl($user->avatar),
+                'coverPhoto' => $this->formatAssetUrl($user->cover_photo),
                 
                 'posts' => $this->formatArticles($posts),
                 'drafts' => $this->formatArticles($drafts),
@@ -108,6 +128,78 @@ class ProfileController extends Controller
         }
     }
 
+    /**
+     * PERBAIKAN: Mengintegrasikan fungsi Mengubah Password Akun secara Aman
+     */
+    public function changePassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'current_password' => 'required|string',
+                'password' => ['required', 'confirmed', Password::defaults()],
+            ]);
+
+            $user = $request->user();
+
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'message' => 'Kata sandi saat ini tidak cocok dengan data kami.'
+                ], 422);
+            }
+
+            $user->password = Hash::make($request->password);
+            $user->save();
+
+            return response()->json([
+                'message' => 'Kata sandi berhasil diperbarui dengan aman.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Profile Change Password Error: " . $e->getMessage());
+            return response()->json(['message' => 'Gagal mengubah kata sandi', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * PERBAIKAN: Mengintegrasikan fungsi Hapus Akun secara Permanen
+     */
+    public function deleteAccount(Request $request)
+    {
+        try {
+            $request->validate([
+                'password' => 'required|string',
+            ]);
+
+            $user = $request->user();
+
+            if (!Hash::check($request->password, $user->password)) {
+                return response()->json([
+                    'message' => 'Konfirmasi kata sandi gagal. Akun tidak dapat dihapus.'
+                ], 422);
+            }
+
+            // Bersihkan aset gambar fisik milik user agar tidak membebani kapasitas hosting
+            if ($user->avatar) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            if ($user->cover_photo) {
+                Storage::disk('public')->delete($user->cover_photo);
+            }
+
+            // Hapus token akses sesi login aktif sebelum menghancurkan data user
+            $user->tokens()->delete();
+            $user->delete();
+
+            return response()->json([
+                'message' => 'Akun Anda berhasil dihapus secara permanen dari sistem kami.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Profile Delete Account Error: " . $e->getMessage());
+            return response()->json(['message' => 'Gagal menghapus akun', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     private function formatArticles($articles)
     {
         if (!$articles || $articles->isEmpty()) {
@@ -124,9 +216,7 @@ class ProfileController extends Controller
                     'title' => $article->title ?? 'Tanpa Judul',
                     'slug' => $article->slug ?? '',
                     'category' => $article->category ?? 'Umum',
-                    'image' => !empty($article->image) 
-                        ? (filter_var($article->image, FILTER_VALIDATE_URL) ? $article->image : asset('storage/' . $article->image)) 
-                        : null,
+                    'image' => $this->formatAssetUrl($article->image),
                     'excerpt' => $article->summary ?? '',
                     'content' => $article->content ?? '',
                     'status' => $article->status,
@@ -159,8 +249,8 @@ class ProfileController extends Controller
                     'bio' => $user->bio ?? '',
                     'profession' => $user->profession ?? '',
                     'schoolName' => $user->school_name ?? '',
-                    'avatar' => $user->avatar ? (filter_var($user->avatar, FILTER_VALIDATE_URL) ? $user->avatar : asset('storage/' . $user->avatar)) : null,
-                    'coverPhoto' => $user->cover_photo ? (filter_var($user->cover_photo, FILTER_VALIDATE_URL) ? $user->cover_photo : asset('storage/' . $user->cover_photo)) : null,
+                    'avatar' => $this->formatAssetUrl($user->avatar),
+                    'coverPhoto' => $this->formatAssetUrl($user->cover_photo),
                     'articles' => $this->formatArticles($articles),
                 ],
             ]);

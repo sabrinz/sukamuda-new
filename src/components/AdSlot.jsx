@@ -23,17 +23,19 @@ const AdSlot = ({
   useEffect(() => {
     // Hanya eksekusi jika mode adsense dan belum pernah di-push
     if (activeMode === 'adsense' && !isPushed.current) {
-      try {
-        isPushed.current = true;
-        
-        // TAMBAHAN: Beri jeda 200ms agar DOM & CSS selesai me-render ukuran layout
-        setTimeout(() => {
+      isPushed.current = true;
+
+      // Beri jeda 200ms agar DOM & CSS selesai me-render ukuran layout
+      const timerId = setTimeout(() => {
+        try {
           (window.adsbygoogle = window.adsbygoogle || []).push({});
-        }, 200);
-        
-      } catch (e) {
-        console.error('AdSense push error:', e);
-      }
+        } catch (e) {
+          console.error('AdSense push error:', e);
+        }
+      }, 200);
+
+      // Batalkan push kalau komponen keburu unmount (pindah halaman)
+      return () => clearTimeout(timerId);
     }
   }, [activeMode]);
 
@@ -50,7 +52,7 @@ const AdSlot = ({
   if (activeMode === 'placeholder') {
     return (
       <div className={`ad-slot-box ${type} ad-placeholder`}>
-        <span className="ad-placeholder-icon">◻</span>
+        <span className="ad-placeholder-icon" aria-hidden="true">◻</span>
         <span className="ad-placeholder-label">{label}</span>
         <span className="ad-placeholder-size">{sizeLabel}</span>
       </div>
@@ -61,7 +63,7 @@ const AdSlot = ({
   if (activeMode === 'image') {
     return (
       <div className={`ad-slot-box ${type} ad-image`}>
-        <a href={linkUrl} target="_blank" rel="noopener noreferrer">
+        <a href={linkUrl} target="_blank" rel="noopener noreferrer sponsored">
           <img
             ref={imgRef}
             src={imageUrl}
@@ -77,7 +79,7 @@ const AdSlot = ({
   // ── 3. Tampilan Google AdSense ──
   if (activeMode === 'adsense') {
     return (
-      // TAMBAHAN: Paksa ukuran minimum secara inline agar lebarnya tidak terdeteksi 0
+      // Paksa ukuran minimum secara inline agar lebarnya tidak terdeteksi 0
       <div 
         className={`ad-slot-box ${type} ad-adsense`} 
         style={{ width: '100%', minWidth: '200px', minHeight: '50px', overflow: 'hidden' }}

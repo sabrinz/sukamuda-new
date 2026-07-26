@@ -272,6 +272,19 @@
   flex-direction: column;
 }
 
+/* ── Pesan error login (dipakai Login.jsx role="alert") ── */
+.login-error {
+  background: #FCE9E7;
+  border: 1px solid #E56458;
+  color: #B91C1C;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  margin-bottom: 18px;
+}
+
 .input-group {
   text-align: left;
   margin-bottom: 28px;
@@ -362,6 +375,14 @@
 
 .toggle-pw:hover {
   color: var(--text);
+}
+
+/* A11y: indikator fokus keyboard (toggle-pw kini bisa di-Tab) */
+.toggle-pw:focus-visible {
+  color: var(--text);
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 /* ── Lupa password ── */

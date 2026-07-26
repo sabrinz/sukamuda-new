@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import './Terms.css';
 
-const Terms = () => {
+const Privacy = () => {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(new Set());
   const refs = useRef([]);
@@ -36,25 +36,25 @@ const Terms = () => {
   return (
     <div className="tr-root">
       <Helmet>
-        <title>Syarat & Ketentuan - Sukamuda</title>
+        <title>Kebijakan Privasi - Sukamuda</title>
 
         <link
           rel="canonical"
-          href="https://sukamuda.co.id/terms"
+          href="https://sukamuda.co.id/privacy"
         />
 
         <meta
           name="description"
-          content="Syarat dan Ketentuan Penggunaan platform media digital Sukamuda."
+          content="Kebijakan Privasi Sukamuda: bagaimana kami mengumpulkan, menggunakan, dan melindungi data Anda, termasuk penggunaan cookies, Google Analytics, dan Google AdSense."
         />
 
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebPage",
-            "name": "Syarat dan Ketentuan Penggunaan",
-            "description": "Syarat dan Ketentuan Penggunaan platform media digital Sukamuda.",
-            "url": "https://sukamuda.co.id/terms",
+            "name": "Kebijakan Privasi",
+            "description": "Kebijakan Privasi platform media digital Sukamuda.",
+            "url": "https://sukamuda.co.id/privacy",
             "isPartOf": {
               "@type": "WebSite",
               "name": "Sukamuda",
@@ -78,7 +78,7 @@ const Terms = () => {
               {
                 "@type": "ListItem",
                 "position": 2,
-                "name": "Syarat & Ketentuan"
+                "name": "Kebijakan Privasi"
               }
             ]
           })}
@@ -116,7 +116,7 @@ const Terms = () => {
             </svg>
           </button>
 
-          <span className="tr-nav-title">Syarat & Ketentuan</span>
+          <span className="tr-nav-title">Kebijakan Privasi</span>
 
           <div className="tr-nav-right">
             <span className="tr-nav-line" aria-hidden="true" />
@@ -140,11 +140,11 @@ const Terms = () => {
           <div className="tr-hero-body">
             <h1>
               <span className="tr-h1-line">
-                Syarat & Ketentuan
+                Kebijakan Privasi
               </span>
 
               <span className="tr-h1-line tr-h1-accent">
-                Penggunaan Sukamuda
+                Sukamuda
               </span>
             </h1>
 
@@ -165,7 +165,6 @@ const Terms = () => {
           ref={(e) => reg(e, 'content')}
           style={{ textAlign: 'left' }}
         >
-          {/* 1 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '0ms' }}
@@ -175,21 +174,16 @@ const Terms = () => {
                 01
               </span>
 
-              <h2>Ketentuan Umum</h2>
+              <h2>Pendahuluan</h2>
             </div>
 
             <div className="tr-item-body">
               <p>
-                Dengan mengakses dan menggunakan website Sukamuda,
-                Anda dianggap telah membaca, memahami, dan menyetujui
-                seluruh Syarat dan Ketentuan yang berlaku. Jika Anda
-                tidak setuju dengan ketentuan ini, mohon untuk tidak
-                menggunakan layanan website.
+                Sukamuda (sukamuda.co.id) menghormati dan melindungi privasi setiap pengunjung. Halaman ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi Anda saat menggunakan layanan kami. Dengan mengakses website ini, Anda menyetujui praktik yang dijelaskan dalam Kebijakan Privasi ini.
               </p>
             </div>
           </div>
 
-          {/* 2 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '40ms' }}
@@ -199,20 +193,16 @@ const Terms = () => {
                 02
               </span>
 
-              <h2>Definisi Layanan</h2>
+              <h2>Informasi yang Kami Kumpulkan</h2>
             </div>
 
             <div className="tr-item-body">
               <p>
-                Sukamuda merupakan platform yang menyediakan konten,
-                artikel, dan informasi untuk pengguna. Layanan dapat
-                diperbarui, diubah, atau dihentikan sewaktu-waktu
-                tanpa pemberitahuan sebelumnya.
+                Saat Anda mendaftar akun, kami mengumpulkan nama, alamat email, dan kata sandi (tersimpan terenkripsi). Saat Anda menggunakan website, kami juga menerima data teknis secara otomatis seperti alamat IP, jenis perangkat, jenis browser, dan halaman yang Anda kunjungi.
               </p>
             </div>
           </div>
 
-          {/* 3 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '80ms' }}
@@ -222,30 +212,16 @@ const Terms = () => {
                 03
               </span>
 
-              <h2>Akun Pengguna</h2>
+              <h2>Penggunaan Informasi</h2>
             </div>
 
             <div className="tr-item-body">
-              <ul>
-                <li>
-                  Pengguna bertanggung jawab atas keamanan akun
-                  masing-masing.
-                </li>
-
-                <li>
-                  Dilarang menggunakan identitas palsu atau data
-                  yang tidak valid.
-                </li>
-
-                <li>
-                  Segala aktivitas yang terjadi pada akun menjadi
-                  tanggung jawab pengguna.
-                </li>
-              </ul>
+              <p>
+                Informasi digunakan untuk: mengelola akun dan login Anda, menampilkan konten yang relevan, mengirim email verifikasi (OTP) dan pemberitahuan, meningkatkan kualitas layanan, serta menjaga keamanan website dari penyalahgunaan.
+              </p>
             </div>
           </div>
 
-          {/* 4 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '120ms' }}
@@ -255,31 +231,16 @@ const Terms = () => {
                 04
               </span>
 
-              <h2>Konten Pengguna</h2>
+              <h2>Cookies dan Teknologi Serupa</h2>
             </div>
 
             <div className="tr-item-body">
-              <ul>
-                <li>
-                  Pengguna diperbolehkan mengirim artikel, komentar,
-                  atau konten lainnya sesuai kategori yang tersedia.
-                </li>
-
-                <li>
-                  Konten yang dikirim tidak boleh mengandung unsur
-                  SARA, pornografi, kekerasan, hoaks, atau melanggar
-                  hukum.
-                </li>
-
-                <li>
-                  Setiap konten yang dikirim akan melalui proses
-                  verifikasi sebelum dipublikasikan.
-                </li>
-              </ul>
+              <p>
+                Sukamuda menggunakan cookies dan penyimpanan lokal (local storage) untuk menjaga sesi login Anda dan mengingat preferensi Anda. Anda dapat menonaktifkan cookies melalui pengaturan browser, namun sebagian fitur website mungkin tidak berfungsi dengan baik.
+              </p>
             </div>
           </div>
 
-          {/* 5 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '160ms' }}
@@ -289,42 +250,16 @@ const Terms = () => {
                 05
               </span>
 
-              <h2>Hak dan Kewajiban</h2>
+              <h2>Google Analytics</h2>
             </div>
 
             <div className="tr-item-body">
-              <div className="tr-sub">
-                <h3>Hak Pengguna</h3>
-
-                <ul>
-                  <li>
-                    Mengakses dan membaca konten yang tersedia.
-                  </li>
-
-                  <li>
-                    Mengirimkan artikel sesuai ketentuan platform.
-                  </li>
-                </ul>
-              </div>
-
-              <div className="tr-sub">
-                <h3>Kewajiban Pengguna</h3>
-
-                <ul>
-                  <li>
-                    Menggunakan layanan secara bijak dan tidak
-                    merugikan pihak lain.
-                  </li>
-
-                  <li>
-                    Menghormati hak cipta dan kekayaan intelektual.
-                  </li>
-                </ul>
-              </div>
+              <p>
+                Kami menggunakan Google Analytics untuk memahami bagaimana pengunjung menggunakan website, seperti halaman yang paling banyak dibaca dan lama kunjungan. Data ini bersifat anonim dan tidak digunakan untuk mengidentifikasi Anda secara pribadi. Informasi lebih lanjut dapat dibaca di kebijakan privasi Google.
+              </p>
             </div>
           </div>
 
-          {/* 6 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '200ms' }}
@@ -334,24 +269,16 @@ const Terms = () => {
                 06
               </span>
 
-              <h2>Hak Cipta dan Kekayaan Intelektual</h2>
+              <h2>Iklan dan Google AdSense</h2>
             </div>
 
             <div className="tr-item-body">
               <p>
-                Hak cipta atas artikel atau konten yang dikirim oleh
-                pengguna tetap menjadi milik penulisnya. Dengan
-                mengirimkan konten, pengguna memberikan izin kepada
-                Sukamuda untuk menampilkan, menyimpan, dan
-                mempublikasikan konten tersebut di platform. Elemen
-                milik Sukamuda, termasuk desain, logo, identitas
-                merek, dan materi yang dibuat oleh pengelola, tidak
-                boleh disalin atau digunakan tanpa izin.
+                Website ini menampilkan iklan yang disediakan oleh Google AdSense. Google sebagai vendor pihak ketiga menggunakan cookies (termasuk cookie DoubleClick) untuk menayangkan iklan berdasarkan kunjungan Anda ke website ini dan website lain di internet. Anda dapat menonaktifkan iklan yang dipersonalisasi melalui halaman Setelan Iklan Google di adssettings.google.com, atau mengunjungi www.aboutads.info untuk memilih keluar dari cookie iklan pihak ketiga.
               </p>
             </div>
           </div>
 
-          {/* 7 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '240ms' }}
@@ -361,30 +288,16 @@ const Terms = () => {
                 07
               </span>
 
-              <h2>Larangan Penggunaan</h2>
+              <h2>Berbagi Data dengan Pihak Ketiga</h2>
             </div>
 
             <div className="tr-item-body">
-              <p className="tr-intro">Pengguna dilarang:</p>
-
-              <ul>
-                <li>
-                  Melakukan spam, hacking, atau aktivitas yang
-                  merusak sistem.
-                </li>
-
-                <li>
-                  Menyebarkan informasi palsu atau menyesatkan.
-                </li>
-
-                <li>
-                  Menggunakan platform untuk kepentingan ilegal.
-                </li>
-              </ul>
+              <p>
+                Kami tidak menjual, menyewakan, atau memperdagangkan data pribadi Anda kepada pihak mana pun. Data hanya dibagikan kepada penyedia layanan yang membantu operasional website (seperti Google Analytics dan Google AdSense) atau apabila diwajibkan oleh hukum yang berlaku di Indonesia.
+              </p>
             </div>
           </div>
 
-          {/* 8 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '280ms' }}
@@ -394,19 +307,16 @@ const Terms = () => {
                 08
               </span>
 
-              <h2>Penangguhan dan Penghapusan Konten</h2>
+              <h2>Keamanan dan Penyimpanan Data</h2>
             </div>
 
             <div className="tr-item-body">
               <p>
-                Pengelola berhak menolak, menunda, atau menghapus
-                konten yang tidak sesuai dengan kebijakan, serta
-                menangguhkan akun pengguna yang melanggar ketentuan.
+                Kami menerapkan langkah-langkah keamanan yang wajar untuk melindungi data Anda, termasuk enkripsi kata sandi dan pembatasan akses. Namun perlu dipahami bahwa tidak ada transmisi data melalui internet yang sepenuhnya bebas risiko.
               </p>
             </div>
           </div>
 
-          {/* 9 */}
           <div
             className="tr-item"
             style={{ transitionDelay: '320ms' }}
@@ -416,21 +326,18 @@ const Terms = () => {
                 09
               </span>
 
-              <h2>Perubahan Syarat dan Ketentuan</h2>
+              <h2>Hak Anda</h2>
             </div>
 
             <div className="tr-item-body">
               <p>
-                Syarat dan Ketentuan dapat diperbarui sewaktu-waktu.
-                Pengguna disarankan untuk meninjau halaman ini secara
-                berkala.
+                Anda berhak mengakses dan memperbarui data profil Anda kapan saja melalui halaman profil, serta berhak menghapus akun Anda beserta data yang terkait. Untuk permintaan lain terkait data pribadi, silakan hubungi kami melalui kontak di bawah.
               </p>
             </div>
           </div>
 
-          {/* 10 — PENUTUP */}
           <div
-            className="tr-item tr-item-closing"
+            className="tr-item"
             style={{ transitionDelay: '360ms' }}
           >
             <div className="tr-item-head">
@@ -438,36 +345,57 @@ const Terms = () => {
                 10
               </span>
 
-              <h2>Penutup</h2>
+              <h2>Privasi Anak-Anak</h2>
             </div>
 
             <div className="tr-item-body">
               <p>
-                Dengan menggunakan website Sukamuda, Anda menyetujui
-                seluruh kebijakan yang berlaku dan siap mematuhi
-                aturan demi menjaga kenyamanan serta keamanan bersama
-                di platform.
+                Layanan kami tidak ditujukan untuk anak di bawah usia 13 tahun. Kami tidak dengan sengaja mengumpulkan data pribadi dari anak-anak. Jika Anda meyakini seorang anak telah memberikan data pribadinya kepada kami, silakan hubungi kami agar data tersebut dapat dihapus.
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="tr-item"
+            style={{ transitionDelay: '400ms' }}
+          >
+            <div className="tr-item-head">
+              <span className="tr-item-num" aria-hidden="true">
+                11
+              </span>
+
+              <h2>Perubahan Kebijakan</h2>
+            </div>
+
+            <div className="tr-item-body">
+              <p>
+                Kebijakan Privasi ini dapat diperbarui sewaktu-waktu mengikuti perkembangan layanan dan peraturan. Perubahan akan dipublikasikan di halaman ini dengan tanggal pembaruan terbaru. Kami menyarankan Anda meninjau halaman ini secara berkala.
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="tr-item"
+            style={{ transitionDelay: '440ms' }}
+          >
+            <div className="tr-item-head">
+              <span className="tr-item-num" aria-hidden="true">
+                12
+              </span>
+
+              <h2>Kontak</h2>
+            </div>
+
+            <div className="tr-item-body">
+              <p>
+                Jika Anda memiliki pertanyaan mengenai Kebijakan Privasi ini atau penggunaan data Anda, silakan hubungi kami melalui email sukamuda50@gmail.com atau melalui halaman Bantuan.
               </p>
             </div>
           </div>
         </main>
-
-        {/* FOOTER */}
-        <footer className="tr-foot">
-          <div className="tr-foot-line" aria-hidden="true" />
-
-          <div className="tr-foot-in">
-            <span className="tr-foot-logo">sukamuda</span>
-
-            <span className="tr-foot-c">
-              © {new Date().getFullYear()} — Dibuat untuk generasi
-              muda Indonesia
-            </span>
-          </div>
-        </footer>
       </div>
     </div>
   );
 };
 
-export default Terms;
+export default Privacy;
