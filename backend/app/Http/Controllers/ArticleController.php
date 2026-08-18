@@ -84,7 +84,7 @@ class ArticleController extends Controller
         $articles = Article::where('category', $category)
             ->where('status', 'approved')
             ->select('id', 'title', 'slug', 'image', 'video_link', 'user_id', 'category')
-            ->with('user:id,name,avatar')
+            ->with('user:id,name,avatar,profession,school_name')
             ->latest()
             ->get();
 
@@ -101,8 +101,8 @@ class ArticleController extends Controller
         
         $query = Article::where('status', 'approved')
             // Menambahkan 'content' jika kamu pakai cara bypass cPanel sementara
-            ->select(['id', 'user_id', 'title', 'slug', 'image', 'image_caption', 'summary', 'content', 'category', 'created_at'])
-            ->with('user:id,name,avatar')
+            ->select(['id', 'user_id', 'title', 'slug', 'image', 'image_caption', 'summary', 'content', 'category', 'created_at', 'updated_at', 'status', 'views', 'tags', 'audio_link', 'video_link'])
+            ->with('user:id,name,avatar,bio,profession,school_name')
             ->withCount('likes');
 
         if ($user) {

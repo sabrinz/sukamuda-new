@@ -75,15 +75,32 @@ const AD_CONFIG = {
 
 function Home() {
   const queryClient = useQueryClient();
-  const [isMobile, setIsMobile] = React.useState(false);
+
+  // FIX CLS: nilai awal langsung dibaca dari lebar layar, supaya di HP
+  // sidebar iklan tidak sempat dirender lalu hilang (bikin layout "loncat").
+  const [isMobile, setIsMobile] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth <= 1100;
+  });
 
   React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 1100);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    if (typeof window === "undefined") return undefined;
+
+    // matchMedia lebih hemat daripada event resize (tidak memicu re-render
+    // setiap piksel saat jendela diubah ukurannya).
+    const mediaQuery = window.matchMedia("(max-width: 1100px)");
+    const handleChange = (event) => setIsMobile(event.matches);
+
+    setIsMobile(mediaQuery.matches);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+
+    // Fallback untuk Safari lama
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
   }, []);
 
   React.useEffect(() => {
@@ -216,7 +233,8 @@ function Home() {
       .substring(0, 2);
   };
 
-  const normalizeCategory = (value) => (value || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const normalizeCategory = (value) =>
+    (value || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, "");
 
   const getSpotifyEmbedUrl = (url) => {
     if (!url) return "";
@@ -235,6 +253,7 @@ function Home() {
       const parts = parsed.pathname.split("/").filter(Boolean);
       if (parts[0] === "embed") parts.shift();
       if (parts.length >= 2) return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
+
       return "";
     } catch {
       return "";
@@ -242,6 +261,7 @@ function Home() {
   };
 
   const [activePodcastId, setActivePodcastId] = React.useState(null);
+
   const togglePodcastPlayer = (articleId) => {
     setActivePodcastId((prev) => (prev === articleId ? null : articleId));
   };
@@ -279,7 +299,6 @@ function Home() {
 
         <div className="trending-details">
           <span className="tag-category">{formatCategory(article.category)}</span>
-
           {/* FIX: jangan loncat heading level (dari h2 langsung ke h4) */}
           <h3 className="trending-title">{article.title || "Judul tidak tersedia"}</h3>
 
@@ -321,6 +340,7 @@ function Home() {
 
     const authorPhoto = isPodcast ? null : resolveImageUrl(article.user?.avatar || article.user?.profile_photo_url);
     const authorName = article.user?.name || "Anonim";
+
     const spotifyEmbedUrl = article.audio_link ? getSpotifyEmbedUrl(article.audio_link) : "";
     const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : "";
     const showPodcastPlayer = isPodcast && activePodcastId === article.id;
@@ -501,7 +521,9 @@ function Home() {
 
     return (
       <Link
-        className={`article-card ${isHero ? "article-card--hero" : ""} ${isSmallHorizontal ? "article-card--news-small" : ""}`}
+        className={`article-card ${isHero ? "article-card--hero" : ""} ${
+          isSmallHorizontal ? "article-card--news-small" : ""
+        }`}
         key={article.id || index}
         to={`/article/${article.slug}`}
       >
@@ -559,7 +581,8 @@ function Home() {
     if (!allArticles || !Array.isArray(allArticles)) return [];
     const normalArticles = allArticles.filter((a) => normalizeCategory(a?.category) !== "podcast");
     const shuffled = [...normalArticles].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 3);
+    // FIX MOBILE: Siapkan 4 artikel agar di HP bisa tampil 4 (desktop tetap 3)
+    return shuffled.slice(0, 4);
   }, [allArticles]);
 
   const renderCategoryGroup = (group, index) => {
@@ -576,7 +599,12 @@ function Home() {
       isLifestyleStyle = false;
     }
 
-    const maxArticles = isLifestyleStyle ? 10 : 5;
+    let maxArticles = isLifestyleStyle ? 10 : 5;
+
+    // FIX MOBILE: Tambah 1 artikel khusus di HP untuk kategori Lifestyle, Science, dan Music-Film
+    if (isMobile && (kategori === "lifestyle" || kategori === "science" || kategori === "music-film")) {
+      maxArticles += 1;
+    }
 
     const groupArticles = (Array.isArray(allArticles) ? allArticles : [])
       .filter(
@@ -604,8 +632,8 @@ function Home() {
       >
         <div className="section-header">
           <h2>{group.label}</h2>
-          <Link to={`/category/${group.slug}`} className="section-link">
-            Lihat semua <span className="arrow-right">→</span>
+          <Link to={`/category/${group.slug}`} className="section-link" aria-label={`Lihat semua artikel kategori ${group.label}`}>
+            Lihat semua <span className="arrow-right" aria-hidden="true">→</span>
           </Link>
         </div>
 
@@ -613,9 +641,7 @@ function Home() {
           <div className={isNewsStyle ? "news-frame" : ""}>
             <div className={`article-grid ${isNewsStyle ? "news-article-grid" : ""} ${isLifestyleStyle ? "lifestyle-article-grid" : ""}`}>
               {articleLoading
-                ? Array(maxArticles > 5 ? 3 : 3)
-                    .fill(0)
-                    .map((_, i) => <SkeletonCard key={i} />)
+                ? Array(3).fill(0).map((_, i) => <SkeletonCard key={i} />)
                 : groupArticles.map((article, i) => renderCard(article, i, isNewsStyle, isLifestyleStyle))}
             </div>
           </div>
@@ -623,12 +649,7 @@ function Home() {
           {isNewsStyle && tampilIklanKanan && !isMobile && (
             <div className="news-sidebar-right">
               <div className="news-sidebar-static">
-                <AdSlot
-                  type="vertical"
-                  mode="adsense"
-                  adClient={adSetting.kanan.adClient}
-                  adSlot={adSetting.kanan.adSlot}
-                />
+                <AdSlot type="vertical" mode="adsense" adClient={adSetting.kanan.adClient} adSlot={adSetting.kanan.adSlot} />
               </div>
             </div>
           )}
@@ -643,20 +664,62 @@ function Home() {
     );
   };
 
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Sukamuda",
+    url: "https://sukamuda.co.id/",
+    inLanguage: "id-ID",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: { "@type": "EntryPoint", urlTemplate: "https://sukamuda.co.id/search?q={search_term_string}" },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    name: "Sukamuda",
+    url: "https://sukamuda.co.id/",
+    logo: { "@type": "ImageObject", url: "https://sukamuda.co.id/logo.png" },
+  };
+
   return (
     <div className="home-container">
       <Helmet>
+        {/* Script Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
+          crossOrigin="anonymous"
+        ></script>
+
         <title>Sukamuda - Media Informasi dan Kreativitas Anak Muda</title>
         <link rel="canonical" href="https://sukamuda.co.id/" />
-        <meta
-          name="description"
-          content="Sukamuda adalah media informasi dan ruang kreativitas anak muda untuk membaca, menulis, dan berbagi artikel inspiratif."
-        />
+        <meta name="description" content="Sukamuda adalah media informasi dan ruang kreativitas anak muda untuk membaca, menulis, dan berbagi artikel inspiratif." />
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <meta name="theme-color" content="#d32f2f" />
+        <html lang="id" />
+
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Sukamuda" />
+        <meta property="og:locale" content="id_ID" />
+        <meta property="og:url" content="https://sukamuda.co.id/" />
+        <meta property="og:title" content="Sukamuda - Media Informasi dan Kreativitas Anak Muda" />
+        <meta property="og:description" content="Sukamuda adalah media informasi dan ruang kreativitas anak muda untuk membaca, menulis, dan berbagi artikel inspiratif." />
+        <meta property="og:image" content="https://sukamuda.co.id/logo.png" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Sukamuda - Media Informasi dan Kreativitas Anak Muda" />
+        <meta name="twitter:description" content="Sukamuda adalah media informasi dan ruang kreativitas anak muda untuk membaca, menulis, dan berbagi artikel inspiratif." />
+        <meta name="twitter:image" content="https://sukamuda.co.id/logo.png" />
+
+        <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
+        <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
       </Helmet>
 
-      <h1 className="home-sr-only">
-        Sukamuda - Media Informasi dan Kreativitas Anak Muda
-      </h1>
+      <h1 className="home-sr-only">Sukamuda - Media Informasi dan Kreativitas Anak Muda</h1>
 
       {/* WADAH 1: TRENDING & IKLAN STICKY */}
       <div className="home-layout-wrapper">
@@ -671,26 +734,24 @@ function Home() {
         <div className="home-main-content">
           <section className="section-trending">
             <div className="section-header">
-              <h2>Trending Mingguan</h2>
+              <h2>Artikel Terbaru</h2>
               <div className="trending-count">
-                <span>Top {trendingLoading ? "..." : top5Trending.length} Berita</span>
+                <span>Top {trendingLoading ? "..." : top5Trending.length} Artikel</span>
               </div>
             </div>
 
             <div className="trending-grid">
               {trendingError ? (
                 <div className="empty-state" style={{ gridColumn: "1 / -1" }} role="alert">
-                  <p>Gagal memuat berita trending. Coba refresh halaman nanti.</p>
+                  <p>Gagal memuat berita terbaru. Coba refresh halaman nanti.</p>
                 </div>
               ) : trendingLoading ? (
-                Array(5)
-                  .fill(0)
-                  .map((_, i) => <SkeletonTrending key={i} />)
+                Array(5).fill(0).map((_, i) => <SkeletonTrending key={i} />)
               ) : top5Trending.length > 0 ? (
                 top5Trending.map((article, index) => renderTrendingItem(article, index))
               ) : (
                 <div className="empty-state" style={{ gridColumn: "1 / -1" }} role="status">
-                  <p>Belum ada berita trending saat ini.</p>
+                  <p>Belum ada berita terbaru saat ini.</p>
                 </div>
               )}
             </div>
@@ -707,14 +768,14 @@ function Home() {
       </div>
 
       {/* WADAH 2: KONTEN BAWAH (REELS, KATEGORI, DLL) */}
-      <div className="home-layout-wrapper" style={{ marginTop: "40px" }}>
+      <div className="home-layout-wrapper home-layout-wrapper--bottom">
         <div className="home-main-content">
           {/* ── VIDEO REELS ── */}
           <section className="home-section section-video-reels">
             <div className="section-header">
               <h2>Video Reels</h2>
-              <Link to="/video-reels" className="section-link">
-                Lihat semua <span className="arrow-right">→</span>
+              <Link to="/video-reels" className="section-link" aria-label="Lihat semua video reels">
+                Lihat semua <span className="arrow-right" aria-hidden="true">→</span>
               </Link>
             </div>
 
@@ -730,7 +791,9 @@ function Home() {
           </section>
 
           {categoryGroups?.map((group, index) => {
-            const isActualLifestyle = group.slug.toLowerCase() === "lifestyle" || group.label.toLowerCase() === "lifestyle";
+            const isActualLifestyle =
+              group.slug.toLowerCase() === "lifestyle" ||
+              group.label.toLowerCase() === "lifestyle";
 
             return (
               <React.Fragment key={group.slug}>
@@ -742,7 +805,8 @@ function Home() {
                       <h2>Rekomendasi Pilihan</h2>
                     </div>
                     <div className="random-article-grid">
-                      {randomArticles.slice(0, 4).map((article, i) => renderCard(article, i + 10))}
+                      {/* FIX MOBILE: Tampilkan 4 artikel di HP, dan 3 artikel di Desktop */}
+                      {randomArticles.slice(0, isMobile ? 4 : 3).map((article, i) => renderCard(article, i + 10))}
                     </div>
                   </section>
                 )}

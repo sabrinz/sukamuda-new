@@ -29,6 +29,13 @@ const Rules = () => {
   return (
     <div className="ru-root">
       <Helmet>
+        {/* Script Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
+          crossOrigin="anonymous"
+        ></script>
+
         <title>Kebijakan & Privasi - Sukamuda</title>
         <link rel="canonical" href="https://sukamuda.co.id/rules" />
         <meta name="description" content="Kebijakan Privasi dan Ketentuan Penggunaan platform Sukamuda." />

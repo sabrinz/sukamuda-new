@@ -37,6 +37,13 @@ const Help = () => {
   return (
     <div className="hl-root">
       <Helmet>
+        {/* Script Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
+          crossOrigin="anonymous"
+        ></script>
+
         <title>Pusat Bantuan - Sukamuda</title>
         <link rel="canonical" href="https://sukamuda.co.id/help" />
         <meta name="description" content="Punya pertanyaan atau kendala seputar layanan Sukamuda? Hubungi pusat bantuan tim support kami di sini." />

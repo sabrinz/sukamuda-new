@@ -34,11 +34,16 @@
 html {
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
-  overflow-x: hidden;
+  /* FIX STICKY IKLAN: overflow-x: hidden di html/body membuat keduanya menjadi
+     scroll container, sehingga position: sticky berhenti bekerja.
+     overflow-x: clip tetap mencegah scroll horizontal tanpa merusak sticky. */
+  overflow-x: hidden; /* fallback untuk Safari lama yang belum kenal clip */
+  overflow-x: clip;
 }
 
 body {
-  overflow-x: hidden;
+  overflow-x: hidden; /* fallback untuk Safari lama yang belum kenal clip */
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -60,13 +65,19 @@ a {
 .home-container {
   width: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
+  /* FIX STICKY IKLAN: overflow-x: hidden membuat browser menganggap elemen ini
+     sebagai scroll container, sehingga position: sticky pada iklan tidak jalan.
+     overflow-x: clip tetap memotong lebar berlebih TAPI tidak merusak sticky. */
+  overflow-x: hidden; /* fallback untuk Safari lama yang belum kenal clip */
+  overflow-x: clip;
   background: #fafbfd;
   color: var(--text-dark);
   position: relative;
 }
 
 .home-container::before {
+  /* DINONAKTIFKAN: glow/orb warna hangat (kekuningan) di pojok kanan atas */
+  display: none;
   content: "";
   position: fixed;
   top: -300px;
@@ -148,7 +159,16 @@ a {
 
 .ad-sidebar-sticky {
   position: sticky;
+  position: -webkit-sticky;
   top: 80px;
+  /* jaga agar iklan tidak lebih tinggi dari layar, supaya selalu ikut scroll */
+  max-height: calc(100vh - 100px);
+}
+
+/* FIX STICKY: sidebar harus setinggi wadahnya agar iklan bisa "berjalan"
+   mengikuti scroll sepanjang konten di sebelahnya. */
+.home-layout-wrapper > .ad-sidebar {
+  align-self: stretch;
 }
 
 /* ================================================= */
@@ -1150,6 +1170,8 @@ a {
 }
 
 .random-section::before {
+  /* DINONAKTIFKAN: ornamen bintang emas (glow kekuningan) di atas "Rekomendasi Pilihan" */
+  display: none;
   content: "✦";
   position: absolute;
   top: -16px;

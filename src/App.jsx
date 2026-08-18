@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import CookieConsent from "react-cookie-consent"; // <-- IMPORT COOKIE CONSENT
 
 // Lazy load pages (load saat dibutuhkan)
 const Home = lazy(() => import("./pages/Home"));
@@ -31,6 +32,25 @@ const Help = lazy(() => import("./pages/Help"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Alamat resmi situs, dipakai untuk membentuk canonical tiap halaman
+const SITE_URL = "https://sukamuda.co.id";
+
+// Halaman yang tidak boleh masuk indeks Google
+const RUTE_NOINDEX = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/verify-otp",
+  "/interests",
+  "/success",
+  "/admin",
+  "/profile",
+  "/notifications",
+  "/write",
+  "/write-success",
+  "/search",
+];
 
 function App() {
   const location = useLocation();
@@ -59,6 +79,19 @@ function App() {
     });
   }, [location]);
 
+  // Canonical dinamis: ikut alamat halaman yang sedang dibuka.
+  // Tanpa ini, semua halaman mengaku sebagai beranda.
+  const jalurBersih =
+    location.pathname === "/"
+      ? "/"
+      : location.pathname.replace(/\/+$/, "");
+  const canonicalUrl = `${SITE_URL}${jalurBersih}`;
+
+  // Tentukan apakah halaman ini boleh diindeks
+  const perluNoindex = RUTE_NOINDEX.some(
+    (rute) => location.pathname === rute || location.pathname.startsWith(`${rute}/`)
+  );
+
   return (
     <AuthProvider>
       <Helmet>
@@ -66,6 +99,15 @@ function App() {
         <meta
           name="description"
           content="Sukamuda adalah media informasi dan ruang kreativitas anak muda Indonesia."
+        />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta
+          name="robots"
+          content={
+            perluNoindex
+              ? "noindex,follow"
+              : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+          }
         />
       </Helmet>
 
@@ -147,6 +189,23 @@ function App() {
         </main>
 
         <Footer />
+
+        {/* KOMPONEN COOKIE CONSENT */}
+        <CookieConsent
+          location="bottom"
+          buttonText="Saya Setuju"
+          cookieName="sukamudaCookieConsent"
+          style={{ background: "#2B373B", zIndex: "9999" }}
+          buttonStyle={{ color: "#4e503b", fontSize: "13px", background: "#fff", borderRadius: "5px", padding: "8px 16px" }}
+          expires={150}
+        >
+          Situs SukaMuda menggunakan cookie untuk meningkatkan pengalaman membaca Anda dan menayangkan iklan yang relevan. Dengan terus menggunakan situs ini, Anda menyetujui{" "}
+          <a href="/privacy" style={{ color: "#fff", textDecoration: "underline" }}>
+            Kebijakan Privasi
+          </a>{" "}
+          kami.
+        </CookieConsent>
+
       </div>
     </AuthProvider>
   );

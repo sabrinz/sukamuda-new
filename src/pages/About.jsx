@@ -37,6 +37,13 @@ const About = () => {
   return (
     <div className="x-root">
       <Helmet>
+        {/* Script Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
+          crossOrigin="anonymous"
+        ></script>
+
         {/* SEO: Link Kanonikal Dinamis & Meta Tags */}
         <title>Tentang Kami - Sukamuda</title>
         <link rel="canonical" href="https://sukamuda.co.id/about" />

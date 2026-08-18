@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from "react";
 import "./Interests.css";
-import { useNavigate, useLocation } from "react-router-dom"; // <-- TAMBAH useLocation
+import { useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { categories } from "../data/articles";
+import axios from "../utils/axiosConfig";
 
 const Interests = () => {
   const navigate = useNavigate();
-  const location = useLocation();              // <-- TAMBAH INI
-  const registerData = location.state || {};    // <-- TAMBAH INI
+  const location = useLocation();
+  const registerData = location.state || {};
   const [selected, setSelected] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   const interestOptions = useMemo(
     () => categories.map((item) => ({ slug: item.slug, label: item.label })),
@@ -23,14 +25,41 @@ const Interests = () => {
     }
   };
 
-  // Bawa pilihan minat ikut ke halaman berikutnya (dipakai nanti saat backend siap)
-  const goNext = () => {
-    navigate("/success", { state: { ...registerData, interests: selected } });
+  // Ambil nama user: dari data registrasi, atau dari penyimpanan lokal
+  const resolveName = () => {
+    if (registerData?.name) return registerData.name;
+    try {
+      const stored = JSON.parse(localStorage.getItem("user") || "{}");
+      return stored?.name || "";
+    } catch {
+      return "";
+    }
+  };
+
+  // Simpan minat ke server, lalu lanjut ke halaman sukses
+  const goNext = async () => {
+    if (selected.length === 0) {
+      navigate("/success", { state: { ...registerData, interests: [] } });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await axios.post("/api/profile", {
+        name: resolveName(),
+        interests: selected,
+      });
+    } catch (error) {
+      console.error("Gagal menyimpan minat:", error.response?.data || error);
+      // Tetap lanjut supaya user tidak terjebak di halaman ini
+    } finally {
+      setSaving(false);
+      navigate("/success", { state: { ...registerData, interests: selected } });
+    }
   };
 
   return (
     <div className="interests-page">
-
       <Helmet>
         <title>Pilih Minat Anda - Sukamuda</title>
         <meta name="robots" content="noindex" />
@@ -95,17 +124,16 @@ const Interests = () => {
 
         {/* Actions */}
         <div className="card-actions">
-          {/* ✅ BENERIN: lempar registerData ke Success */}
-          <button type="button" className="btn-skip" onClick={goNext}>
+          <button type="button" className="btn-skip" onClick={goNext} disabled={saving}>
             Lewati
           </button>
           <button
             type="button"
             className={`btn-next ${selected.length > 0 ? "btn-next-active" : ""}`}
             onClick={goNext}
-            disabled={selected.length === 0}
+            disabled={selected.length === 0 || saving}
           >
-            <span>Selanjutnya</span>
+            <span>{saving ? "Menyimpan..." : "Selanjutnya"}</span>
             <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"/>
               <polyline points="12 5 19 12 12 19"/>

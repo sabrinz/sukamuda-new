@@ -1,6 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './AdSlot.css';
 
+/**
+ * AdSlot
+ *
+ * Perubahan penting dibanding versi lama:
+ * 1. Iklan TIDAK lagi di-push setelah jeda 200ms secara buta.
+ *    Kita menunggu sampai elemen <ins> benar-benar punya lebar > 0.
+ *    Inilah penyebab galat "No slot size for availableWidth=0".
+ * 2. Menggunakan ResizeObserver + IntersectionObserver, jadi iklan hanya
+ *    dipasang saat kotaknya terlihat DAN sudah punya ukuran nyata.
+ * 3. Kalau setelah 10 detik lebarnya tetap 0 (misalnya slot disembunyikan
+ *    lewat CSS di layar kecil), kita menyerah dengan tenang tanpa push,
+ *    sehingga tidak ada galat di konsol.
+ * 4. Penanda isPushed baru diset SETELAH push berhasil, bukan sebelumnya.
+ */
 const AdSlot = ({
   type = 'horizontal',
   mode = 'placeholder',
@@ -11,32 +25,120 @@ const AdSlot = ({
   adSlot = '',
 }) => {
   const imgRef = useRef(null);
-  
+
+  // Wadah pembungkus slot AdSense
+  const boxRef = useRef(null);
+  // Elemen <ins> yang diukur AdSense
+  const insRef = useRef(null);
   // Penanda agar iklan mutlak hanya di-push 1x
   const isPushed = useRef(false);
 
   // Otomatis ubah jadi placeholder kalau dijalankan di localhost
-  const isLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  const isLocal =
+    typeof window !== 'undefined' &&
+    ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
   const activeMode = isLocal ? 'placeholder' : mode;
 
-  // Push iklan
-  useEffect(() => {
-    // Hanya eksekusi jika mode adsense dan belum pernah di-push
-    if (activeMode === 'adsense' && !isPushed.current) {
-      isPushed.current = true;
+  // Dipakai hanya untuk memaksa render ulang kalau nanti dibutuhkan
+  const [, setSiap] = useState(false);
 
-      // Beri jeda 200ms agar DOM & CSS selesai me-render ukuran layout
-      const timerId = setTimeout(() => {
-        try {
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
-        } catch (e) {
+  useEffect(() => {
+    if (activeMode !== 'adsense') return;
+    if (isPushed.current) return;
+    if (typeof window === 'undefined') return;
+
+    let dibatalkan = false;
+    let resizeObserver = null;
+    let intersectionObserver = null;
+    let timerMenyerah = null;
+    let timerCoba = null;
+
+    const bersihkan = () => {
+      if (resizeObserver) resizeObserver.disconnect();
+      if (intersectionObserver) intersectionObserver.disconnect();
+      if (timerMenyerah) clearTimeout(timerMenyerah);
+      if (timerCoba) clearTimeout(timerCoba);
+    };
+
+    // Cek apakah elemen benar-benar punya lebar nyata
+    const lebarNyata = () => {
+      const el = insRef.current || boxRef.current;
+      if (!el) return 0;
+      // offsetParent null berarti elemen (atau induknya) display:none
+      if (el.offsetParent === null) return 0;
+      return el.getBoundingClientRect().width || 0;
+    };
+
+    const cobaPush = () => {
+      if (dibatalkan || isPushed.current) return;
+
+      const lebar = lebarNyata();
+
+      // Belum punya ukuran. Jangan push, tunggu observer memanggil lagi.
+      if (lebar < 50) return;
+
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        isPushed.current = true;
+        bersihkan();
+        setSiap(true);
+      } catch (e) {
+        // Tandai tetap terpush supaya tidak mengulang galat berkali-kali
+        isPushed.current = true;
+        bersihkan();
+        if (import.meta.env && import.meta.env.DEV) {
           console.error('AdSense push error:', e);
         }
-      }, 200);
+      }
+    };
 
-      // Batalkan push kalau komponen keburu unmount (pindah halaman)
-      return () => clearTimeout(timerId);
-    }
+    const mulaiMengamati = () => {
+      const el = insRef.current || boxRef.current;
+      if (!el) return;
+
+      // 1. Pantau perubahan ukuran
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => cobaPush());
+        resizeObserver.observe(el);
+      }
+
+      // 2. Pantau saat slot masuk ke layar
+      if (typeof IntersectionObserver !== 'undefined') {
+        intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) cobaPush();
+          },
+          { rootMargin: '200px' }
+        );
+        intersectionObserver.observe(el);
+      }
+
+      // 3. Coba sekali langsung, siapa tahu sudah siap
+      cobaPush();
+
+      // 4. Jaring pengaman untuk browser tanpa observer
+      if (
+        typeof ResizeObserver === 'undefined' ||
+        typeof IntersectionObserver === 'undefined'
+      ) {
+        timerCoba = setInterval(cobaPush, 500);
+      }
+
+      // 5. Kalau 10 detik tetap nol, berhenti diam-diam tanpa galat
+      timerMenyerah = setTimeout(() => {
+        if (!isPushed.current) bersihkan();
+      }, 10000);
+    };
+
+    // Tunggu satu frame agar tata letak selesai dihitung browser
+    const raf = requestAnimationFrame(mulaiMengamati);
+
+    return () => {
+      dibatalkan = true;
+      cancelAnimationFrame(raf);
+      bersihkan();
+      if (timerCoba) clearInterval(timerCoba);
+    };
   }, [activeMode]);
 
   // Hapus shimmer saat gambar sudah load (untuk mode image)
@@ -46,7 +148,7 @@ const AdSlot = ({
     }
   };
 
-  const sizeLabel = type === 'horizontal' ? '728 × 90' : '160 × 250';
+  const sizeLabel = type === 'horizontal' ? '728 \u00d7 90' : '160 \u00d7 250';
 
   // ── 1. Tampilan Placeholder (Otomatis saat di Localhost) ──
   if (activeMode === 'placeholder') {
@@ -79,14 +181,20 @@ const AdSlot = ({
   // ── 3. Tampilan Google AdSense ──
   if (activeMode === 'adsense') {
     return (
-      // Paksa ukuran minimum secara inline agar lebarnya tidak terdeteksi 0
-      <div 
-        className={`ad-slot-box ${type} ad-adsense`} 
-        style={{ width: '100%', minWidth: '200px', minHeight: '50px', overflow: 'hidden' }}
+      <div
+        ref={boxRef}
+        className={`ad-slot-box ${type} ad-adsense`}
+        style={{
+          width: '100%',
+          minWidth: '250px',
+          minHeight: '90px',
+          overflow: 'hidden',
+        }}
       >
         <ins
+          ref={insRef}
           className="adsbygoogle"
-          style={{ display: 'block' }}
+          style={{ display: 'block', width: '100%', minWidth: '250px' }}
           data-ad-client={adClient}
           data-ad-slot={adSlot}
           data-ad-format="auto"

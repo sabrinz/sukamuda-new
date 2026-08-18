@@ -487,14 +487,7 @@ html, body {
   margin-bottom: 0;
 }
 
-/* ★ FIX GAP ANTAR PARAGRAF (BERLAKU DESKTOP & MOBILE)
-   Editor artikel (Quill) sering menyisipkan paragraf kosong <p><br></p>
-   setiap kali user menekan Enter dua kali. Paragraf kosong ini ikut kena
-   line-height 1.7 dari .text-render p, sehingga terlihat seperti jarak
-   antar paragraf yang sangat lebar. Rule di bawah ini "meniadakan"
-   paragraf kosong tersebut supaya jarak antar paragraf jadi rapat &
-   konsisten sesuai margin-bottom: 16px di atas. Karena rule ini ada di
-   luar media query, otomatis berlaku juga di layar mobile. */
+/* ★ FIX GAP ANTAR PARAGRAF (BERLAKU DESKTOP & MOBILE) */
 .text-render p:empty,
 .text-render p:has(> br:only-child) {
   margin: 0 !important;
@@ -601,9 +594,9 @@ html, body {
 }
 
 /* ==================== CUSTOM IMAGE & CAPTION (UNTUK HALAMAN DETAIL ARTIKEL) ==================== */
+/* CSS LAMA YANG BIKIN TENGAH DIBUANG TOTAL */
 .ql-image-caption {
-  text-align: center !important;
-  margin: 24px auto !important;
+  margin: 24px 0 !important;
   display: block !important;
   width: 100%;
 }
@@ -612,9 +605,7 @@ html, body {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
-  display: inline-block !important;
-  margin: 0 auto !important;
-  float: none !important;
+  display: block;
 }
 
 .ql-image-caption figcaption {
@@ -622,17 +613,9 @@ html, body {
   font-size: 13px;
   font-style: italic;
   color: #666c79;
-  margin-top: -6px !important;
+  margin-top: 8px !important;
   line-height: 1.5;
   display: block !important;
-  text-align: center !important;
-}
-
-.ql-editor figure.ql-image-caption.ql-align-right,
-.ql-editor figure.ql-image-caption.ql-align-left,
-figure.ql-image-caption.ql-align-right,
-figure.ql-image-caption.ql-align-left {
-  text-align: center !important;
 }
 
 /* ==================== TAGS ==================== */
@@ -1401,10 +1384,6 @@ figure.ql-image-caption.ql-align-left {
     text-align: left !important;
   }
 
-  /* ★ DIHAPUS: override margin-bottom: -5px yang bikin jarak paragraf
-     beda dari desktop. Sekarang mobile ikut rule dasar .text-render p
-     (margin: 0 0 16px) di atas, sama seperti desktop. */
-
   .text-render h2 {
     font-size: 20px;
     margin: 22px 0 10px;
@@ -1618,9 +1597,6 @@ figure.ql-image-caption.ql-align-left {
     line-height: 1.7;
   }
 
-  /* ★ DIHAPUS: override margin-bottom: 4px, sekarang ikut rule dasar
-     .text-render p (margin: 0 0 16px), sama seperti desktop. */
-
   .text-render h2 {
     margin: 18px 0 8px;
     font-size: 18px;
@@ -1676,4 +1652,15 @@ figure.ql-image-caption.ql-align-left {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Profesi + asal sekolah/kampus di kartu bio penulis */
+.author-bio-profession {
+  display: block;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12.5px;
+  color: #777;
+  margin: 0 0 6px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }

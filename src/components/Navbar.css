@@ -1456,3 +1456,20 @@ button.search-icon:hover {
     transition: none !important;
   }
 }
+
+/* Menghilangkan secara paksa semua outline dan ring fokus/klik di Navbar & Sidebar */
+.navbar-container button,
+.navbar-container button:focus,
+.navbar-container button:active,
+.navbar-container button:focus-visible,
+.sidebar-container button,
+.sidebar-container button:focus,
+.sidebar-container button:active,
+.sidebar-container button:focus-visible,
+.nav-item,
+.nav-item:focus,
+.nav-item:active {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}

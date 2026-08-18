@@ -36,6 +36,13 @@ const Privacy = () => {
   return (
     <div className="tr-root">
       <Helmet>
+        {/* Script Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
+          crossOrigin="anonymous"
+        ></script>
+
         <title>Kebijakan Privasi - Sukamuda</title>
 
         <link

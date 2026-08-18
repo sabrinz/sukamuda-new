@@ -13,6 +13,29 @@ const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
 
 const normalizeCategory = (value) => (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '');
 
+const getInstitutionName = (user) => {
+  if (!user) return '';
+  const raw =
+    user.schoolName || user.school_name ||
+    user.campusName || user.campus_name || user.campus ||
+    user.asalKampus || user.asal_kampus ||
+    user.asalSekolah || user.asal_sekolah ||
+    user.university || user.universitas ||
+    user.institution || user.instansi || '';
+  return raw.toString().trim();
+};
+
+const getAuthorProfession = (user) => (user?.profession || user?.profesi || '').toString().trim();
+
+const getAuthorMeta = (user) => {
+  const profession = getAuthorProfession(user);
+  const institution = getInstitutionName(user);
+  if (!profession && !institution) return '';
+  if (!institution) return profession;
+  if (!profession) return institution;
+  return `${profession} \u00b7 ${institution}`;
+};
+
 const PARAGRAPHS_PER_LOAD = 20;
 
 const cleanSlugFromTimestamp = (slug) => {
@@ -81,7 +104,6 @@ const getYoutubeEmbedUrl = (url) => {
     const parsed = new URL(normalized);
     const host = parsed.hostname.toLowerCase();
     let videoId = '';
-
     if (host.includes('youtu.be')) {
       videoId = parsed.pathname.slice(1);
     } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
@@ -98,7 +120,6 @@ const getYoutubeEmbedUrl = (url) => {
         videoId = parts[parts.length - 1] || '';
       }
     }
-
     return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
   } catch {
     return '';
@@ -112,7 +133,6 @@ const getYoutubeThumbnailUrl = (url) => {
     const parsed = new URL(normalized);
     const host = parsed.hostname.toLowerCase();
     let videoId = '';
-
     if (host.includes('youtu.be')) {
       videoId = parsed.pathname.slice(1);
     } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
@@ -129,7 +149,6 @@ const getYoutubeThumbnailUrl = (url) => {
         videoId = parts[parts.length - 1] || '';
       }
     }
-
     return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
   } catch {
     return '';
@@ -138,24 +157,21 @@ const getYoutubeThumbnailUrl = (url) => {
 
 const StableHtmlRenderer = React.memo(({ html, className }) => {
   const ref = useRef(null);
-
   useEffect(() => {
-    const clean = DOMPurify.sanitize(html || "");
+    // Tambahkan 'style' dan 'target' agar tidak dibuang oleh DOMPurify
+    const clean = DOMPurify.sanitize(html || "", { ADD_ATTR: ["style", "target"] });
     if (ref.current && ref.current.innerHTML !== clean) {
       ref.current.innerHTML = clean;
     }
   }, [html]);
-
   return <div className={className} ref={ref} />;
 });
-
 StableHtmlRenderer.displayName = "StableHtmlRenderer";
 
 const ArticleDetail = () => {
   const { slug: rawSlug } = useParams();
   const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
-
   const slug = cleanSlugFromTimestamp(rawSlug);
 
   const [article, setArticle] = useState(null);
@@ -173,9 +189,7 @@ const ArticleDetail = () => {
   const [isReporting, setIsReporting] = useState(false);
   const [hasAwardedRead, setHasAwardedRead] = useState(false);
   const hasAwardedReadRef = useRef(false);
-
   const [visibleParagraphs, setVisibleParagraphs] = useState(PARAGRAPHS_PER_LOAD);
-
   const contentRef = useRef(null);
 
   const shareUrl = useMemo(() => {
@@ -200,8 +214,8 @@ const ArticleDetail = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  // ✅ Cari artikel dari list dulu
-    const articleFromList = useMemo(() => {
+  // Cari artikel dari list dulu
+  const articleFromList = useMemo(() => {
     if (!slug || !allArticles.length) return null;
     const safeSlug = String(slug).toLowerCase();
     return allArticles.find((item) => {
@@ -211,34 +225,75 @@ const ArticleDetail = () => {
     }) || null;
   }, [slug, allArticles]);
 
-// Ambil detail artikel langsung berdasarkan slug
-const { data: articleDetail } = useQuery({
-  queryKey: ['article', slug],
-  queryFn: async () => {
-    const res = await axios.get(`/api/articles/${slug}`);
-    return res.data.data;
-  },
-  enabled: !!slug,
-});
+  // Ambil detail artikel langsung berdasarkan slug
+  const { data: articleDetail } = useQuery({
+    queryKey: ['article', slug],
+    queryFn: async () => {
+      const res = await axios.get(`/api/articles/${slug}`);
+      return res.data.data;
+    },
+    enabled: !!slug,
+  });
 
-useEffect(() => {
-  const source = articleFromList || articleDetail;
+  useEffect(() => {
+    // Gabungkan data list + detail. Data detail lebih lengkap (views, tags,
+    // status, profesi penulis) sehingga menimpa data ringkas dari list.
+    const source = (articleFromList || articleDetail)
+      ? { ...(articleFromList || {}), ...(articleDetail || {}) }
+      : null;
+    setArticle(source);
+    if (source) {
+      setLikeCount(source.likes_count || 0);
+      setIsLiked(source.is_liked_by_user || false);
+      setIsBookmarked(source.is_bookmarked_by_user || false);
+      setViewCount(source.views_count || source.views || 0);
+    }
+    setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
+    setHasAwardedRead(false);
+    hasAwardedReadRef.current = false;
+    window.scrollTo(0, 0);
+  }, [slug, articleFromList, articleDetail]);
 
-  setArticle(source);
+  // Fallback: kalau data profesi/asal kampus tidak ikut di payload artikel,
+  // ambil langsung dari profil penulis.
+  const authorId = article?.user?.id;
+  const authorMetaMissing =
+    !!authorId && !getAuthorProfession(article?.user) && !getInstitutionName(article?.user);
 
-  if (source) {
-    setLikeCount(source.likes_count || 0);
-    setIsLiked(source.is_liked_by_user || false);
-    setIsBookmarked(source.is_bookmarked_by_user || false);
-    setViewCount(source.views_count || source.views || 0);
-  }
+  const { data: authorDetail } = useQuery({
+    queryKey: ['authorProfile', authorId],
+    queryFn: async () => {
+      const endpoints = [
+        `/api/users/${authorId}`,
+        `/api/user/${authorId}`,
+        `/api/profile/${authorId}`,
+        `/api/users/${authorId}/profile`,
+      ];
+      for (const endpoint of endpoints) {
+        try {
+          const res = await axios.get(endpoint);
+          const payload = res?.data?.data || res?.data?.user || res?.data;
+          if (payload && (getAuthorProfession(payload) || getInstitutionName(payload))) {
+            return payload;
+          }
+        } catch {
+          // coba endpoint berikutnya
+        }
+      }
+      return null;
+    },
+    enabled: authorMetaMissing,
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+  });
 
-  setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
-  setHasAwardedRead(false);
-  hasAwardedReadRef.current = false;
-  window.scrollTo(0, 0);
+  const authorUser = useMemo(
+    () => ({ ...(article?.user || {}), ...(authorDetail || {}) }),
+    [article?.user, authorDetail]
+  );
 
-}, [slug, articleFromList, articleDetail]);
+  const authorMetaText = getAuthorMeta(authorUser);
+
   const awardReadPoint = async () => {
     if (hasAwardedReadRef.current || !article?.id) return;
     hasAwardedReadRef.current = true;
@@ -369,25 +424,36 @@ useEffect(() => {
     );
   }
 
-  // PERBAIKAN: Cegah error jika slug kosong/invalid setelah dibersihkan
+  // Cegah error jika slug kosong/invalid setelah dibersihkan
   if (!slug || slug.length < 2) {
     return (
-      <div className="error-container">
-        <h2>Waduh!</h2>
-        <p>Link yang kamu buka tidak valid.</p>
-        <Link to="/">Balik ke Home</Link>
-      </div>
+      <>
+        <Helmet>
+          <title>Tautan Tidak Valid - SukaMuda</title>
+          <meta name="robots" content="noindex,follow" />
+        </Helmet>
+        <div className="error-container">
+          <h2>Waduh!</h2>
+          <p>Link yang kamu buka tidak valid.</p>
+          <Link to="/">Balik ke Home</Link>
+        </div>
+      </>
     );
   }
 
   if (!article) {
     return (
-      <div className="error-container">
-        <h2>Waduh!</h2>
-        <p>Artikelnya nggak ketemu.</p>
-        {/* PERBAIKAN: Hapus debug slug yang memperlihatkan rawSlug ke user */}
-        <Link to="/">Balik ke Home</Link>
-      </div>
+      <>
+        <Helmet>
+          <title>Artikel Tidak Ditemukan - SukaMuda</title>
+          <meta name="robots" content="noindex,follow" />
+        </Helmet>
+        <div className="error-container">
+          <h2>Waduh!</h2>
+          <p>Artikelnya nggak ketemu.</p>
+          <Link to="/">Balik ke Home</Link>
+        </div>
+      </>
     );
   }
 
@@ -406,12 +472,14 @@ useEffect(() => {
   const spotifyEmbedUrl = article.audio_link ? getSpotifyEmbedUrl(article.audio_link) : '';
   const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : '';
   const showPodcastEmbed = isPodcast && (spotifyEmbedUrl || youtubeEmbedUrl);
-
   const youtubeThumbnail = isPodcast && article.video_link ? getYoutubeThumbnailUrl(article.video_link) : '';
 
   const imageUrl = article.image
     ? (article.image.startsWith("http") ? article.image : `${baseUrl}/storage/${article.image}`)
     : (youtubeThumbnail || `https://placehold.co/1200x600/1a1a1a/ffffff?text=${encodeURIComponent(categoryLabel || 'Artikel')}`);
+
+  // Gambar untuk schema & berbagi: jangan pakai placeholder eksternal
+  const schemaImage = (article.image || youtubeThumbnail) ? imageUrl : `${baseUrl}/sukamuda-share.jpg`;
 
   const fallbackPlaceholder = `https://placehold.co/1200x600/1a1a1a/ffffff?text=${encodeURIComponent(categoryLabel || 'Artikel')}`;
 
@@ -423,6 +491,7 @@ useEffect(() => {
 
   const authorProfileUrl = article.user?.id ? `/user/${article.user.id}` : '/';
   const isDraft = article.status === "draft";
+
   const encodedTitle = encodeURIComponent(article.title || '');
   const encodedUrl = encodeURIComponent(shareUrl);
 
@@ -436,10 +505,88 @@ useEffect(() => {
     });
   };
 
+  /* ------------------------------------------------------------------
+   * JSON-LD
+   * Disiapkan sebagai STRING, lalu dikirim lewat prop `script` milik
+   * Helmet. Cara ini memaksa tag masuk ke <head>, bukan ke <body>.
+   * ------------------------------------------------------------------ */
+  const newsArticleLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    mainEntityOfPage: { "@type": "WebPage", "@id": shareUrl },
+    headline: article.title,
+    description: article.summary || article.title,
+    image: [schemaImage],
+    datePublished: article.created_at,
+    dateModified: article.updated_at || article.created_at,
+    articleSection: categoryLabel,
+    keywords: tagsArray.join(", "),
+    inLanguage: "id-ID",
+    isAccessibleForFree: true,
+    author: {
+      "@type": "Person",
+      name: article.user?.name || "Redaksi SukaMuda",
+      url: article.user?.id ? `${baseUrl}/user/${article.user.id}` : baseUrl,
+      ...(getAuthorProfession(authorUser) ? { jobTitle: getAuthorProfession(authorUser) } : {}),
+      ...(getInstitutionName(authorUser)
+        ? { affiliation: { "@type": "Organization", name: getInstitutionName(authorUser) } }
+        : {}),
+    },
+    publisher: {
+      "@type": "NewsMediaOrganization",
+      name: "SukaMuda",
+      url: baseUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: `${baseUrl}/logo.png`,
+        width: 512,
+        height: 512,
+      },
+    },
+    ...(isPodcast && article.video_link
+      ? {
+          video: {
+            "@type": "VideoObject",
+            name: article.title,
+            description: article.summary || article.title,
+            thumbnailUrl: schemaImage,
+            uploadDate: article.created_at,
+            embedUrl: youtubeEmbedUrl || article.video_link,
+          },
+        }
+      : {}),
+  });
+
+  const breadcrumbLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Beranda", item: baseUrl },
+      { "@type": "ListItem", position: 2, name: categoryLabel, item: `${baseUrl}/category/${article.category}` },
+      { "@type": "ListItem", position: 3, name: article.title, item: shareUrl },
+    ],
+  });
+
   return (
     <>
-      <Helmet>
+      <Helmet
+        script={[
+          { type: "application/ld+json", innerHTML: newsArticleLd },
+          { type: "application/ld+json", innerHTML: breadcrumbLd },
+        ]}
+      >
+        {/* Script Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
+          crossOrigin="anonymous"
+        ></script>
+
         <title>{`${article.title} - SukaMuda`}</title>
+        <meta
+          name="robots"
+          content={isDraft ? "noindex,follow" : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"}
+        />
         <meta name="description" content={article.summary || article.title} />
         <link rel="canonical" href={shareUrl} />
 
@@ -448,7 +595,12 @@ useEffect(() => {
         <meta property="og:type" content="article" />
         <meta property="og:title" content={article.title} />
         <meta property="og:description" content={article.summary || article.title} />
-        <meta property="og:image" content={imageUrl} />
+        <meta property="og:image" content={schemaImage} />
+        <meta property="og:image:secure_url" content={schemaImage} />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={article.title} />
         <meta property="og:url" content={shareUrl} />
         <meta property="og:locale" content="id_ID" />
         <meta property="article:published_time" content={article.created_at} />
@@ -462,63 +614,12 @@ useEffect(() => {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={article.title} />
         <meta name="twitter:description" content={article.summary || article.title} />
-        <meta name="twitter:image" content={imageUrl} />
-
-        {/* JSON-LD: NewsArticle (author Person + publisher Organization + VideoObject utk podcast) */}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "NewsArticle",
-            mainEntityOfPage: { "@type": "WebPage", "@id": shareUrl },
-            headline: article.title,
-            description: article.summary || article.title,
-            image: [imageUrl],
-            datePublished: article.created_at,
-            dateModified: article.updated_at || article.created_at,
-            articleSection: categoryLabel,
-            keywords: tagsArray.join(", "),
-            inLanguage: "id-ID",
-            author: {
-              "@type": "Person",
-              name: article.user?.name || "Redaksi SukaMuda",
-              url: article.user?.id ? `${baseUrl}/user/${article.user.id}` : baseUrl,
-            },
-            publisher: {
-              "@type": "Organization",
-              name: "SukaMuda",
-              url: baseUrl,
-              logo: { "@type": "ImageObject", url: `${baseUrl}/logo.png` },
-            },
-            ...(isPodcast && article.video_link
-              ? {
-                  video: {
-                    "@type": "VideoObject",
-                    name: article.title,
-                    description: article.summary || article.title,
-                    thumbnailUrl: imageUrl,
-                    uploadDate: article.created_at,
-                    embedUrl: youtubeEmbedUrl || article.video_link,
-                  },
-                }
-              : {}),
-          })}
-        </script>
-
-        {/* JSON-LD: BreadcrumbList */}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Beranda", item: baseUrl },
-              { "@type": "ListItem", position: 2, name: categoryLabel, item: `${baseUrl}/category/${article.category}` },
-              { "@type": "ListItem", position: 3, name: article.title, item: shareUrl },
-            ],
-          })}
-        </script>
+        <meta name="twitter:image" content={schemaImage} />
+        <meta name="twitter:image:alt" content={article.title} />
       </Helmet>
 
       <div className="reading-progress-bar" style={{ width: `${readProgress}%` }} />
+
       <button
         className={`back-to-top ${showBackTop ? "visible" : ""}`}
         onClick={scrollToTop}
@@ -530,7 +631,6 @@ useEffect(() => {
       </button>
 
       <div className="article-layout-wrapper">
-
         <div className="ad-sidebar ad-sidebar-left">
           <div className="ad-sidebar-sticky">
             <AdSlot
@@ -543,7 +643,6 @@ useEffect(() => {
         </div>
 
         <div className="article-main-content">
-
           <div className="ad-center">
             <AdSlot
               type="horizontal"
@@ -590,6 +689,7 @@ useEffect(() => {
               </div>
 
               <h1 className="article-title">{article.title}</h1>
+
               {article.summary && <p className="article-summary">"{article.summary}"</p>}
 
               <div className="author-meta">
@@ -610,13 +710,8 @@ useEffect(() => {
                   <Link to={authorProfileUrl} className="author-name-link">
                     <span className="author-name">{article.user?.name || "Anonim"}</span>
                   </Link>
-                  {article.user?.profession && (
-                    <span className="author-profession">
-                      {article.user.profession}
-                      {['Pelajar', 'Mahasiswa', 'Pelajar/Mahasiswa'].includes(article.user.profession) && (article.user?.schoolName || article.user?.school_name)
-                        ? ` · ${article.user.schoolName || article.user.school_name}`
-                        : ''}
-                    </span>
+                  {authorMetaText && (
+                    <span className="author-profession">{authorMetaText}</span>
                   )}
                   <div className="meta-bottom">
                     <span className="publish-date">
@@ -772,6 +867,7 @@ useEffect(() => {
                         <span>{showReportForm ? 'Tutup Laporan' : 'Laporkan'}</span>
                       </button>
                     </div>
+
                     <div className="share-row">
                       <span className="share-label">Bagikan:</span>
                       <button onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`, "_blank")} className="soc-btn wa" title="WhatsApp">
@@ -856,6 +952,9 @@ useEffect(() => {
                           {article.user.name}
                         </Link>
                       </h4>
+                      {authorMetaText && (
+                        <span className="author-bio-profession">{authorMetaText}</span>
+                      )}
                       {article.user.bio && <p>{article.user.bio}</p>}
                     </div>
                   </div>
@@ -910,7 +1009,6 @@ useEffect(() => {
               </section>
             )}
           </div>
-
         </div>
 
         <div className="ad-sidebar ad-sidebar-right">
@@ -923,7 +1021,6 @@ useEffect(() => {
             />
           </div>
         </div>
-
       </div>
 
       <div className="ad-before-footer">

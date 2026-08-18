@@ -76,6 +76,7 @@
   width: 100%;
   box-sizing: border-box;
   transition: all 0.2s ease;
+  text-align: left !important;
 }
 
 .form-input:focus {
@@ -175,22 +176,6 @@ input[type="file"].form-input:focus {
   flex-wrap: wrap;
 }
 
-.related-button {
-  background: #1e76d0;
-  color: #000000;
-  border: none;
-  border-radius: 10px;
-  padding: 8px 19px;
-  font-size: 10px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.related-button:hover {
-  background: #155a9d;
-}
-
 .editor-body {
   background: white;
   min-height: 280px;
@@ -242,24 +227,82 @@ input[type="file"].form-input:focus {
   padding: 0 8px !important;
 }
 
-/* ================= ALIGNMENT GAMBAR DI EDITOR ================= */
-/* Supaya posisi gambar keliatan benar saat nulis di Quill */
-.menulis-form-page .ql-editor .ql-align-center {
-  text-align: center;
-}
-.menulis-form-page .ql-editor .ql-align-center img {
-  display: inline-block;
-  margin-left: auto;
-  margin-right: auto;
+/* ================= TOMBOL CUSTOM (- IMG, + IMG, + BACA JUGA) ================= */
+.menulis-form-page .ql-toolbar button.ql-imageSmaller,
+.menulis-form-page .ql-toolbar button.ql-imageLarger {
+  width: auto !important; 
+  padding: 0 4px !important; 
+  font-size: 11px !important; 
+  font-weight: 800 !important; 
+  color: #444 !important;
+  white-space: nowrap !important;
 }
 
-.menulis-form-page .ql-editor .ql-align-right {
-  text-align: right;
+.menulis-form-page .ql-toolbar button.related-button {
+  width: 32px !important; 
+  height: 34px !important;
+  padding: 0 !important;
+  background: transparent !important; 
+  border: none !important; 
+  border-radius: 8px !important;
+  font-size: 8px !important; 
+  font-weight: 800 !important; 
+  line-height: 1.1 !important; 
+  color: #444 !important;
+  display: flex !important;
+  flex-direction: column !important; 
+  justify-content: center !important;
+  align-items: center !important;
+  white-space: normal !important; 
+  text-align: center !important;
+  cursor: pointer;
 }
-.menulis-form-page .ql-editor .ql-align-right img {
-  display: inline-block;
-  margin-left: auto;
-  margin-right: 0;
+
+.menulis-form-page .ql-toolbar button.ql-imageSmaller:hover,
+.menulis-form-page .ql-toolbar button.ql-imageLarger:hover,
+.menulis-form-page .ql-toolbar button.related-button:hover {
+  background: #e9ecef !important;
+}
+
+/* ================= FIX ALIGNMENT GAMBAR & CAPTION ================= */
+.menulis-form-page .ql-editor .ql-image-caption {
+  margin: 24px 0;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.menulis-form-page .ql-editor .ql-image-caption img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 0;
+}
+
+/* Caption mengikuti align parent (flex-start/center/flex-end) */
+.menulis-form-page .ql-editor .ql-image-caption figcaption {
+  font-family: inherit;
+  font-size: 13px;
+  font-style: italic;
+  color: #6B7280;
+  margin-top: 4px; 
+  line-height: 1.5;
+  display: block;
+}
+
+/* Penyelaras alignment */
+.menulis-form-page .ql-editor .ql-image-caption[style*="align-items: flex-start"] figcaption {
+    text-align: left !important;
+}
+.menulis-form-page .ql-editor .ql-image-caption[style*="align-items: flex-end"] figcaption {
+    text-align: right !important;
+}
+.menulis-form-page .ql-editor .ql-image-caption[style*="align-items: center"] figcaption {
+    text-align: center !important;
+}
+
+.menulis-form-page .ql-editor figure {
+  clear: both;
 }
 
 /* ================= ACTION BUTTONS ================= */
@@ -302,40 +345,9 @@ input[type="file"].form-input:focus {
   box-shadow: 0 2px 4px rgba(30, 118, 208, 0.2);
 }
 
-.btn-submit:hover {
+.btn-submit-write:hover {
   background: #1662ad;
   box-shadow: 0 4px 8px rgba(30, 118, 208, 0.3);
-}
-
-.form-input-icon {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 0 16px;
-  height: 44px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.form-input-no-border {
-  border: none !important;
-  background: transparent !important;
-  flex: 1;
-  height: 100%;
-  font-size: 16px;
-  outline: none;
-  color: black;
-  padding: 0;
-}
-
-.link-icon-svg {
-  width: 20px;
-  height: 20px;
-  color: #333;
-  flex-shrink: 0;
 }
 
 /* ================= MODAL POPUP ================= */
@@ -421,6 +433,7 @@ input[type="file"].form-input:focus {
   background: #1662ad;
 }
 
+/* ================= RELATED MODAL (BACA JUGA) ================= */
 .related-modal-container {
   background: #ffffff;
   border-radius: 18px;
@@ -473,7 +486,10 @@ input[type="file"].form-input:focus {
 
 /* ================= THUMBNAIL UPLOAD ================= */
 .hidden-file-input {
-  display: none;
+  display: none !important;
+  position: absolute;
+  opacity: 0;
+  z-index: -1;
 }
 
 .thumbnail-upload-row {
@@ -545,111 +561,4 @@ input[type="file"].form-input:focus {
 
 .remove-thumbnail-btn:hover {
   background: rgba(255, 0, 0, 0.8);
-}
-
-/* ================= CUSTOM IMAGE BLOT & CAPTION (DIPERBARUI) ================= */
-/* Memaksa figure selalu rata tengah dan memblokir efek rata kiri/kanan dari Quill */
-.menulis-form-page .ql-editor .ql-image-caption {
-  text-align: center !important;
-  margin: 24px auto !important;
-  display: block !important;
-}
-
-.ql-image-caption img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  display: inline-block; /* Agar terpengaruh text-align: center dari parent */
-  margin: 0;
-}
-
-.ql-image-caption figcaption {
-  font-family: inherit;
-  font-size: 13px;
-  font-style: italic;
-  color: #6B7280;
-  margin-top: 4px; /* Dikecilkan agar tulisan lebih mepet/dempet ke gambar */
-  line-height: 1.5;
-  display: block;
-  text-align: center !important; /* Memaksa teks selalu di tengah */
-}
-
-/* Memastikan elemen figure tidak merusak layout list/paragraf Quill */
-.menulis-form-page .ql-editor figure {
-  clear: both;
-}
-
-/* ================= RESPONSIVE ================= */
-@media (max-width: 768px) {
-  .menulis-form-page .content {
-    padding: 20px 16px 80px;
-  }
-
-  .write-form {
-    padding: 24px 20px;
-    border-radius: 12px;
-    gap: 20px;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .form-label {
-    font-size: 12px;
-    padding-top: 0;
-    margin-bottom: 2px;
-  }
-
-  .error-text {
-    grid-column: 1;
-    margin-top: 2px;
-  }
-
-  .error-text-img {
-    grid-column: 1;
-  }
-
-  .form-select {
-    max-width: 100%;
-  }
-
-  .form-row-thumbnail {
-    grid-template-columns: 1fr;
-  }
-
-  .thumbnail-dropzone {
-    min-height: 180px;
-  }
-
-  .preview-container {
-    height: 180px;
-  }
-
-  .form-actions {
-    flex-direction: column-reverse;
-    gap: 10px;
-  }
-
-  .btn-draft,
-  .btn-submit {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .modal-container {
-    padding: 30px 24px;
-    margin: 0 16px;
-  }
-
-  .modal-buttons {
-    flex-direction: column;
-  }
-
-  .btn-batal,
-  .btn-konfirmasi {
-    width: 100%;
-    justify-content: center;
-  }
 }

@@ -55,6 +55,12 @@ const Navbar = () => {
   const openSidebar = () => setIsSidebarOpen(true);
   const closeSidebar = () => setIsSidebarOpen(false);
 
+  // Fungsi helper untuk navigasi sekaligus menutup sidebar
+  const handleMenuNavigation = (path) => {
+    navigate(path);
+    closeSidebar();
+  };
+
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
@@ -71,8 +77,6 @@ const Navbar = () => {
     navigate(`/category/${slug}`);
     setActiveDropdown(null);
   };
-
-  const navigateMenu = (path) => navigate(path);
 
   const getInitials = (name) => {
     if (!name) return "?";
@@ -316,13 +320,13 @@ const Navbar = () => {
               <div className="profile-avatar-inner">
                 {user?.avatar || user?.profile_photo_url ? (
                   <img 
-  src={user.avatar || user.profile_photo_url} 
-  alt={user?.name ? `Foto profil ${user.name}` : 'Foto profil'} 
-  className="profile-avatar-img" 
-  decoding="async"
-  width="80" 
-  height="80" 
-/>
+                    src={user.avatar || user.profile_photo_url} 
+                    alt={user?.name ? `Foto profil ${user.name}` : 'Foto profil'} 
+                    className="profile-avatar-img" 
+                    decoding="async"
+                    width="80" 
+                    height="80" 
+                  />
                 ) : (
                   <span className="profile-avatar-initials">{getInitials(user?.name)}</span>
                 )}
@@ -351,7 +355,7 @@ const Navbar = () => {
                   <button
                     type="button"
                     className="sidebar-menu-item admin-special"
-                    onClick={() => navigateMenu('/admin')}
+                    onClick={() => handleMenuNavigation('/admin')}
                   >
                     <span className="menu-item-icon"><IoTrophyOutline aria-hidden="true" /></span>
                     <span className="menu-item-text">Dashboard Admin</span>
@@ -361,7 +365,7 @@ const Navbar = () => {
               )}
 
               <li>
-                <button type="button" className="sidebar-menu-item" onClick={() => navigateMenu('/profile')}>
+                <button type="button" className="sidebar-menu-item" onClick={() => handleMenuNavigation('/profile')}>
                   <span className="menu-item-icon"><IoPersonOutline aria-hidden="true" /></span>
                   <span className="menu-item-text">Profil Saya</span>
                   <span className="menu-item-arrow" aria-hidden="true">›</span>
@@ -369,7 +373,7 @@ const Navbar = () => {
               </li>
 
               <li>
-                <button type="button" className="sidebar-menu-item" onClick={() => navigateMenu('/about')}>
+                <button type="button" className="sidebar-menu-item" onClick={() => handleMenuNavigation('/about')}>
                   <span className="menu-item-icon"><IoInformationCircleOutline aria-hidden="true" /></span>
                   <span className="menu-item-text">About</span>
                   <span className="menu-item-arrow" aria-hidden="true">›</span>
@@ -377,7 +381,7 @@ const Navbar = () => {
               </li>
 
               <li>
-                <button type="button" className="sidebar-menu-item" onClick={() => navigateMenu('/terms')}>
+                <button type="button" className="sidebar-menu-item" onClick={() => handleMenuNavigation('/terms')}>
                   <span className="menu-item-icon"><IoDocumentTextOutline aria-hidden="true" /></span>
                   <span className="menu-item-text">Syarat & Ketentuan</span>
                   <span className="menu-item-arrow" aria-hidden="true">›</span>
@@ -385,7 +389,7 @@ const Navbar = () => {
               </li>
 
               <li>
-                <button type="button" className="sidebar-menu-item" onClick={() => navigateMenu('/rules')}>
+                <button type="button" className="sidebar-menu-item" onClick={() => handleMenuNavigation('/rules')}>
                   <span className="menu-item-icon"><IoShieldCheckmarkOutline aria-hidden="true" /></span>
                   <span className="menu-item-text">Privacy & Policy</span>
                   <span className="menu-item-arrow" aria-hidden="true">›</span>
@@ -393,7 +397,7 @@ const Navbar = () => {
               </li>
 
               <li>
-                <button type="button" className="sidebar-menu-item" onClick={() => navigateMenu('/help')}>
+                <button type="button" className="sidebar-menu-item" onClick={() => handleMenuNavigation('/help')}>
                   <span className="menu-item-icon"><IoHelpCircleOutline aria-hidden="true" /></span>
                   <span className="menu-item-text">Bantuan</span>
                   <span className="menu-item-arrow" aria-hidden="true">›</span>
