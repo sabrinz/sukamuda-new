@@ -59,7 +59,13 @@ html, body {
 
 .error-container h2 { font-size: 24px; margin: 0; color: #222; }
 .error-container p { color: #777; margin: 0; font-size: 15px; }
-.error-container a { color: black; font-weight: 600; text-decoration: none; margin-top: 8px; font-size: 15px; }
+.error-container a {
+  color: black;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 8px;
+  font-size: 15px;
+}
 
 /* ==================== READING PROGRESS BAR ==================== */
 .reading-progress-bar {
@@ -251,7 +257,11 @@ html, body {
   flex-shrink: 0;
 }
 
-.author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 .author-info {
   display: flex;
@@ -426,7 +436,10 @@ html, body {
   text-decoration: none;
 }
 
-.float-share-btn:hover { background: #f3f4f6; color: #d83a34; }
+.float-share-btn:hover {
+  background: #f3f4f6;
+  color: #d83a34;
+}
 
 .float-divider {
   width: 20px;
@@ -450,9 +463,22 @@ html, body {
   color: #92400e;
 }
 
-.draft-banner svg { flex-shrink: 0; margin-top: 2px; }
-.draft-banner strong { display: block; font-size: 14px; margin-bottom: 2px; }
-.draft-banner p { margin: 0; font-size: 13px; opacity: 0.8; }
+.draft-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.draft-banner strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.draft-banner p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
 
 /* ==================== CONTENT BODY & TIPOGRAFI ==================== */
 .content-body {
@@ -474,7 +500,7 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Paragraf normal — dipakai untuk DESKTOP & MOBILE (tidak ada lagi override khusus mobile) */
+/* Default teks mengikuti alignment yang dibuat dari Write/Quill */
 .text-render p {
   margin: 0 0 16px;
   line-height: 1.7;
@@ -487,7 +513,46 @@ html, body {
   margin-bottom: 0;
 }
 
-/* ★ FIX GAP ANTAR PARAGRAF (BERLAKU DESKTOP & MOBILE) */
+/* Default paragraf yang tidak memiliki alignment khusus = kiri */
+.text-render p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not([style*="text-align"]) {
+  text-align: left;
+}
+
+/* Alignment Quill */
+.text-render .ql-align-center {
+  text-align: center !important;
+}
+
+.text-render .ql-align-right {
+  text-align: right !important;
+}
+
+.text-render .ql-align-justify {
+  text-align: justify !important;
+}
+
+.text-render .ql-align-left {
+  text-align: left !important;
+}
+
+/* Alignment inline style dari editor */
+.text-render [style*="text-align: left"] {
+  text-align: left !important;
+}
+
+.text-render [style*="text-align: center"] {
+  text-align: center !important;
+}
+
+.text-render [style*="text-align: right"] {
+  text-align: right !important;
+}
+
+.text-render [style*="text-align: justify"] {
+  text-align: justify !important;
+}
+
+/* ★ FIX GAP ANTAR PARAGRAF */
 .text-render p:empty,
 .text-render p:has(> br:only-child) {
   margin: 0 !important;
@@ -506,11 +571,18 @@ html, body {
   overflow-wrap: break-word;
 }
 
-.text-render h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; }
-.text-render h3 { font-size: 20px; font-weight: 700; }
+.text-render h2 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.text-render h3 {
+  font-size: 20px;
+  font-weight: 700;
+}
 
 /* ==================== IMAGE ALIGNMENT (QUILL) ==================== */
-.text-render .ql-align-center { text-align: center; }
 .text-render .ql-align-center img {
   display: block;
   margin-left: auto;
@@ -518,7 +590,13 @@ html, body {
   max-width: 100%;
 }
 
-.text-render .ql-align-right { text-align: right; }
+.text-render .ql-align-left img {
+  display: block;
+  margin-left: 0;
+  margin-right: auto;
+  max-width: 100%;
+}
+
 .text-render .ql-align-right img {
   display: block;
   margin-left: auto;
@@ -526,7 +604,19 @@ html, body {
   max-width: 100%;
 }
 
-.text-render .ql-align-justify { text-align: justify; }
+.text-render .ql-align-justify img {
+  display: block;
+  margin-left: 0;
+  margin-right: auto;
+  max-width: 100%;
+}
+
+.text-render p[style*="text-align: left"] img {
+  display: block;
+  margin-left: 0;
+  margin-right: auto;
+  max-width: 100%;
+}
 
 .text-render p[style*="text-align: center"] img {
   display: block;
@@ -534,10 +624,18 @@ html, body {
   margin-right: auto;
   max-width: 100%;
 }
+
 .text-render p[style*="text-align: right"] img {
   display: block;
   margin-left: auto;
   margin-right: 0;
+  max-width: 100%;
+}
+
+.text-render p[style*="text-align: justify"] img {
+  display: block;
+  margin-left: 0;
+  margin-right: auto;
   max-width: 100%;
 }
 
@@ -557,7 +655,9 @@ html, body {
   word-break: break-all;
 }
 
-.text-render a:hover { text-decoration-thickness: 2px; }
+.text-render a:hover {
+  text-decoration-thickness: 2px;
+}
 
 .text-render blockquote {
   border-left: 4px solid #d83a34;
@@ -570,8 +670,16 @@ html, body {
 }
 
 .text-render ul,
-.text-render ol { margin: 0 0 22px 24px; padding: 0; }
-.text-render li { margin-bottom: 8px; word-break: break-word; }
+.text-render ol {
+  margin: 0 0 22px 24px;
+  padding: 0;
+}
+
+.text-render li {
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
 .text-render strong { color: #111; }
 
 .text-render figure {
@@ -593,8 +701,7 @@ html, body {
   overflow-wrap: break-word;
 }
 
-/* ==================== CUSTOM IMAGE & CAPTION (UNTUK HALAMAN DETAIL ARTIKEL) ==================== */
-/* CSS LAMA YANG BIKIN TENGAH DIBUANG TOTAL */
+/* ==================== CUSTOM IMAGE & CAPTION ==================== */
 .ql-image-caption {
   margin: 24px 0 !important;
   display: block !important;
@@ -643,7 +750,10 @@ html, body {
   white-space: nowrap;
 }
 
-.tag-chip:hover { background: #fee2e2; transform: translateY(-1px); }
+.tag-chip:hover {
+  background: #fee2e2;
+  transform: translateY(-1px);
+}
 
 /* ==================== INTERACTIONS SECTION ==================== */
 .interactions-section {
@@ -687,14 +797,28 @@ html, body {
 }
 
 .like-btn:hover { border-color: #d83a34; color: #d83a34; }
-.like-btn.active { border-color: #d83a34; color: #d83a34; background: #fef2f2; }
+.like-btn.active {
+  border-color: #d83a34;
+  color: #d83a34;
+  background: #fef2f2;
+}
+
 .bookmark-btn:hover { border-color: #f59e0b; color: #f59e0b; }
-.bookmark-btn.active { border-color: #f59e0b; color: #f59e0b; background: #fffbeb; }
+.bookmark-btn.active {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: #fffbeb;
+}
 
 .like-btn svg,
-.bookmark-btn svg { transition: transform 0.2s; }
+.bookmark-btn svg {
+  transition: transform 0.2s;
+}
+
 .like-btn:active svg,
-.bookmark-btn:active svg { transform: scale(1.25); }
+.bookmark-btn:active svg {
+  transform: scale(1.25);
+}
 
 .share-row {
   display: flex;
@@ -727,8 +851,13 @@ html, body {
   flex-shrink: 0;
 }
 
-.soc-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+.soc-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .soc-btn:active { transform: translateY(0); }
+
 .soc-btn.wa { background: #25d366; }
 .soc-btn.fb { background: #1877f2; }
 .soc-btn.x { background: #111; }
@@ -736,6 +865,7 @@ html, body {
 .soc-btn.li { background: #0a66c2; }
 .soc-btn.email { background: #6b7280; }
 .soc-btn.threads { background: #000; }
+
 .soc-btn.copy {
   background: #374151;
   width: auto;
@@ -775,16 +905,41 @@ html, body {
   overflow: hidden;
 }
 
-.author-bio-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.author-bio-info { min-width: 0; flex: 1; }
-.author-bio-info h4 { margin: 0 0 4px; font-family: system-ui, -apple-system, sans-serif; font-size: 15px; font-weight: 700; color: #111; }
-.author-bio-info p { margin: 0; font-family: system-ui, -apple-system, sans-serif; font-size: 13px; color: #777; line-height: 1.5; word-break: break-word; overflow-wrap: break-word; }
+.author-bio-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.author-bio-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.author-bio-info h4 {
+  margin: 0 0 4px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+}
+
+.author-bio-info p {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #777;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 
 .author-name-link {
   display: inline-block;
   color: #111;
   text-decoration: none;
 }
+
 .author-name-link:hover {
   color: #000;
   text-decoration: underline;
@@ -807,6 +962,7 @@ html, body {
   white-space: nowrap;
   flex-shrink: 0;
 }
+
 .report-btn:hover {
   transform: translateY(-1px);
   background: #f5f5f5;
@@ -863,14 +1019,23 @@ html, body {
   white-space: nowrap;
 }
 
-.submit-report-btn { color: #fff; background: #111; }
-.cancel-report-btn { background: #f3f4f6; color: #111; border: 1px solid #d1d5db; }
+.submit-report-btn {
+  color: #fff;
+  background: #111;
+}
+
+.cancel-report-btn {
+  background: #f3f4f6;
+  color: #111;
+  border: 1px solid #d1d5db;
+}
 
 .report-feedback {
   margin-top: 12px;
   font-size: 13px;
   word-break: break-word;
 }
+
 .report-feedback.success { color: #166534; }
 .report-feedback.error { color: #b91c1c; }
 
@@ -890,7 +1055,10 @@ html, body {
 }
 
 .discussion-sidebar::-webkit-scrollbar { width: 3px; }
-.discussion-sidebar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+.discussion-sidebar::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
 
 .sidebar-header {
   padding: 18px 20px 0;
@@ -933,7 +1101,11 @@ html, body {
   transition: all 0.2s;
 }
 
-.comment-sort button.active { background: #fff; color: #111; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+.comment-sort button.active {
+  background: #fff;
+  color: #111;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
 
 .comment-input-box {
   padding: 16px 20px;
@@ -962,7 +1134,11 @@ html, body {
   flex-shrink: 0;
 }
 
-.input-top span { font-size: 12px; font-weight: 600; color: #555; }
+.input-top span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
 
 .comment-input-box textarea {
   width: 100%;
@@ -993,7 +1169,10 @@ html, body {
   margin-top: 8px;
 }
 
-.char-count { font-size: 11px; color: #bbb; }
+.char-count {
+  font-size: 11px;
+  color: #bbb;
+}
 
 .comment-input-box button {
   padding: 8px 18px;
@@ -1013,7 +1192,10 @@ html, body {
 }
 
 .comment-input-box button:hover:not(:disabled) { background: #c22e28; }
-.comment-input-box button:disabled { background: #e0e0e0; cursor: not-allowed; }
+.comment-input-box button:disabled {
+  background: #e0e0e0;
+  cursor: not-allowed;
+}
 
 .login-prompt {
   margin: 16px 20px;
@@ -1025,8 +1207,19 @@ html, body {
 }
 
 .login-prompt svg { margin-bottom: 8px; }
-.login-prompt p { margin: 0; font-size: 13px; color: #666; }
-.login-prompt a { color: #d83a34; font-weight: 700; text-decoration: none; }
+
+.login-prompt p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.login-prompt a {
+  color: #d83a34;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .login-prompt a:hover { text-decoration: underline; }
 
 .comments-feed {
@@ -1038,8 +1231,16 @@ html, body {
   overflow-y: auto;
 }
 
-.no-comments { text-align: center; padding: 32px 16px; }
-.no-comments p { margin: 8px 0 0; font-size: 13px; color: #bbb; }
+.no-comments {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.no-comments p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #bbb;
+}
 
 .comment-bubble {
   background: #fff;
@@ -1050,7 +1251,9 @@ html, body {
   overflow: hidden;
 }
 
-.comment-bubble:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+.comment-bubble:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
 
 .comment-header {
   display: flex;
@@ -1081,8 +1284,19 @@ html, body {
   flex-shrink: 0;
 }
 
-.comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.comment-header strong { font-size: 13px; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comment-header strong {
+  font-size: 13px;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .btn-del {
   background: none;
@@ -1097,9 +1311,24 @@ html, body {
   flex-shrink: 0;
 }
 
-.btn-del:hover { color: #d83a34; background: #fef2f2; }
-.comment-bubble p { margin: 0 0 6px; font-size: 13px; color: #444; line-height: 1.55; word-break: break-word; overflow-wrap: break-word; }
-.comment-bubble small { color: #bbb; font-size: 11px; }
+.btn-del:hover {
+  color: #d83a34;
+  background: #fef2f2;
+}
+
+.comment-bubble p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.55;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.comment-bubble small {
+  color: #bbb;
+  font-size: 11px;
+}
 
 /* ==================== RELATED ARTICLES ==================== */
 .related-section-new {
@@ -1216,7 +1445,12 @@ html, body {
 }
 
 .related-card:hover h4 { color: #d83a34; }
-.related-date { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; color: #aaa; }
+
+.related-date {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  color: #aaa;
+}
 
 /* ==================== ARTICLE LAYOUT WRAPPER (DENGAN AD SIDEBAR) ==================== */
 .article-layout-wrapper {
@@ -1322,9 +1556,20 @@ html, body {
     display: none !important;
   }
 
-  .main-content-wrapper { grid-template-columns: 1fr !important; }
-  .article-container { max-width: 100%; padding: 0; }
-  .text-render { font-size: 12pt; width: 100%; }
+  .main-content-wrapper {
+    grid-template-columns: 1fr !important;
+  }
+
+  .article-container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .text-render {
+    font-size: 12pt;
+    width: 100%;
+  }
+
   .hero-img { max-height: 300px; }
 }
 
@@ -1332,7 +1577,9 @@ html, body {
 
 /* Tablet besar - sembunyikan floating share */
 @media (max-width: 1100px) {
-  .floating-share { display: none !important; }
+  .floating-share {
+    display: none !important;
+  }
 }
 
 /* Tablet - sembunyikan ad sidebar, ubah grid */
@@ -1345,14 +1592,18 @@ html, body {
     display: block;
   }
 
-  .main-content-wrapper { grid-template-columns: 1fr; }
+  .main-content-wrapper {
+    grid-template-columns: 1fr;
+  }
 
   .discussion-sidebar {
     position: static;
     max-height: none;
   }
 
-  .related-grid-new { grid-template-columns: repeat(2, 1fr); }
+  .related-grid-new {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Mobile */
@@ -1382,6 +1633,43 @@ html, body {
     word-break: break-word;
     overflow-wrap: break-word;
     text-align: left !important;
+  }
+
+  /* Alignment tetap mengikuti pilihan dari Write */
+  .text-render p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not([style*="text-align"]) {
+    text-align: left !important;
+  }
+
+  .text-render .ql-align-left {
+    text-align: left !important;
+  }
+
+  .text-render .ql-align-center {
+    text-align: center !important;
+  }
+
+  .text-render .ql-align-right {
+    text-align: right !important;
+  }
+
+  .text-render .ql-align-justify {
+    text-align: justify !important;
+  }
+
+  .text-render [style*="text-align: left"] {
+    text-align: left !important;
+  }
+
+  .text-render [style*="text-align: center"] {
+    text-align: center !important;
+  }
+
+  .text-render [style*="text-align: right"] {
+    text-align: right !important;
+  }
+
+  .text-render [style*="text-align: justify"] {
+    text-align: justify !important;
   }
 
   .text-render h2 {
@@ -1595,6 +1883,42 @@ html, body {
   .text-render {
     font-size: 16px;
     line-height: 1.7;
+  }
+
+  .text-render p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not([style*="text-align"]) {
+    text-align: left !important;
+  }
+
+  .text-render .ql-align-left {
+    text-align: left !important;
+  }
+
+  .text-render .ql-align-center {
+    text-align: center !important;
+  }
+
+  .text-render .ql-align-right {
+    text-align: right !important;
+  }
+
+  .text-render .ql-align-justify {
+    text-align: justify !important;
+  }
+
+  .text-render [style*="text-align: left"] {
+    text-align: left !important;
+  }
+
+  .text-render [style*="text-align: center"] {
+    text-align: center !important;
+  }
+
+  .text-render [style*="text-align: right"] {
+    text-align: right !important;
+  }
+
+  .text-render [style*="text-align: justify"] {
+    text-align: justify !important;
   }
 
   .text-render h2 {
