@@ -3,13 +3,9 @@
    CLEAN EDITORIAL / BENTO / RESPONSIVE ALL DEVICE
    ═══════════════════════════════════════════════════ */
 
-@import url(
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
-);
-
-*,
-*::before,
-*::after {
+.hl-root *,
+.hl-root *::before,
+.hl-root *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -24,11 +20,11 @@
   min-height: 100vh;
   background: #fefefe;
   font-family:
-    'Inter',
+    "Inter",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   color: #0a0a0a;
   overflow-x: hidden;
@@ -45,12 +41,7 @@
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image:
-    radial-gradient(
-      circle,
-      #d4d4d4 0.6px,
-      transparent 0.6px
-    );
+  background-image: radial-gradient(circle, #d4d4d4 0.6px, transparent 0.6px);
   background-size: 28px 28px;
   opacity: 0.3;
 }
@@ -121,6 +112,7 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #0a0a0a;
+  text-decoration: none;
 }
 
 .hl-nav-right {
@@ -232,13 +224,7 @@
 }
 
 .hl-h1-accent {
-  background:
-    linear-gradient(
-      135deg,
-      #4f46e5 0%,
-      #7c3aed 50%,
-      #db2777 100%
-    );
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -333,28 +319,16 @@
 }
 
 .hl-email-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 2.5px;
-  background:
-    linear-gradient(
-      90deg,
-      #4f46e5,
-      #7c3aed,
-      #db2777
-    );
+  background: linear-gradient(90deg, #4f46e5, #7c3aed, #db2777);
   transform: scaleX(0);
   transform-origin: left;
-  transition:
-    transform 0.4s cubic-bezier(
-      0.16,
-      1,
-      0.3,
-      1
-    );
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .hl-email-card:hover::before {
@@ -363,9 +337,7 @@
 
 .hl-email-card:hover {
   border-color: #d0d0d0;
-  box-shadow:
-    0 8px 28px
-    rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.05);
   transform: translateY(-2px);
 }
 
@@ -406,7 +378,7 @@
 .hl-email-body p {
   font-size: 13px;
   line-height: 1.5;
-  color: #777777;
+  color: #595959; /* ✅ Dipergelap dari #777777 agar lolos audit kontras A11Y[cite: 19] */
   overflow-wrap: anywhere;
 }
 
@@ -459,9 +431,7 @@
 
 .hl-info-card:hover {
   border-color: #cccccc;
-  box-shadow:
-    0 8px 24px
-    rgba(0, 0, 0, 0.045);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.045);
   transform: translateY(-2px) !important;
 }
 
@@ -519,9 +489,7 @@
 
 .hl-tease-card:hover {
   border-color: #d0d0d0;
-  box-shadow:
-    0 8px 28px
-    rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.04);
   transform: translateY(-1px);
 }
 
@@ -581,9 +549,7 @@
 
 .hl-tease-btn:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 6px 18px
-    rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
 
 .hl-tease-btn svg {
@@ -614,9 +580,7 @@
 
 .hl-cta:hover {
   border-color: #d0d0d0;
-  box-shadow:
-    0 10px 40px
-    rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
   transform: translateY(-1px);
 }
 
@@ -626,13 +590,7 @@
   left: 0;
   right: 0;
   height: 2.5px;
-  background:
-    linear-gradient(
-      90deg,
-      #4f46e5,
-      #7c3aed,
-      #db2777
-    );
+  background: linear-gradient(90deg, #4f46e5, #7c3aed, #db2777);
 }
 
 .hl-cta h2 {
@@ -687,9 +645,7 @@
 
 .hl-btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 6px 24px
-    rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
 }
 
 .hl-btn-primary svg {
@@ -932,7 +888,6 @@
 
 /* ═══════════════════════════════════════
    MOBILE
-   Struktur tetap mengikuti desktop
    ═══════════════════════════════════════ */
 
 @media (max-width: 479px) {
@@ -1177,9 +1132,10 @@
    ═══════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .hl-root,
+  .hl-root *,
+  .hl-root *::before,
+  .hl-root *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -1222,4 +1178,4 @@
 .hl-root button,
 .hl-root a {
   -webkit-tap-highlight-color: transparent;
-} 
+}

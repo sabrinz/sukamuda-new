@@ -1,0 +1,4 @@
+const CLIENT="ca-pub-7608424206122269";
+let promise;
+export function hasAdConsent(){try{return localStorage.getItem("sukamuda_consent")==="granted";}catch{return false;}}
+export function loadAdSense(){if(!hasAdConsent()) return Promise.resolve(false);if(window.adsbygoogle) return Promise.resolve(true);if(promise)return promise;promise=new Promise((resolve,reject)=>{const existing=document.querySelector('script[data-sukamuda-adsense]');if(existing){existing.addEventListener("load",()=>resolve(true),{once:true});existing.addEventListener("error",reject,{once:true});return;}const script=document.createElement("script");script.async=true;script.crossOrigin="anonymous";script.dataset.sukamudaAdsense="true";script.src=`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${CLIENT}`;script.onload=()=>resolve(true);script.onerror=reject;document.head.appendChild(script);});return promise;}

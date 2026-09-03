@@ -1,61 +1,174 @@
 <!doctype html>
 <html lang="id">
   <head>
+    <!-- =========================================================
+         SUKAMUDA
+         Production HTML Foundation
+         ========================================================= -->
+
+    <!-- =========================================================
+         DOCUMENT BASICS
+         ========================================================= -->
+
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-    <title>SukaMuda - Portal Berita &amp; Informasi Anak Muda</title>
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
-    <meta name="theme-color" content="#ffffff" />
+
     <meta
-      name="description"
-      content="Portal berita dan informasi terpercaya untuk anak muda. Temukan artikel menarik, berita terkini, dan komunitas kreatif."
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <meta name="google-adsense-account" content="ca-pub-7608424206122269" />
+
+    <meta
+      http-equiv="content-language"
+      content="id-ID"
+    />
+
+    <meta
+      name="referrer"
+      content="strict-origin-when-cross-origin"
+    />
+
+    <meta
+      name="format-detection"
+      content="telephone=no"
+    />
+
+    <meta
+      name="color-scheme"
+      content="light"
+    />
+
+    <meta
+      name="theme-color"
+      content="#ffffff"
+    />
+
+    <!-- =========================================================
+         PRIMARY SEO FALLBACK
+         ---------------------------------------------------------
+         Metadata ini dipakai sebelum React + Helmet aktif.
+         main.jsx akan membersihkan elemen data-fallback="1".
+         ========================================================= -->
+
+    <title data-fallback="1">
+      SukaMuda - Portal Berita &amp; Informasi Anak Muda Indonesia
+    </title>
+
+    <meta
+      data-fallback="1"
+      name="description"
+      content="SukaMuda adalah portal berita dan informasi anak muda Indonesia yang menyajikan berita terkini, edukasi, teknologi, lifestyle, hiburan, olahraga, dan informasi inspiratif."
+    />
+
+    <meta
+      data-fallback="1"
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+
+    <meta
+      data-fallback="1"
+      name="googlebot"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+
+    <link
+      data-fallback="1"
+      rel="canonical"
+      href="https://sukamuda.co.id/"
+    />
+
+    <!-- =========================================================
+         BRAND
+         ========================================================= -->
+
+    <meta
+      name="application-name"
+      content="SukaMuda"
+    />
+
+    <meta
+      name="apple-mobile-web-app-title"
+      content="SukaMuda"
+    />
+
+    <meta
+      name="author"
+      content="Redaksi SukaMuda"
+    />
+
+    <meta
+      name="publisher"
+      content="SukaMuda"
+    />
+
+    <!-- =========================================================
+         GOOGLE SEARCH CONSOLE
+         ========================================================= -->
+
     <meta
       name="google-site-verification"
       content="2r5DSOWKoJyIeErpnxasGg33eClplXtw_dTRLO64ZCU"
     />
-    <link rel="canonical" href="https://sukamuda.co.id/" />
 
-    <!-- Open Graph -->
-    <meta property="og:site_name" content="SukaMuda" />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="id_ID" />
+    <!-- =========================================================
+         GOOGLE ADSENSE
+         ========================================================= -->
+
     <meta
-      property="og:title"
-      content="SukaMuda - Portal Berita &amp; Informasi Anak Muda"
-    />
-    <meta
-      property="og:description"
-      content="Portal berita dan informasi terpercaya untuk anak muda. Temukan artikel menarik, berita terkini, dan komunitas kreatif."
-    />
-    <meta property="og:url" content="https://sukamuda.co.id/" />
-    <meta property="og:image" content="https://sukamuda.co.id/sukamuda-share.jpg" />
-    <meta property="og:image:secure_url" content="https://sukamuda.co.id/sukamuda-share.jpg" />
-    <meta property="og:image:type" content="image/jpeg" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta
-      property="og:image:alt"
-      content="SukaMuda - Portal Berita &amp; Informasi Anak Muda"
+      name="google-adsense-account"
+      content="ca-pub-7608424206122269"
     />
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="SukaMuda - Portal Berita &amp; Informasi Anak Muda" />
-    <meta
-      name="twitter:description"
-      content="Portal berita dan informasi terpercaya untuk anak muda."
-    />
-    <meta name="twitter:image" content="https://sukamuda.co.id/sukamuda-share.jpg" />
-    <meta
-      name="twitter:image:alt"
-      content="SukaMuda - Portal Berita &amp; Informasi Anak Muda"
+    <!-- =========================================================
+         FAVICON
+         ========================================================= -->
+
+    <link
+      rel="icon"
+      href="/favicon.ico"
+      sizes="any"
     />
 
-    <!-- RSS Feed -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="48x48"
+      href="/favicon-48x48.png"
+    />
+
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/logo.png"
+    />
+
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="512x512"
+      href="/logo.png"
+    />
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/apple-touch-icon.png"
+    />
+
+    <!-- =========================================================
+         WEB APP MANIFEST
+         ========================================================= -->
+
+    <link
+      rel="manifest"
+      href="/manifest.webmanifest"
+    />
+
+    <!-- =========================================================
+         RSS
+         ========================================================= -->
+
     <link
       rel="alternate"
       type="application/rss+xml"
@@ -63,114 +176,695 @@
       href="https://sukamuda.co.id/feed"
     />
 
-    <!-- Preconnect ke Domain Iklan & Analytics untuk Performa -->
-    <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
-    <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
-    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <!-- =========================================================
+         HREFLANG
+         ========================================================= -->
 
-    <!-- GA4 dimuat tertunda dari bawah halaman -->
+    <link
+      rel="alternate"
+      hreflang="id-ID"
+      href="https://sukamuda.co.id/"
+    />
+
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href="https://sukamuda.co.id/"
+    />
+
+    <!-- =========================================================
+         OPEN GRAPH FALLBACK
+         ========================================================= -->
+
+    <meta
+      data-fallback="1"
+      property="og:site_name"
+      content="SukaMuda"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:type"
+      content="website"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:locale"
+      content="id_ID"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:title"
+      content="SukaMuda - Portal Berita &amp; Informasi Anak Muda Indonesia"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:description"
+      content="SukaMuda adalah portal berita dan informasi anak muda Indonesia yang menyajikan berita terkini, edukasi, teknologi, lifestyle, hiburan, olahraga, dan informasi inspiratif."
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:url"
+      content="https://sukamuda.co.id/"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:image"
+      content="https://sukamuda.co.id/sukamuda-share.jpg"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:image:secure_url"
+      content="https://sukamuda.co.id/sukamuda-share.jpg"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:image:type"
+      content="image/jpeg"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:image:width"
+      content="1200"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:image:height"
+      content="630"
+    />
+
+    <meta
+      data-fallback="1"
+      property="og:image:alt"
+      content="SukaMuda - Portal Berita &amp; Informasi Anak Muda Indonesia"
+    />
+
+    <!-- =========================================================
+         X / TWITTER FALLBACK
+         ========================================================= -->
+
+    <meta
+      data-fallback="1"
+      name="twitter:card"
+      content="summary_large_image"
+    />
+
+    <meta
+      data-fallback="1"
+      name="twitter:title"
+      content="SukaMuda - Portal Berita &amp; Informasi Anak Muda Indonesia"
+    />
+
+    <meta
+      data-fallback="1"
+      name="twitter:description"
+      content="SukaMuda adalah portal berita dan informasi anak muda Indonesia."
+    />
+
+    <meta
+      data-fallback="1"
+      name="twitter:image"
+      content="https://sukamuda.co.id/sukamuda-share.jpg"
+    />
+
+    <meta
+      data-fallback="1"
+      name="twitter:image:alt"
+      content="SukaMuda - Portal Berita &amp; Informasi Anak Muda Indonesia"
+    />
+
+    <!-- =========================================================
+         CONNECTION HINTS
+         ========================================================= -->
+
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+
+    <link
+      rel="preconnect"
+      href="https://www.googletagmanager.com"
+      crossorigin
+    />
+
+    <link
+      rel="preconnect"
+      href="https://pagead2.googlesyndication.com"
+      crossorigin
+    />
+
+    <!-- =========================================================
+         DNS PREFETCH
+         ========================================================= -->
+
+    <link
+      rel="dns-prefetch"
+      href="//fonts.googleapis.com"
+    />
+
+    <link
+      rel="dns-prefetch"
+      href="//fonts.gstatic.com"
+    />
+
+    <link
+      rel="dns-prefetch"
+      href="//www.googletagmanager.com"
+    />
+
+    <link
+      rel="dns-prefetch"
+      href="//pagead2.googlesyndication.com"
+    />
+
+    <!-- =========================================================
+         FONT
+         ========================================================= -->
+
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap"
+    />
+
+    <!-- =========================================================
+         GOOGLE CONSENT MODE
+         ---------------------------------------------------------
+         Dijalankan sebelum Google Analytics dan Google Ads.
+         ========================================================= -->
+
     <script>
       window.dataLayer = window.dataLayer || [];
-      window.adsbygoogle = window.adsbygoogle || [];
+
       function gtag() {
-        dataLayer.push(arguments);
+        window.dataLayer.push(arguments);
       }
-      gtag("js", new Date());
-      // SPA (React Router): page_view dikirim manual dari App.jsx
-      gtag("config", "G-3YC85W3DEJ", { send_page_view: false });
-    </script>
 
-    <!-- Schema.org JSON-LD: WebSite -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "SukaMuda",
-        "url": "https://sukamuda.co.id",
-        "description": "Portal berita dan informasi terpercaya untuk anak muda",
-        "inLanguage": "id-ID",
-        "publisher": {
-          "@type": "NewsMediaOrganization",
-          "name": "SukaMuda",
-          "url": "https://sukamuda.co.id"
+      (function () {
+        var consentState = "denied";
+
+        try {
+          var storedConsent =
+            localStorage.getItem("sukamuda_consent");
+
+          if (storedConsent === "granted") {
+            consentState = "granted";
+          }
+        } catch (error) {
+          consentState = "denied";
         }
-      }
+
+        gtag("consent", "default", {
+          ad_storage: consentState,
+          ad_user_data: consentState,
+          ad_personalization: consentState,
+          analytics_storage: consentState,
+
+          personalization_storage: consentState,
+
+          functionality_storage: "granted",
+
+          security_storage: "granted",
+
+          wait_for_update: 500
+        });
+
+        gtag(
+          "set",
+          "ads_data_redaction",
+          consentState !== "granted"
+        );
+
+        gtag(
+          "set",
+          "url_passthrough",
+          true
+        );
+      })();
     </script>
 
-    <!-- Schema.org JSON-LD: NewsMediaOrganization -->
+    <!-- =========================================================
+         GOOGLE ANALYTICS 4
+         ---------------------------------------------------------
+         Page view SPA dikirim manual oleh aplikasi.
+         ========================================================= -->
+
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-3YC85W3DEJ"
+    ></script>
+
+    <script>
+      gtag("js", new Date());
+
+      gtag("config", "G-3YC85W3DEJ", {
+        send_page_view: false
+      });
+    </script>
+
+    <!-- =========================================================
+         GOOGLE ADSENSE
+         ========================================================= -->
+
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- =========================================================
+         STRUCTURED DATA
+         ========================================================= -->
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "NewsMediaOrganization",
-        "name": "SukaMuda",
-        "alternateName": "Sukamuda.co.id",
-        "url": "https://sukamuda.co.id",
-        "description": "Portal berita, informasi literasi anak muda, dan wadah kreativitas untuk generasi muda Indonesia.",
-        "knowsLanguage": "id-ID",
-        "logo": {
-          "@type": "ImageObject",
-          "url": "https://sukamuda.co.id/logo.png",
-          "width": 512,
-          "height": 512
-        },
-        "image": {
-          "@type": "ImageObject",
-          "url": "https://sukamuda.co.id/sukamuda-share.jpg",
-          "width": 1200,
-          "height": 630
-        },
-        "areaServed": {
-          "@type": "Place",
-          "name": "Indonesia"
-        },
-        "sameAs": [
-          "https://www.instagram.com/sukamudacoid/",
-          "https://www.tiktok.com/@suka.muda"
+        "@graph": [
+          {
+            "@type": [
+              "Organization",
+              "NewsMediaOrganization"
+            ],
+            "@id": "https://sukamuda.co.id/#organization",
+            "name": "SukaMuda",
+            "url": "https://sukamuda.co.id/",
+            "description": "SukaMuda adalah portal berita dan informasi anak muda Indonesia yang menyajikan berita terkini, edukasi, teknologi, lifestyle, hiburan, olahraga, dan informasi inspiratif.",
+            "logo": {
+              "@type": "ImageObject",
+              "@id": "https://sukamuda.co.id/#logo",
+              "url": "https://sukamuda.co.id/logo.png",
+              "contentUrl": "https://sukamuda.co.id/logo.png",
+              "width": 512,
+              "height": 512,
+              "caption": "Logo SukaMuda"
+            },
+            "image": {
+              "@id": "https://sukamuda.co.id/#logo"
+            },
+            "areaServed": {
+              "@type": "Country",
+              "name": "Indonesia"
+            },
+            "knowsLanguage": [
+              "id-ID"
+            ],
+            "publishingPrinciples": "https://sukamuda.co.id/rules",
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "contactType": "editorial",
+              "email": "sukamuda50@gmail.com",
+              "availableLanguage": [
+                "id-ID"
+              ]
+            },
+            "sameAs": [
+              "https://www.instagram.com/sukamudacoid/",
+              "https://www.tiktok.com/@suka.muda",
+              "https://www.threads.com/@sukamudacoid"
+            ]
+          },
+
+          {
+            "@type": "WebSite",
+            "@id": "https://sukamuda.co.id/#website",
+            "url": "https://sukamuda.co.id/",
+            "name": "SukaMuda",
+            "description": "Portal berita dan informasi anak muda Indonesia.",
+            "inLanguage": "id-ID",
+            "publisher": {
+              "@id": "https://sukamuda.co.id/#organization"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://sukamuda.co.id/search?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          },
+
+          {
+            "@type": "WebPage",
+            "@id": "https://sukamuda.co.id/#webpage",
+            "url": "https://sukamuda.co.id/",
+            "name": "SukaMuda - Portal Berita & Informasi Anak Muda Indonesia",
+            "description": "SukaMuda adalah portal berita dan informasi anak muda Indonesia yang menyajikan berita terkini, edukasi, teknologi, lifestyle, hiburan, olahraga, dan informasi inspiratif.",
+            "isPartOf": {
+              "@id": "https://sukamuda.co.id/#website"
+            },
+            "about": {
+              "@id": "https://sukamuda.co.id/#organization"
+            },
+            "publisher": {
+              "@id": "https://sukamuda.co.id/#organization"
+            },
+            "primaryImageOfPage": {
+              "@id": "https://sukamuda.co.id/#logo"
+            },
+            "inLanguage": "id-ID"
+          },
+
+          {
+            "@type": "BreadcrumbList",
+            "@id": "https://sukamuda.co.id/#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Beranda",
+                "item": "https://sukamuda.co.id/"
+              }
+            ]
+          }
         ]
       }
     </script>
   </head>
+
   <body>
+    <!-- =========================================================
+         ACCESSIBILITY
+         ========================================================= -->
+
+    <a
+      class="skip-link"
+      href="#main-content"
+    >
+      Lompat ke konten utama
+    </a>
+
+    <!-- =========================================================
+         NOSCRIPT FALLBACK
+         ---------------------------------------------------------
+         Hanya muncul ketika JavaScript dinonaktifkan.
+         ========================================================= -->
+
+    <noscript>
+      <div class="noscript-shell">
+
+        <header>
+          <h1>
+            SukaMuda - Portal Berita &amp; Informasi Anak Muda Indonesia
+          </h1>
+
+          <p>
+            SukaMuda adalah portal berita dan informasi
+            anak muda Indonesia yang menyajikan berita
+            terkini, edukasi, teknologi, lifestyle,
+            hiburan, olahraga, dan informasi inspiratif.
+          </p>
+        </header>
+
+        <main id="main-content">
+
+          <!-- =====================================================
+               KATEGORI
+               ===================================================== -->
+
+          <section aria-labelledby="noscript-kategori">
+            <h2 id="noscript-kategori">
+              Berita &amp; Informasi
+            </h2>
+
+            <p>
+              Temukan berita dan informasi terbaru
+              untuk generasi muda Indonesia.
+            </p>
+
+            <nav aria-label="Kategori berita">
+              <ul>
+                <li>
+                  <a href="/category/school">
+                    School
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/college">
+                    College
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/general">
+                    General
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/style">
+                    Style
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/culinary">
+                    Culinary
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/traveling">
+                    Traveling
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/sport">
+                    Sport &amp; E-Sport
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/music">
+                    Music &amp; Film
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/otomotif">
+                    Otomotif
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/science">
+                    Science
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/health">
+                    Health
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/tech">
+                    Tech
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/category/podcast">
+                    Podcast
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </section>
+
+          <!-- =====================================================
+               TENTANG
+               ===================================================== -->
+
+          <section aria-labelledby="noscript-tentang">
+            <h2 id="noscript-tentang">
+              Tentang SukaMuda
+            </h2>
+
+            <nav aria-label="Informasi SukaMuda">
+              <ul>
+                <li>
+                  <a href="/about">
+                    Tentang Kami
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/help">
+                    Kontak &amp; Bantuan
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/faq">
+                    FAQ
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/rules">
+                    Pedoman Editorial
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/privacy">
+                    Kebijakan Privasi
+                  </a>
+                </li>
+
+                <li>
+                  <a href="/terms">
+                    Syarat &amp; Ketentuan
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </section>
+
+          <!-- =====================================================
+               PENCARIAN
+               ===================================================== -->
+
+          <section aria-labelledby="noscript-search">
+            <h2 id="noscript-search">
+              Pencarian
+            </h2>
+
+            <p>
+              Cari berita dan informasi SukaMuda.
+            </p>
+
+            <a href="/search">
+              Halaman Pencarian
+            </a>
+          </section>
+
+          <!-- =====================================================
+               KONTAK
+               ===================================================== -->
+
+          <section aria-labelledby="noscript-kontak">
+            <h2 id="noscript-kontak">
+              Kontak SukaMuda
+            </h2>
+
+            <address>
+              SukaMuda<br />
+              Jl. KH. Ahmad Sanusi No. 195<br />
+              Sukakarya, Kec. Warudoyong<br />
+              Kota Sukabumi, Jawa Barat 43135<br />
+              Indonesia
+            </address>
+
+            <p>
+              Email:
+              <a href="mailto:sukamuda50@gmail.com">
+                sukamuda50@gmail.com
+              </a>
+            </p>
+          </section>
+
+          <!-- =====================================================
+               SOCIAL MEDIA
+               ===================================================== -->
+
+          <section aria-labelledby="noscript-social">
+            <h2 id="noscript-social">
+              SukaMuda di Media Sosial
+            </h2>
+
+            <ul>
+              <li>
+                <a
+                  href="https://www.instagram.com/sukamudacoid/"
+                  rel="me noopener"
+                >
+                  Instagram SukaMuda
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="https://www.tiktok.com/@suka.muda"
+                  rel="me noopener"
+                >
+                  TikTok SukaMuda
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="https://www.threads.com/@sukamudacoid"
+                  rel="me noopener"
+                >
+                  Threads SukaMuda
+                </a>
+              </li>
+            </ul>
+          </section>
+
+        </main>
+
+        <!-- =======================================================
+             FOOTER
+             ======================================================= -->
+
+        <footer>
+          <p>
+            <a href="/feed">
+              RSS SukaMuda
+            </a>
+
+            <span aria-hidden="true">
+              ·
+            </span>
+
+            <a href="/sitemap.xml">
+              Peta Situs
+            </a>
+          </p>
+
+          <p>
+            &copy; SukaMuda.
+            Seluruh hak cipta dilindungi.
+          </p>
+        </footer>
+
+      </div>
+    </noscript>
+
+    <!-- =========================================================
+         REACT ROOT
+         ========================================================= -->
+
     <div id="root"></div>
 
-    <script type="module" src="/src/main.jsx"></script>
+    <!-- =========================================================
+         REACT ENTRY
+         ========================================================= -->
 
-    <!-- ===== PEMUAT TERTUNDA: Analytics + AdSense ===== -->
-    <script>
-      (function () {
-        var sudahDimuat = false;
-        var proto = "ht" + "tps://";
-        var sumberGA = proto + "www.googletagmanager.com/gtag/js?id=G-3YC85W3DEJ";
-        var sumberIklan = proto + "pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269";
-
-        function tambah(src, pakaiCors) {
-          var s = document.createElement("script");
-          s.async = true;
-          s.src = src;
-          if (pakaiCors) s.crossOrigin = "anonymous";
-          document.head.appendChild(s);
-        }
-
-        function muat() {
-          if (sudahDimuat) return;
-          sudahDimuat = true;
-          tambah(sumberGA, false);
-          tambah(sumberIklan, true);
-        }
-
-        var peristiwa = ["scroll", "mousemove", "touchstart", "click", "keydown"];
-        for (var i = 0; i < peristiwa.length; i++) {
-          window.addEventListener(peristiwa[i], muat, { once: true, passive: true });
-        }
-
-        if (document.readyState === "complete") {
-          setTimeout(muat, 2500);
-        } else {
-          window.addEventListener("load", function () {
-            setTimeout(muat, 2500);
-          });
-        }
-      })();
-    </script>
+    <script
+      type="module"
+      src="/src/main.jsx"
+    ></script>
   </body>
 </html>

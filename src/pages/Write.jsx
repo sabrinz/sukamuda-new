@@ -1,118 +1,118 @@
-import React, { useEffect, useReducer, useRef, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
+
+import { useLocation, useNavigate } from "react-router-dom";
+
+import { Helmet } from "react-helmet-async";
+
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
-import "./Write.css";
-import axios from "../utils/axiosConfig";
+
+import DOMPurify from "dompurify";
+
 import { useQueryClient } from "@tanstack/react-query";
+
 import { useAuth } from "../context/AuthContext";
 
-// ==========================================
-// CUSTOM BLOT UNTUK IMAGE + CAPTION + WIDTH + ALIGNMENT
-// ==========================================
-const BlockEmbed = Quill.import("blots/block/embed");
+import axios, { ensureCsrfToken } from "../utils/axiosConfig";
 
-class ImageCaptionBlot extends BlockEmbed {
-  static create(value) {
-    const node = super.create();
-    node.style.margin = "12px 0";
+import "./Write.css";
 
-    const align = value?.align || "center";
-    let textAlign = "center";
-    let margin = "0 auto";
+/* =========================================================
+   SITE
+   ========================================================= */
 
-    if (align === "left") {
-      textAlign = "left";
-      margin = "0 auto 0 0";
-    } else if (align === "right") {
-      textAlign = "right";
-      margin = "0 0 0 auto";
-    }
+const SITE_URL = "https://sukamuda.co.id";
+const SITE_NAME = "SukaMuda";
 
-    node.style.textAlign = textAlign;
+/* =========================================================
+   LIMITS
+   ========================================================= */
 
-    const img = document.createElement("img");
-    img.setAttribute("src", value?.url || "");
-    img.setAttribute("alt", value?.caption || "Gambar artikel");
+const MAX_THUMBNAIL_SIZE = 1 * 1024 * 1024;
+const MAX_EDITOR_IMAGE_SIZE = 1 * 1024 * 1024;
 
-    const width = value?.width || "100%";
+const MAX_TITLE_LENGTH = 180;
+const MAX_DESCRIPTION_LENGTH = 300;
+const MAX_CAPTION_LENGTH = 200;
+const MAX_TAG_LENGTH = 50;
 
-    img.style.width =
-      typeof width === "number" ? `${width}px` : width;
-    img.style.height = "auto";
-    img.style.display = "block";
-    img.style.margin = margin;
-    img.style.borderRadius = "8px";
-    img.style.maxWidth = "100%";
+const MIN_TAGS = 2;
+const MAX_TAGS = 10;
 
-    node.appendChild(img);
+/* =========================================================
+   ALLOWED IMAGE TYPES
+   ========================================================= */
 
-    if (value?.caption) {
-      const caption = document.createElement("figcaption");
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-      caption.innerText = value.caption;
-      caption.style.marginTop = "8px";
-      caption.style.color = "#6b7280";
-      caption.style.fontSize = "13px";
-      caption.style.fontStyle = "italic";
-      caption.style.width = img.style.width;
-      caption.style.maxWidth = "100%";
-      caption.style.boxSizing = "border-box";
-      caption.style.display = "block";
-      caption.style.margin = margin;
-      caption.style.textAlign = textAlign;
+/* =========================================================
+   CATEGORIES
+   ========================================================= */
 
-      node.appendChild(caption);
-    }
-
-    return node;
-  }
-
-  static value(node) {
-    const img = node.querySelector("img");
-    const caption = node.querySelector("figcaption");
-
-    let align = "center";
-
-    if (node.style.textAlign === "left") {
-      align = "left";
-    } else if (node.style.textAlign === "right") {
-      align = "right";
-    }
-
-    return {
-      url: img ? img.getAttribute("src") : "",
-      caption: caption ? caption.innerText : "",
-      width: img ? img.style.width || "" : "",
-      align,
-    };
-  }
-}
-
-ImageCaptionBlot.blotName = "imageCaption";
-ImageCaptionBlot.tagName = "figure";
-ImageCaptionBlot.className = "ql-image-caption";
-
-Quill.register(ImageCaptionBlot);
-
-// ==========================================
-// CATEGORIES
-// ==========================================
 const categories = [
-  { slug: "school", label: "School" },
-  { slug: "college", label: "College" },
-  { slug: "general", label: "General" },
-  { slug: "style", label: "Style" },
-  { slug: "culinary", label: "Culinary" },
-  { slug: "traveling", label: "Traveling" },
-  { slug: "sport", label: "Sport & E-Sport" },
-  { slug: "music", label: "Music & Film" },
-  { slug: "otomotif", label: "Otomotif" },
-  { slug: "science", label: "Science" },
-  { slug: "health", label: "Health" },
-  { slug: "tech", label: "Tech" },
-  { slug: "podcast", label: "Podcast" },
+  {
+    slug: "school",
+    label: "School",
+  },
+  {
+    slug: "college",
+    label: "College",
+  },
+  {
+    slug: "general",
+    label: "General",
+  },
+  {
+    slug: "style",
+    label: "Style",
+  },
+  {
+    slug: "culinary",
+    label: "Culinary",
+  },
+  {
+    slug: "traveling",
+    label: "Traveling",
+  },
+  {
+    slug: "sport",
+    label: "Sport & E-Sport",
+  },
+  {
+    slug: "music",
+    label: "Music & Film",
+  },
+  {
+    slug: "otomotif",
+    label: "Otomotif",
+  },
+  {
+    slug: "science",
+    label: "Science",
+  },
+  {
+    slug: "health",
+    label: "Health",
+  },
+  {
+    slug: "tech",
+    label: "Tech",
+  },
+  {
+    slug: "podcast",
+    label: "Podcast",
+  },
 ];
+
+/* =========================================================
+   FORM STATE
+   ========================================================= */
 
 const initialState = {
   title: "",
@@ -132,29 +132,174 @@ function formReducer(state, action) {
         [action.field]: action.value,
       };
 
+    case "SET_FORM":
+      return {
+        ...state,
+        ...action.value,
+      };
+
+    case "RESET":
+      return initialState;
+
     default:
       return state;
   }
 }
 
-// ==========================================
-// SPOTIFY
-// ==========================================
+/* =========================================================
+   TEXT HELPERS
+   ========================================================= */
+
+const normalizeText = (value) =>
+  String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+/* =========================================================
+   HTML HELPERS
+   ========================================================= */
+
+const getPlainTextFromHtml = (html) => {
+  const clean = DOMPurify.sanitize(String(html ?? ""), {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+  });
+
+  return clean.replace(/\s+/g, " ").trim();
+};
+
+const sanitizeArticleHtml = (html) =>
+  DOMPurify.sanitize(String(html ?? ""), {
+    ADD_ATTR: ["style", "target", "rel", "loading", "decoding"],
+
+    FORBID_TAGS: [
+      "script",
+      "iframe",
+      "object",
+      "embed",
+      "style",
+      "form",
+      "input",
+      "textarea",
+      "button",
+      "select",
+      "option",
+      "meta",
+      "link",
+      "base",
+    ],
+
+    FORBID_ATTR: [
+      "onerror",
+      "onclick",
+      "onload",
+      "onmouseover",
+      "onmouseenter",
+      "onmouseleave",
+      "onfocus",
+      "onblur",
+      "onkeydown",
+      "onkeyup",
+      "onkeypress",
+      "oninput",
+      "onsubmit",
+      "ondrop",
+      "ondragover",
+    ],
+  });
+
+/* =========================================================
+   TAG HELPERS
+   ========================================================= */
+
+const normalizeTags = (value) => {
+  const source = Array.isArray(value) ? value : String(value ?? "").split(",");
+
+  const normalized = source
+    .map((tag) =>
+      normalizeText(tag).replace(/^#+/, "").slice(0, MAX_TAG_LENGTH),
+    )
+    .filter(Boolean);
+
+  return [...new Set(normalized)];
+};
+
+/* =========================================================
+   IMAGE FILE VALIDATION
+   ========================================================= */
+
+const validateImageFile = (file, maxSize) => {
+  if (!file) {
+    return {
+      valid: false,
+      message: "Tidak ada file.",
+    };
+  }
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return {
+      valid: false,
+      message: "Format gambar tidak didukung. Gunakan JPG, PNG, atau WEBP.",
+    };
+  }
+
+  if (file.size > maxSize) {
+    return {
+      valid: false,
+      message: `Ukuran gambar maksimal ${Math.round(
+        maxSize / 1024 / 1024,
+      )} MB.`,
+    };
+  }
+
+  return {
+    valid: true,
+    message: "",
+  };
+};
+
+/* =========================================================
+   SPOTIFY
+   ========================================================= */
+
 const getSpotifyEmbedUrl = (url) => {
-  if (!url) return "";
+  if (!url || typeof url !== "string") {
+    return "";
+  }
 
   try {
     const normalized = url.trim();
 
+    if (!normalized) {
+      return "";
+    }
+
+    const allowedTypes = [
+      "track",
+      "episode",
+      "album",
+      "playlist",
+      "show",
+      "artist",
+    ];
+
     if (normalized.startsWith("spotify:")) {
       const parts = normalized.split(":").filter(Boolean);
 
-      if (parts.length >= 3) {
+      if (parts.length >= 3 && allowedTypes.includes(parts[1]) && parts[2]) {
         return (
           "https://open.spotify.com/embed/" +
-          parts[1] +
+          encodeURIComponent(parts[1]) +
           "/" +
-          parts[2]
+          encodeURIComponent(parts[2])
         );
       }
 
@@ -163,7 +308,11 @@ const getSpotifyEmbedUrl = (url) => {
 
     const parsed = new URL(normalized);
 
-    if (!parsed.hostname.includes("spotify.com")) return "";
+    const host = parsed.hostname.toLowerCase();
+
+    if (host !== "open.spotify.com" && !host.endsWith(".spotify.com")) {
+      return "";
+    }
 
     const parts = parsed.pathname.split("/").filter(Boolean);
 
@@ -171,1035 +320,1520 @@ const getSpotifyEmbedUrl = (url) => {
       parts.shift();
     }
 
-    if (parts.length >= 2) {
+    if (parts.length < 2 || !allowedTypes.includes(parts[0])) {
+      return "";
+    }
+
+    return (
+      "https://open.spotify.com/embed/" +
+      encodeURIComponent(parts[0]) +
+      "/" +
+      encodeURIComponent(parts[1])
+    );
+  } catch {
+    return "";
+  }
+};
+
+/* =========================================================
+   YOUTUBE ID
+   ========================================================= */
+
+const getYoutubeVideoId = (url) => {
+  if (!url || typeof url !== "string") {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(url.trim());
+
+    const host = parsed.hostname.toLowerCase();
+
+    if (host === "youtu.be" || host.endsWith(".youtu.be")) {
+      return parsed.pathname
+        .replace(/^\/+/, "")
+        .split("/")[0]
+        .split("?")[0]
+        .split("#")[0]
+        .trim();
+    }
+
+    const allowedHosts = [
+      "youtube.com",
+      "www.youtube.com",
+      "m.youtube.com",
+      "youtube-nocookie.com",
+      "www.youtube-nocookie.com",
+    ];
+
+    if (!allowedHosts.includes(host)) {
+      return "";
+    }
+
+    if (parsed.pathname === "/watch") {
       return (
-        "https://open.spotify.com/embed/" +
-        parts[0] +
-        "/" +
-        parts[1]
+        parsed.searchParams.get("v")?.split("&")[0].split("#")[0].trim() || ""
       );
     }
 
+    const parts = parsed.pathname.split("/").filter(Boolean);
+
+    if (parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live") {
+      return parts[1]?.split("?")[0].split("#")[0].trim() || "";
+    }
+
     return "";
   } catch {
     return "";
   }
 };
 
-// ==========================================
-// YOUTUBE EMBED
-// ==========================================
+/* =========================================================
+   YOUTUBE EMBED
+   ========================================================= */
+
 const getYoutubeEmbedUrl = (url) => {
-  if (!url) return "";
+  const videoId = getYoutubeVideoId(url);
 
-  try {
-    const normalized = url.trim();
-    const parsed = new URL(normalized);
-    const host = parsed.hostname.toLowerCase();
-
-    let videoId = "";
-
-    if (host.includes("youtu.be")) {
-      videoId = parsed.pathname.slice(1);
-    } else if (
-      host.includes("youtube.com") ||
-      host.includes("youtube-nocookie.com")
-    ) {
-      if (parsed.pathname.startsWith("/watch")) {
-        videoId = parsed.searchParams.get("v");
-      } else if (parsed.pathname.startsWith("/embed/")) {
-        videoId = parsed.pathname.split("/embed/")[1];
-      } else if (parsed.pathname.startsWith("/shorts/")) {
-        videoId = parsed.pathname.split("/shorts/")[1];
-      } else if (parsed.pathname.startsWith("/live")) {
-        videoId = parsed.searchParams.get("v");
-      } else {
-        const parts = parsed.pathname.split("/").filter(Boolean);
-        videoId = parts[parts.length - 1] || "";
-      }
-    }
-
-    return videoId
-      ? "https://www.youtube.com/embed/" + videoId
-      : "";
-  } catch {
+  if (!videoId) {
     return "";
   }
+
+  return (
+    "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(videoId)
+  );
 };
 
-// ==========================================
-// YOUTUBE THUMBNAIL
-// ==========================================
+/* =========================================================
+   YOUTUBE THUMBNAIL
+   ========================================================= */
+
 const getYoutubeThumbnailUrl = (url) => {
-  if (!url) return "";
+  const videoId = getYoutubeVideoId(url);
 
-  try {
-    const normalized = url.trim();
-    const parsed = new URL(normalized);
-    const host = parsed.hostname.toLowerCase();
-
-    let videoId = "";
-
-    if (host.includes("youtu.be")) {
-      videoId = parsed.pathname.slice(1);
-    } else if (
-      host.includes("youtube.com") ||
-      host.includes("youtube-nocookie.com")
-    ) {
-      if (parsed.pathname.startsWith("/watch")) {
-        videoId = parsed.searchParams.get("v");
-      } else if (parsed.pathname.startsWith("/embed/")) {
-        videoId = parsed.pathname.split("/embed/")[1];
-      } else if (parsed.pathname.startsWith("/shorts/")) {
-        videoId = parsed.pathname.split("/shorts/")[1];
-      } else if (parsed.pathname.startsWith("/live")) {
-        videoId = parsed.searchParams.get("v");
-      } else {
-        const parts = parsed.pathname.split("/").filter(Boolean);
-        videoId = parts[parts.length - 1] || "";
-      }
-    }
-
-    return videoId
-      ? "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg"
-      : "";
-  } catch {
+  if (!videoId) {
     return "";
   }
+
+  return (
+    "https://img.youtube.com/vi/" +
+    encodeURIComponent(videoId) +
+    "/hqdefault.jpg"
+  );
 };
 
-// ==========================================
-// PODCAST CONTENT
-// ==========================================
-const buildPodcastContentHtml = () => {
-  return "<p></p>";
+/* =========================================================
+   PODCAST CONTENT
+   ========================================================= */
+
+const buildPodcastContentHtml = (form) => {
+  const description = normalizeText(form.teaser);
+
+  const spotifyUrl = normalizeText(form.audioLink);
+
+  const youtubeUrl = normalizeText(form.videoLink);
+
+  const pieces = [];
+
+  if (description) {
+    pieces.push(`<p>${escapeHtml(description)}</p>`);
+  }
+
+  if (spotifyUrl) {
+    pieces.push(
+      `<p><strong>Spotify:</strong> <a href="${escapeHtml(
+        spotifyUrl,
+      )}" target="_blank" rel="noopener noreferrer">Dengarkan podcast</a></p>`,
+    );
+  }
+
+  if (youtubeUrl) {
+    pieces.push(
+      `<p><strong>YouTube:</strong> <a href="${escapeHtml(
+        youtubeUrl,
+      )}" target="_blank" rel="noopener noreferrer">Tonton podcast</a></p>`,
+    );
+  }
+
+  if (pieces.length === 0) {
+    return "<p>Podcast SukaMuda.</p>";
+  }
+
+  return sanitizeArticleHtml(pieces.join(""));
 };
 
-// ==========================================
-// WRITE
-// ==========================================
+/* =========================================================
+   CUSTOM QUILL IMAGE BLOT
+   ========================================================= */
+
+const BlockEmbed = Quill.import("blots/block/embed");
+
+class ImageCaptionBlot extends BlockEmbed {
+  static create(value = {}) {
+    const node = super.create();
+
+    const data = value && typeof value === "object" ? value : {};
+
+    const align =
+      data.align === "left" || data.align === "right" ? data.align : "center";
+
+    let textAlign = "center";
+    let margin = "0 auto";
+
+    if (align === "left") {
+      textAlign = "left";
+      margin = "0 auto 0 0";
+    }
+
+    if (align === "right") {
+      textAlign = "right";
+      margin = "0 0 0 auto";
+    }
+
+    node.style.margin = "12px 0";
+
+    node.style.textAlign = textAlign;
+
+    const image = document.createElement("img");
+
+    image.src = String(data.url || "");
+
+    image.alt = normalizeText(data.caption) || "Gambar artikel";
+
+    const rawWidth = data.width || "100%";
+
+    const width =
+      typeof rawWidth === "number" ? `${rawWidth}px` : String(rawWidth);
+
+    image.style.width = width;
+
+    image.style.height = "auto";
+
+    image.style.display = "block";
+
+    image.style.margin = margin;
+
+    image.style.maxWidth = "100%";
+
+    image.style.borderRadius = "8px";
+
+    image.setAttribute("loading", "lazy");
+
+    image.setAttribute("decoding", "async");
+
+    node.appendChild(image);
+
+    const captionText = normalizeText(data.caption);
+
+    if (captionText) {
+      const caption = document.createElement("figcaption");
+
+      caption.innerText = captionText;
+
+      caption.style.marginTop = "8px";
+
+      caption.style.color = "#6b7280";
+
+      caption.style.fontSize = "13px";
+
+      caption.style.fontStyle = "italic";
+
+      caption.style.width = width;
+
+      caption.style.maxWidth = "100%";
+
+      caption.style.boxSizing = "border-box";
+
+      caption.style.display = "block";
+
+      caption.style.margin = margin;
+
+      caption.style.textAlign = textAlign;
+
+      node.appendChild(caption);
+    }
+
+    return node;
+  }
+
+  static value(node) {
+    const image = node.querySelector("img");
+
+    const caption = node.querySelector("figcaption");
+
+    let align = "center";
+
+    if (node.style.textAlign === "left") {
+      align = "left";
+    }
+
+    if (node.style.textAlign === "right") {
+      align = "right";
+    }
+
+    return {
+      url: image?.getAttribute("src") || "",
+
+      caption: caption?.innerText || "",
+
+      width: image?.style.width || "100%",
+
+      align,
+    };
+  }
+}
+
+ImageCaptionBlot.blotName = "imageCaption";
+
+ImageCaptionBlot.tagName = "figure";
+
+ImageCaptionBlot.className = "ql-image-caption";
+
+Quill.register(ImageCaptionBlot);
+
+/* =========================================================
+   WRITE
+   ========================================================= */
+
 function Write() {
   const navigate = useNavigate();
+
   const location = useLocation();
 
-  const editorRef = useRef(null);
-  const quillRef = useRef(null);
-  const fileInputRef = useRef(null);
-
   const queryClient = useQueryClient();
+
   const { user } = useAuth();
 
-  const editData = location.state?.draft;
-  const returnPath = location.state?.returnPath || "/profile";
+  const editorRef = useRef(null);
 
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState("publish");
+  const quillRef = useRef(null);
 
-  const [form, dispatch] = useReducer(
-    formReducer,
-    initialState
-  );
-
-  const [thumbnailPreview, setThumbnailPreview] = useState(null);
-  const [thumbnailFile, setThumbnailFile] = useState(null);
-
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-
-  const [relatedModalOpen, setRelatedModalOpen] = useState(false);
-  const [relatedArticles, setRelatedArticles] = useState([]);
-  const [relatedLoading, setRelatedLoading] = useState(false);
-  const [relatedError, setRelatedError] = useState(null);
-
-  const isAdmin = user?.role === "admin";
-
-  // ==========================================
-  // MODAL INSERT GAMBAR
-  // ==========================================
-  const [insertImageModalOpen, setInsertImageModalOpen] =
-    useState(false);
-
-  const [insertImageBase64, setInsertImageBase64] =
-    useState(null);
-
-  const [insertImageCaption, setInsertImageCaption] =
-    useState("");
-
-  const [insertImageAlign, setInsertImageAlign] =
-    useState("center");
-
-  const [insertImageWidth, setInsertImageWidth] =
-    useState("100%");
+  const fileInputRef = useRef(null);
 
   const currentSelectionRef = useRef(null);
 
-  // ==========================================
-  // FILE KEYBOARD
-  // ==========================================
-  const dropZoneKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      fileInputRef.current?.click();
-    }
-  };
+  const mountedRef = useRef(true);
 
-  // ==========================================
-  // IMAGE MODAL FILE
-  // ==========================================
-  const handleModalFileChange = (e) => {
-    const file = e.target.files?.[0];
+  const submittingRef = useRef(false);
 
-    if (!file) {
-      setInsertImageBase64(null);
-      return;
-    }
+  const editData = location.state?.draft || null;
 
-    if (file.size > 1 * 1024 * 1024) {
-      alert("Ukuran file maksimal 1MB.");
-      e.target.value = "";
-      setInsertImageBase64(null);
-      return;
-    }
+  const returnPath = location.state?.returnPath || "/profile";
 
-    const reader = new FileReader();
+  const isAdmin = user?.role === "admin";
 
-    reader.onload = (evt) => {
-      setInsertImageBase64(evt.target.result);
+  const isPodcast = formCategoryFromState(location.state?.draft) === "podcast";
+
+  const [form, dispatch] = useReducer(formReducer, initialState);
+
+  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+
+  const [loading, setLoading] = useState(false);
+
+  const [errors, setErrors] = useState({});
+
+  const [showModal, setShowModal] = useState(false);
+
+  const [modalType, setModalType] = useState("publish");
+
+  const [relatedModalOpen, setRelatedModalOpen] = useState(false);
+
+  const [relatedArticles, setRelatedArticles] = useState([]);
+
+  const [relatedLoading, setRelatedLoading] = useState(false);
+
+  const [relatedError, setRelatedError] = useState(null);
+
+  const [insertImageModalOpen, setInsertImageModalOpen] = useState(false);
+
+  const [insertImageBase64, setInsertImageBase64] = useState(null);
+
+  const [insertImageCaption, setInsertImageCaption] = useState("");
+
+  const [insertImageAlign, setInsertImageAlign] = useState("center");
+
+  const [insertImageWidth, setInsertImageWidth] = useState("100%");
+
+  /* =======================================================
+     ACTUAL PODCAST STATE
+     ======================================================= */
+
+  const actualIsPodcast = form.category === "podcast";
+
+  /* =======================================================
+     AVAILABLE CATEGORY
+     ======================================================= */
+
+  const availableCategories = categories.filter(
+    (item) => item.slug !== "podcast" || isAdmin || form.category === "podcast",
+  );
+
+  /* =======================================================
+     MOUNT STATE
+     ======================================================= */
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
     };
+  }, []);
 
-    reader.onerror = () => {
-      alert("Terjadi kesalahan saat membaca file gambar.");
-    };
+  /* =======================================================
+     RESET IMAGE MODAL
+     ======================================================= */
 
-    reader.readAsDataURL(file);
-  };
+  const resetImageModal = useCallback(() => {
+    setInsertImageModalOpen(false);
 
-  // ==========================================
-  // PROCESS THUMBNAIL
-  // ==========================================
-  const processFile = (file) => {
-    if (file.size > 1 * 1024 * 1024) {
-      setErrors((prev) => ({
-        ...prev,
-        image: "Ukuran file maksimal 1MB.",
+    setInsertImageBase64(null);
+
+    setInsertImageCaption("");
+
+    setInsertImageAlign("center");
+
+    setInsertImageWidth("100%");
+
+    currentSelectionRef.current = null;
+
+    const input = document.getElementById("insert-image-file");
+
+    if (input) {
+      input.value = "";
+    }
+  }, []);
+
+  /* =======================================================
+     IMAGE VALIDATION
+     ======================================================= */
+
+  const validateSelectedImage = useCallback(
+    (file, maxSize) => validateImageFile(file, maxSize),
+    [],
+  );
+
+  /* =======================================================
+     THUMBNAIL PROCESS
+     ======================================================= */
+
+  const processThumbnailFile = useCallback(
+    (file) => {
+      const validation = validateSelectedImage(file, MAX_THUMBNAIL_SIZE);
+
+      if (!validation.valid) {
+        setErrors((previous) => ({
+          ...previous,
+          image: validation.message,
+        }));
+
+        return false;
+      }
+
+      setThumbnailFile(file);
+
+      setErrors((previous) => ({
+        ...previous,
+        image: null,
       }));
-      return;
-    }
 
-    setThumbnailFile(file);
+      const reader = new FileReader();
 
-    setErrors((prev) => ({
-      ...prev,
-      image: null,
-    }));
+      reader.onload = (event) => {
+        if (!mountedRef.current) {
+          return;
+        }
 
-    const reader = new FileReader();
+        setThumbnailPreview(event.target?.result || null);
+      };
 
-    reader.onload = (e) => {
-      setThumbnailPreview(e.target?.result);
-    };
+      reader.onerror = () => {
+        if (!mountedRef.current) {
+          return;
+        }
 
-    reader.readAsDataURL(file);
-  };
+        setErrors((previous) => ({
+          ...previous,
+          image: "Gagal membaca file thumbnail.",
+        }));
+      };
 
-  // ==========================================
-  // RESIZE IMAGE
-  // ==========================================
-  const resizeSelectedImage = (deltaPx) => {
+      reader.readAsDataURL(file);
+
+      return true;
+    },
+    [validateSelectedImage],
+  );
+
+  /* =======================================================
+     THUMBNAIL INPUT
+     ======================================================= */
+
+  const handleThumbnailChange = useCallback(
+    (event) => {
+      const file = event.target?.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      processThumbnailFile(file);
+    },
+    [processThumbnailFile],
+  );
+
+  /* =======================================================
+     THUMBNAIL DROP
+     ======================================================= */
+
+  const handleThumbnailDrop = useCallback(
+    (event) => {
+      event.preventDefault();
+
+      const file = event.dataTransfer?.files?.[0];
+
+      if (file) {
+        processThumbnailFile(file);
+      }
+    },
+    [processThumbnailFile],
+  );
+
+  /* =======================================================
+     INPUT CHANGE
+     ======================================================= */
+
+  const handleInputChange = useCallback(
+    (field, value) => {
+      let nextValue = value;
+
+      if (field === "title") {
+        nextValue = String(value ?? "").slice(0, MAX_TITLE_LENGTH);
+      }
+
+      if (field === "teaser") {
+        nextValue = String(value ?? "").slice(0, MAX_DESCRIPTION_LENGTH);
+      }
+
+      if (field === "thumbnailCaption") {
+        nextValue = String(value ?? "").slice(0, MAX_CAPTION_LENGTH);
+      }
+
+      dispatch({
+        type: "SET_FIELD",
+        field,
+        value: nextValue,
+      });
+
+      setErrors((previous) => {
+        if (!previous[field]) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          [field]: null,
+        };
+      });
+
+      if (field === "videoLink" && isAdmin && !thumbnailFile) {
+        const thumbnail = getYoutubeThumbnailUrl(nextValue);
+
+        if (thumbnail) {
+          setThumbnailPreview(thumbnail);
+        }
+      }
+    },
+    [isAdmin, thumbnailFile],
+  );
+
+  /* =======================================================
+     CATEGORY CHANGE
+     ======================================================= */
+
+  const handleCategoryChange = useCallback(
+    (event) => {
+      const currentScrollY = window.scrollY;
+
+      const nextCategory = event.target.value;
+
+      handleInputChange("category", nextCategory);
+
+      if (nextCategory !== "podcast") {
+        if (form.audioLink) {
+          handleInputChange("audioLink", "");
+        }
+
+        if (form.videoLink) {
+          handleInputChange("videoLink", "");
+        }
+
+        setErrors((previous) => ({
+          ...previous,
+          audioLink: null,
+          videoLink: null,
+        }));
+      }
+
+      requestAnimationFrame(() => {
+        window.scrollTo(0, currentScrollY);
+      });
+    },
+    [form.audioLink, form.videoLink, handleInputChange],
+  );
+
+  /* =======================================================
+     IMAGE MODAL FILE
+     ======================================================= */
+
+  const handleModalFileChange = useCallback(
+    (event) => {
+      const file = event.target?.files?.[0];
+
+      if (!file) {
+        setInsertImageBase64(null);
+
+        return;
+      }
+
+      const validation = validateSelectedImage(file, MAX_EDITOR_IMAGE_SIZE);
+
+      if (!validation.valid) {
+        window.alert(validation.message);
+
+        event.target.value = "";
+
+        setInsertImageBase64(null);
+
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = (loadEvent) => {
+        if (mountedRef.current) {
+          setInsertImageBase64(loadEvent.target?.result || null);
+        }
+      };
+
+      reader.onerror = () => {
+        window.alert("Gagal membaca gambar.");
+      };
+
+      reader.readAsDataURL(file);
+    },
+    [validateSelectedImage],
+  );
+
+  /* =======================================================
+     RESIZE IMAGE
+     ======================================================= */
+
+  const resizeSelectedImage = useCallback((deltaPx) => {
     const quill = quillRef.current;
 
-    if (!quill) return;
+    if (!quill) {
+      return;
+    }
 
     const range = quill.getSelection(true);
 
-    if (!range) return;
+    if (!range) {
+      return;
+    }
 
     const [leaf] = quill.getLeaf(range.index);
+
     const domNode = leaf?.domNode;
 
-    const img =
-      domNode?.querySelector?.("img") ||
-      domNode
-        ?.closest?.("figure.ql-image-caption")
-        ?.querySelector?.("img");
+    const figure =
+      domNode?.closest?.("figure.ql-image-caption") ||
+      domNode?.parentElement?.closest?.("figure.ql-image-caption");
 
-    if (!img) return;
+    const image =
+      domNode?.querySelector?.("img") || figure?.querySelector?.("img");
 
-    const cur = parseInt(
-      img.style.width ||
-        img.getBoundingClientRect().width,
-      10
+    if (!image) {
+      return;
+    }
+
+    const currentWidth = Number.parseInt(
+      image.style.width || String(image.getBoundingClientRect().width),
+      10,
     );
 
-    const next = Math.max(80, cur + deltaPx);
+    const safeCurrentWidth = Number.isFinite(currentWidth) ? currentWidth : 600;
 
-    img.style.width = `${next}px`;
-    img.style.height = "auto";
+    const nextWidth = Math.min(1200, Math.max(80, safeCurrentWidth + deltaPx));
 
-    const figure = img.closest(
-      "figure.ql-image-caption"
-    );
+    image.style.width = `${nextWidth}px`;
 
-    if (figure) {
-      const caption =
-        figure.querySelector("figcaption");
+    image.style.height = "auto";
 
-      if (caption) {
-        caption.style.width = `${next}px`;
-      }
+    const caption = figure?.querySelector("figcaption");
+
+    if (caption) {
+      caption.style.width = `${nextWidth}px`;
     }
 
     quill.update("user");
-  };
+  }, []);
 
-  // ==========================================
-  // INSERT CUSTOM IMAGE
-  // ==========================================
-  const handleInsertCustomImage = () => {
+  /* =======================================================
+     INSERT CUSTOM IMAGE
+     ======================================================= */
+
+  const handleInsertCustomImage = useCallback(() => {
     if (!insertImageBase64) {
-      alert("Silakan pilih gambar terlebih dahulu.");
+      window.alert("Silakan pilih gambar terlebih dahulu.");
+
       return;
     }
 
     const quill = quillRef.current;
 
-    if (!quill) return;
+    if (!quill) {
+      return;
+    }
 
-    const range =
-      currentSelectionRef.current ||
+    const range = currentSelectionRef.current ||
       quill.getSelection(true) || {
-        index: quill.getLength() - 1,
+        index: Math.max(0, quill.getLength() - 1),
         length: 0,
       };
+
+    const caption = normalizeText(insertImageCaption).slice(
+      0,
+      MAX_CAPTION_LENGTH,
+    );
 
     quill.insertEmbed(
       range.index,
       "imageCaption",
       {
         url: insertImageBase64,
-        caption: insertImageCaption,
+        caption,
         width: insertImageWidth,
         align: insertImageAlign,
       },
-      "user"
+      "user",
     );
 
-    quill.setSelection(
-      range.index + 1,
-      0,
-      "silent"
-    );
+    quill.insertText(range.index + 1, "\n", "user");
 
-    setInsertImageModalOpen(false);
-    setInsertImageBase64(null);
-    setInsertImageCaption("");
-    setInsertImageAlign("center");
-    setInsertImageWidth("100%");
-  };
+    quill.setSelection(range.index + 2, 0, "silent");
 
-  // ==========================================
-  // QUILL INIT
-  // ==========================================
+    resetImageModal();
+  }, [
+    insertImageBase64,
+    insertImageCaption,
+    insertImageWidth,
+    insertImageAlign,
+    resetImageModal,
+  ]);
+
+  /* =======================================================
+     QUILL INIT
+     ======================================================= */
+
   useEffect(() => {
-    if (!quillRef.current) {
-      const quill = new Quill(editorRef.current, {
-        theme: "snow",
-        placeholder: "Tulis isi berita di sini...",
+    if (!editorRef.current) {
+      return undefined;
+    }
 
-        modules: {
-          toolbar: {
-            container: "#quill-toolbar",
+    if (quillRef.current) {
+      return undefined;
+    }
 
-            handlers: {
-              undo() {
-                this.quill.history.undo();
-              },
+    const quill = new Quill(editorRef.current, {
+      theme: "snow",
 
-              redo() {
-                this.quill.history.redo();
-              },
+      placeholder: "Tulis isi berita di sini...",
 
-              image() {
-                currentSelectionRef.current =
-                  this.quill.getSelection(true);
+      modules: {
+        toolbar: {
+          container: "#quill-toolbar",
 
-                setInsertImageModalOpen(true);
-              },
+          handlers: {
+            undo() {
+              this.quill.history.undo();
+            },
 
-              imageSmaller() {
-                resizeSelectedImage(-50);
-              },
+            redo() {
+              this.quill.history.redo();
+            },
 
-              imageLarger() {
-                resizeSelectedImage(50);
-              },
+            image() {
+              currentSelectionRef.current = this.quill.getSelection(true);
+
+              setInsertImageModalOpen(true);
+            },
+
+            imageSmaller() {
+              resizeSelectedImage(-50);
+            },
+
+            imageLarger() {
+              resizeSelectedImage(50);
             },
           },
-
-          history: {
-            delay: 1000,
-            maxStack: 100,
-          },
         },
-      });
 
-      quillRef.current = quill;
-
-      // ==========================================
-      // DEFAULT ALIGNMENT:
-      // PARAGRAF BARU = RATA KIRI SEPERTI WORD
-      // ==========================================
-      quill.setSelection(0, 0, "silent");
-      quill.formatLine(
-        0,
-        1,
-        "align",
-        false,
-        "silent"
-      );
-
-      // ==========================================
-      // PASTIKAN PARAGRAF BARU TANPA ALIGNMENT
-      // TETAP RATA KIRI
-      // ==========================================
-      quill.on(
-        "text-change",
-        (delta, oldDelta, source) => {
-          if (source !== "user") return;
-
-          const selection = quill.getSelection();
-
-          if (!selection) return;
-
-          const [line] = quill.getLine(
-            selection.index
-          );
-
-          if (!line) return;
-
-          const formats = quill.getFormat(
-            selection.index,
-            0
-          );
-
-          // Kalau belum ada alignment,
-          // gunakan default rata kiri.
-          if (!formats.align) {
-            quill.formatLine(
-              selection.index,
-              1,
-              "align",
-              false,
-              "silent"
-            );
-          }
-        }
-      );
-    }
-
-    const articleId = editData?.id;
-    const articleSlug = editData?.slug;
-
-    if (articleId || articleSlug) {
-      const fetchUrl = articleId
-        ? `/api/articles/${articleId}`
-        : `/api/articles/slug/${articleSlug}`;
-
-      axios
-        .get(fetchUrl)
-        .then((response) => {
-          const item =
-            response.data.data ||
-            response.data;
-
-          dispatch({
-            type: "SET_FIELD",
-            field: "title",
-            value: item.title || "",
-          });
-
-          dispatch({
-            type: "SET_FIELD",
-            field: "category",
-            value: item.category || "",
-          });
-
-          dispatch({
-            type: "SET_FIELD",
-            field: "teaser",
-            value: item.summary || "",
-          });
-
-          dispatch({
-            type: "SET_FIELD",
-            field: "tags",
-            value: item.tags || "",
-          });
-
-          dispatch({
-            type: "SET_FIELD",
-            field: "thumbnailCaption",
-            value: item.image_caption || "",
-          });
-
-          dispatch({
-            type: "SET_FIELD",
-            field: "audioLink",
-            value: item.audio_link || "",
-          });
-
-          dispatch({
-            type: "SET_FIELD",
-            field: "videoLink",
-            value: item.video_link || "",
-          });
-
-          if (item.image) {
-            setThumbnailPreview(item.image);
-          }
-
-          // Artikel lama tetap memakai alignment
-          // yang sudah tersimpan di HTML.
-          if (
-            quillRef.current &&
-            item.content
-          ) {
-            quillRef.current.root.innerHTML =
-              item.content;
-          }
-        })
-        .catch((err) => {
-          console.error(
-            "Gagal memuat detail artikel untuk diedit:",
-            err
-          );
-        });
-    }
-  }, [editData]);
-
-  // ==========================================
-  // INPUT CHANGE
-  // ==========================================
-  const handleInputChange = (field, value) => {
-    dispatch({
-      type: "SET_FIELD",
-      field,
-      value,
+        history: {
+          delay: 1000,
+          maxStack: 100,
+          userOnly: true,
+        },
+      },
     });
 
-    if (errors[field]) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: null,
-      }));
+    quillRef.current = quill;
+
+    quill.setSelection(0, 0, "silent");
+
+    quill.formatLine(0, 1, "align", false, "silent");
+
+    return undefined;
+  }, [resizeSelectedImage]);
+
+  /* =======================================================
+     LOAD EDIT DATA
+     ======================================================= */
+
+  useEffect(() => {
+    const articleId = editData?.id;
+
+    if (!articleId) {
+      return undefined;
     }
 
-    if (
-      field === "videoLink" &&
-      isAdmin &&
-      !thumbnailFile
-    ) {
-      const thumb = getYoutubeThumbnailUrl(
-        value || ""
-      );
+    let active = true;
+    const controller = new AbortController();
 
-      if (thumb) {
-        setThumbnailPreview(thumb);
-      }
-    }
-  };
+    /*
+     * FIX:
+     * Selalu gunakan /api/articles/{id}
+     * karena route backend kamu memang:
+     *
+     * GET /api/articles/{slug}
+     *
+     * dan ID numerik juga ditangani
+     * sebagai fallback oleh showBySlug().
+     */
+    const fetchUrl = `/api/articles/${encodeURIComponent(articleId)}`;
 
-  // ==========================================
-  // AVAILABLE CATEGORY
-  // ==========================================
-  const availableCategories =
-    categories.filter(
-      (item) =>
-        item.slug !== "podcast" ||
-        isAdmin ||
-        form.category === "podcast"
-    );
+    axios
+      .get(fetchUrl, { signal: controller.signal })
+      .then((response) => {
+        if (!active) {
+          return;
+        }
 
-  const isPodcast =
-    form.category === "podcast";
+        const item = response?.data?.data || response?.data || {};
 
-  // ==========================================
-  // CATEGORY CHANGE
-  // ==========================================
-  const handleCategoryChange = (e) => {
-    const currentScrollY = window.scrollY;
+        dispatch({
+          type: "SET_FORM",
+          value: {
+            title: item.title || "",
 
-    handleInputChange(
-      "category",
-      e.target.value
-    );
+            category: item.category || "",
 
-    requestAnimationFrame(() =>
-      window.scrollTo(
-        0,
-        currentScrollY
-      )
-    );
-  };
+            teaser: item.summary || "",
 
-  // ==========================================
-  // RELATED
-  // ==========================================
-  const openRelatedModal = async () => {
+            tags: Array.isArray(item.tags)
+              ? item.tags.join(", ")
+              : item.tags || "",
+
+            thumbnailCaption: item.image_caption || item.thumbnailCaption || "",
+
+            audioLink: item.audio_link || "",
+
+            videoLink: item.video_link || "",
+          },
+        });
+
+        if (item.image) {
+          setThumbnailPreview(item.image);
+        }
+
+        const cleanContent = sanitizeArticleHtml(item.content || "");
+
+        if (quillRef.current && cleanContent) {
+          quillRef.current.clipboard.dangerouslyPasteHTML(
+            cleanContent,
+            "silent",
+          );
+
+          quillRef.current.setSelection(
+            Math.max(0, quillRef.current.getLength() - 1),
+            0,
+            "silent",
+          );
+        }
+      })
+      .catch((error) => {
+        if (error?.code === "ERR_CANCELED" || error?.name === "CanceledError") {
+          return;
+        }
+
+        if (!active) {
+          return;
+        }
+
+        console.error("Gagal memuat artikel:", error);
+
+        setErrors((previous) => ({
+          ...previous,
+          load:
+            error?.response?.data?.message ||
+            "Gagal memuat artikel untuk diedit.",
+        }));
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [editData]);
+
+  /* =======================================================
+     RELATED MODAL
+     ======================================================= */
+
+  const openRelatedModal = useCallback(async () => {
     if (!form.category) {
-      setErrors((prev) => ({
-        ...prev,
-        category:
-          "Pilih kategori terlebih dahulu untuk menambahkan Baca Juga.",
+      setErrors((previous) => ({
+        ...previous,
+        category: "Pilih kategori terlebih dahulu.",
       }));
 
       return;
     }
 
     setRelatedError(null);
+
     setRelatedLoading(true);
+
     setRelatedModalOpen(true);
 
     try {
       const response = await axios.get(
-        `/api/articles/list/${form.category}`
+        `/api/articles/list/${encodeURIComponent(form.category)}`,
       );
 
-      const related =
-        response.data || [];
+      const source = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.data?.data)
+          ? response.data.data
+          : [];
 
-      const filtered =
-        related.filter(
-          (item) =>
-            item.id !== editData?.id
-        );
+      const filtered = source.filter(
+        (item) => String(item?.id) !== String(editData?.id),
+      );
 
-      setRelatedArticles(filtered);
+      if (mountedRef.current) {
+        setRelatedArticles(filtered);
+      }
     } catch (error) {
-      console.error(
-        "Gagal memuat daftar artikel terkait:",
-        error
-      );
+      console.error("Gagal memuat artikel terkait:", error);
 
-      setRelatedError(
-        "Tidak dapat memuat daftar artikel. Coba lagi."
-      );
+      if (mountedRef.current) {
+        setRelatedError("Tidak dapat memuat daftar artikel. Coba lagi.");
 
-      setRelatedArticles([]);
+        setRelatedArticles([]);
+      }
     } finally {
-      setRelatedLoading(false);
+      if (mountedRef.current) {
+        setRelatedLoading(false);
+      }
     }
-  };
+  }, [editData?.id, form.category]);
 
-  const insertRelatedShortcode = (
-    articleId,
-    articleTitle,
-    articleSlug
-  ) => {
-    const quill = quillRef.current;
+  /* =======================================================
+     INSERT RELATED SHORTCODE
+     ======================================================= */
 
-    if (!quill) return;
+  const insertRelatedShortcode = useCallback(
+    (articleId, articleTitle, articleSlug) => {
+      const quill = quillRef.current;
 
-    const range =
-      quill.getSelection(true) || {
-        index: quill.getLength() - 1,
+      if (!quill || !articleId) {
+        return;
+      }
+
+      const range = quill.getSelection(true) || {
+        index: Math.max(0, quill.getLength() - 1),
         length: 0,
       };
 
-    const displayText =
-      `Baca Juga: ${articleTitle}`;
+      const safeTitle = normalizeText(articleTitle);
 
-    quill.insertText(
-      range.index,
-      "\n",
-      "user"
-    );
+      const safeSlug = normalizeText(articleSlug);
 
-    quill.insertText(
-      range.index + 1,
-      displayText,
-      {
-        bold: true,
-        color: "#c0392b",
-        link: `/article/${articleSlug}`,
-      },
-      "user"
-    );
+      if (!safeTitle) {
+        return;
+      }
 
-    quill.insertText(
-      range.index +
-        1 +
-        displayText.length,
-      "\n",
-      "user"
-    );
+      const href = safeSlug ? `/article/${encodeURIComponent(safeSlug)}` : "#";
 
-    quill.setSelection(
-      range.index +
-        displayText.length +
-        2,
-      0,
-      "silent"
-    );
+      const visibleText = `Baca Juga: ${safeTitle}`;
 
-    setRelatedModalOpen(false);
-  };
+      const shortcode = `[related:${String(articleId)}]`;
 
-  // ==========================================
-  // THUMBNAIL
-  // ==========================================
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files?.[0];
+      const html = `<p><strong><a href="${escapeHtml(
+        href,
+      )}" rel="noopener noreferrer">${escapeHtml(
+        visibleText,
+      )}</a><span style="display:none">${escapeHtml(
+        shortcode,
+      )}</span></strong></p>`;
 
-    if (file) {
-      processFile(file);
-    }
-  };
+      quill.clipboard.dangerouslyPasteHTML(range.index, html, "user");
 
-  // ==========================================
-  // VALIDATE
-  // ==========================================
-  const validateForm = () => {
+      quill.setSelection(
+        Math.min(range.index + visibleText.length + 1, quill.getLength()),
+        0,
+        "silent",
+      );
+
+      setRelatedModalOpen(false);
+    },
+    [],
+  );
+
+  /* =======================================================
+     VALIDATE FORM
+     ======================================================= */
+
+  const validateForm = useCallback(() => {
     const newErrors = {};
 
+    const title = normalizeText(form.title);
+
+    const description = normalizeText(form.teaser);
+
+    const tags = normalizeTags(form.tags);
+
     if (!form.category) {
-      newErrors.category =
-        "Kategori wajib dipilih.";
+      newErrors.category = "Kategori wajib dipilih.";
     }
 
-    if (!form.title.trim()) {
-      newErrors.title =
-        "Judul tidak boleh kosong.";
+    if (!title) {
+      newErrors.title = "Judul tidak boleh kosong.";
+    } else if (title.length < 5) {
+      newErrors.title = "Judul minimal 5 karakter.";
     }
 
-    const tagsArray = form.tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-
-    if (
-      tagsArray.length < 2 ||
-      tagsArray.length > 10
-    ) {
-      newErrors.tags =
-        "Tag minimal 2 dan maksimal 10.";
+    if (title.length > MAX_TITLE_LENGTH) {
+      newErrors.title = `Judul maksimal ${MAX_TITLE_LENGTH} karakter.`;
     }
 
-    if (
-      !isPodcast &&
-      !thumbnailFile &&
-      !thumbnailPreview
-    ) {
-      newErrors.image =
-        "Thumbnail wajib diunggah.";
+    if (tags.length < MIN_TAGS || tags.length > MAX_TAGS) {
+      newErrors.tags = `Tag harus berisi ${MIN_TAGS}-${MAX_TAGS} tag.`;
     }
 
-    if (isPodcast) {
-      if (
-        modalType === "publish" &&
-        !form.audioLink.trim() &&
-        !form.videoLink.trim()
-      ) {
-        newErrors.audioLink =
-          "Masukkan link Spotify atau YouTube untuk podcast.";
+    if (!actualIsPodcast && !thumbnailFile && !thumbnailPreview) {
+      newErrors.image = "Thumbnail wajib diunggah.";
+    }
 
-        newErrors.videoLink =
-          "Masukkan link Spotify atau YouTube untuk podcast.";
+    if (description.length > MAX_DESCRIPTION_LENGTH) {
+      newErrors.teaser = `Description maksimal ${MAX_DESCRIPTION_LENGTH} karakter.`;
+    }
+
+    if (actualIsPodcast) {
+      const spotify = normalizeText(form.audioLink);
+
+      const youtube = normalizeText(form.videoLink);
+
+      if (modalType === "publish" && !spotify && !youtube) {
+        newErrors.audioLink = "Masukkan link Spotify atau YouTube.";
+
+        newErrors.videoLink = "Masukkan link Spotify atau YouTube.";
       }
-    } else {
-      if (modalType === "publish") {
-        const content =
-          quillRef.current?.root
-            ?.innerHTML || "";
 
-        if (
-          !content ||
-          content === "<p><br></p>"
-        ) {
-          newErrors.content =
-            "Isi berita tidak boleh kosong.";
-        }
+      if (spotify && !getSpotifyEmbedUrl(spotify)) {
+        newErrors.audioLink = "Link Spotify tidak valid.";
+      }
+
+      if (youtube && !getYoutubeVideoId(youtube)) {
+        newErrors.videoLink = "Link YouTube tidak valid.";
+      }
+    } else if (modalType === "publish") {
+      const editorHtml = quillRef.current?.root?.innerHTML || "";
+
+      const cleanHtml = sanitizeArticleHtml(editorHtml);
+
+      const plainText = getPlainTextFromHtml(cleanHtml);
+
+      if (!plainText) {
+        newErrors.content = "Isi berita tidak boleh kosong.";
       }
     }
 
     setErrors(newErrors);
 
-    return (
-      Object.keys(newErrors).length === 0
-    );
-  };
+    return Object.keys(newErrors).length === 0;
+  }, [actualIsPodcast, form, thumbnailFile, thumbnailPreview, modalType]);
 
-  // ==========================================
-  // DOWNLOAD YOUTUBE THUMBNAIL
-  // ==========================================
-  const downloadThumbnailAsFile = async (
-    videoLink
-  ) => {
+  /* =======================================================
+     YOUTUBE THUMBNAIL DOWNLOAD
+     ======================================================= */
+
+  const downloadThumbnailAsFile = useCallback(async (videoLink) => {
+    const thumbnailUrl = getYoutubeThumbnailUrl(videoLink);
+
+    if (!thumbnailUrl) {
+      return null;
+    }
+
     try {
-      const thumbnailUrl =
-        getYoutubeThumbnailUrl(
-          videoLink
-        );
+      const response = await fetch(thumbnailUrl);
 
-      if (!thumbnailUrl) return null;
+      if (!response.ok) {
+        return null;
+      }
 
-      const response =
-        await fetch(thumbnailUrl);
+      const blob = await response.blob();
 
-      if (!response.ok) return null;
+      if (!ALLOWED_IMAGE_TYPES.includes(blob.type)) {
+        return null;
+      }
 
-      const blob =
-        await response.blob();
+      if (blob.size > MAX_THUMBNAIL_SIZE) {
+        return null;
+      }
 
-      const fileName =
-        `thumbnail-${Date.now()}.jpg`;
-
-      return new File(
-        [blob],
-        fileName,
-        {
-          type: "image/jpeg",
-        }
-      );
+      return new File([blob], `thumbnail-${Date.now()}.jpg`, {
+        type: "image/jpeg",
+      });
     } catch (error) {
-      console.error(
-        "Failed to download thumbnail:",
-        error
-      );
+      console.error("Gagal mengambil thumbnail YouTube:", error);
 
       return null;
     }
-  };
+  }, []);
 
-  // ==========================================
-  // FINAL SUBMIT
-  // ==========================================
-  const handleFinalSubmit = async () => {
+  /* =======================================================
+     FINAL SUBMIT
+     ======================================================= */
+
+  const handleFinalSubmit = useCallback(async () => {
+    if (submittingRef.current) {
+      return;
+    }
     if (!validateForm()) {
       setShowModal(false);
+
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
 
-    const contentHtml = isPodcast
-      ? buildPodcastContentHtml()
-      : quillRef.current?.root
-          ?.innerHTML || "";
-
-    const formData =
-      new FormData();
-
-    formData.append(
-      "title",
-      form.title
-    );
-
-    formData.append(
-      "category",
-      form.category
-    );
-
-    formData.append(
-      "content",
-      contentHtml
-    );
-
-    formData.append(
-      "summary",
-      form.teaser
-    );
-
-    formData.append(
-      "tags",
-      form.tags
-    );
-
-    formData.append(
-      "image_caption",
-      form.thumbnailCaption
-    );
-
-    formData.append(
-      "thumbnailCaption",
-      form.thumbnailCaption
-    );
-
-    if (isPodcast) {
-      formData.append(
-        "audio_link",
-        form.audioLink.trim()
-      );
-
-      formData.append(
-        "video_link",
-        form.videoLink.trim()
-      );
-    }
-
-    formData.append(
-      "status",
-      modalType === "draft"
-        ? "draft"
-        : "pending"
-    );
-
-    let finalThumbnailFile =
-      thumbnailFile;
-
-    if (
-      !finalThumbnailFile &&
-      isPodcast &&
-      form.videoLink.trim()
-    ) {
-      finalThumbnailFile =
-        await downloadThumbnailAsFile(
-          form.videoLink.trim()
-        );
-    }
-
-    if (finalThumbnailFile) {
-      formData.append(
-        "image",
-        finalThumbnailFile
-      );
-    }
-
-    if (editData?.id) {
-      formData.append(
-        "id",
-        editData.id
-      );
-
-      formData.append(
-        "_method",
-        "PUT"
-      );
-    }
+    setErrors((previous) => ({
+      ...previous,
+      submit: null,
+    }));
 
     try {
-      const url = editData?.id
-        ? `/api/articles/${editData.id}`
-        : "/api/articles";
+      await ensureCsrfToken();
 
-      const response =
-        await axios.post(
-          url,
-          formData,
-          {
-            headers: {
-              "Content-Type":
-                "multipart/form-data",
-            },
-          }
-        );
+      const safeTitle = normalizeText(form.title);
 
-      if (
-        response.status === 201 ||
-        response.status === 200
-      ) {
-        queryClient.invalidateQueries([
-          "publicArticles",
-        ]);
-
-        queryClient.invalidateQueries([
-          "userArticles",
-        ]);
-
-        if (editData?.id) {
-          navigate(returnPath);
-        } else {
-          navigate(
-            modalType === "draft"
-              ? "/profile"
-              : "/write-success"
-          );
-        }
-      }
-    } catch (error) {
-      console.error(
-        "Gagal kirim ke database:",
-        error.response?.data
+      const safeSummary = normalizeText(form.teaser).slice(
+        0,
+        MAX_DESCRIPTION_LENGTH,
       );
 
-      if (
-        error.response?.data?.errors
-      ) {
-        const apiErrors =
-          error.response.data.errors;
+      const safeTags = normalizeTags(form.tags);
 
-        const formattedErrors = {};
+      let contentHtml = "";
 
-        for (
-          let key in apiErrors
-        ) {
-          formattedErrors[key] =
-            apiErrors[key][0];
-        }
-
-        setErrors(
-          formattedErrors
-        );
+      if (actualIsPodcast) {
+        contentHtml = buildPodcastContentHtml(form);
       } else {
-        alert(
-          "Gagal mengirim: " +
-            (
-              error.response?.data
-                ?.message ||
-              "Cek koneksi/login"
-            )
+        contentHtml = sanitizeArticleHtml(
+          quillRef.current?.root?.innerHTML || "",
         );
       }
-    } finally {
-      setLoading(false);
-      setShowModal(false);
-    }
-  };
 
-  // ==========================================
-  // OPEN MODAL
-  // ==========================================
-  const openModal = (type) => {
+      const formData = new FormData();
+
+      formData.append("title", safeTitle);
+
+      formData.append("category", form.category);
+
+      formData.append("content", contentHtml);
+
+      formData.append("summary", safeSummary);
+
+      formData.append("tags", safeTags.join(", "));
+
+      formData.append(
+        "image_caption",
+        normalizeText(form.thumbnailCaption).slice(0, MAX_CAPTION_LENGTH),
+      );
+
+      if (actualIsPodcast) {
+        formData.append("audio_link", normalizeText(form.audioLink));
+
+        formData.append("video_link", normalizeText(form.videoLink));
+      } else {
+        formData.append("audio_link", "");
+
+        formData.append("video_link", "");
+      }
+
+      /*
+       * STATUS FINAL
+       *
+       * Draft:
+       * draft
+       *
+       * Admin publish:
+       * approved
+       *
+       * User publish:
+       * pending
+       */
+      const finalStatus =
+        modalType === "draft" ? "draft" : isAdmin ? "approved" : "pending";
+
+      formData.append("status", finalStatus);
+
+      let finalThumbnailFile = thumbnailFile;
+
+      if (
+        !finalThumbnailFile &&
+        actualIsPodcast &&
+        normalizeText(form.videoLink)
+      ) {
+        finalThumbnailFile = await downloadThumbnailAsFile(form.videoLink);
+      }
+
+      if (finalThumbnailFile) {
+        formData.append("image", finalThumbnailFile);
+      }
+
+      /*
+       * EDIT
+       */
+      if (editData?.id) {
+        formData.append("id", String(editData.id));
+
+        formData.append("_method", "PUT");
+      }
+
+      /*
+       * CREATE:
+       * POST /api/articles
+       *
+       * EDIT:
+       * POST /api/articles/{id}
+       * dengan _method=PUT
+       */
+      const endpoint = editData?.id
+        ? `/api/articles/${encodeURIComponent(editData.id)}`
+        : "/api/articles";
+
+      const response = await axios.post(endpoint, formData);
+
+      if (response?.status !== 200 && response?.status !== 201) {
+        throw new Error("Gagal menyimpan artikel.");
+      }
+
+      /*
+       * REFRESH CACHE
+       */
+      queryClient.invalidateQueries({
+        queryKey: ["publicArticles"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["userArticles"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["article"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["authorProfile"],
+      });
+
+      /*
+       * NAVIGASI
+       */
+      if (editData?.id) {
+        navigate(returnPath);
+      } else if (modalType === "draft") {
+        navigate("/profile");
+      } else {
+        navigate("/write-success");
+      }
+    } catch (error) {
+      console.error("Gagal menyimpan artikel:", error?.response?.data || error);
+
+      const apiErrors = error?.response?.data?.errors;
+
+      if (apiErrors && typeof apiErrors === "object") {
+        const formattedErrors = {};
+
+        Object.entries(apiErrors).forEach(([key, value]) => {
+          formattedErrors[key] = Array.isArray(value)
+            ? value[0]
+            : String(value);
+        });
+
+        setErrors(formattedErrors);
+      } else {
+        const message =
+          error?.response?.data?.message ||
+          "Gagal menyimpan artikel. Coba lagi.";
+
+        setErrors((previous) => ({
+          ...previous,
+          submit: message,
+        }));
+
+        window.alert(message);
+      }
+    } finally {
+      submittingRef.current = false;
+
+      if (mountedRef.current) {
+        setLoading(false);
+
+        setShowModal(false);
+      }
+    }
+  }, [
+    validateForm,
+    actualIsPodcast,
+    form,
+    modalType,
+    isAdmin,
+    thumbnailFile,
+    editData?.id,
+    returnPath,
+    navigate,
+    queryClient,
+    downloadThumbnailAsFile,
+  ]);
+
+  /* =======================================================
+     SUBMIT MODAL
+     ======================================================= */
+
+  const openModal = useCallback((type) => {
+    setErrors((previous) => ({
+      ...previous,
+      submit: null,
+    }));
+
     setModalType(type);
+
     setShowModal(true);
-  };
+  }, []);
+
+  /* =======================================================
+     FILE KEYBOARD
+     ======================================================= */
+
+  const dropZoneKeyDown = useCallback((event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+
+      fileInputRef.current?.click();
+    }
+  }, []);
+
+  /* =======================================================
+     REMOVE THUMBNAIL
+     ======================================================= */
+
+  const removeThumbnail = useCallback(() => {
+    setThumbnailPreview(null);
+
+    setThumbnailFile(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    setErrors((previous) => ({
+      ...previous,
+      image: null,
+    }));
+  }, []);
+
+  /* =======================================================
+     ESCAPE
+     ======================================================= */
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (loading) {
+        return;
+      }
+
+      if (insertImageModalOpen) {
+        resetImageModal();
+
+        return;
+      }
+
+      if (relatedModalOpen) {
+        setRelatedModalOpen(false);
+
+        return;
+      }
+
+      if (showModal) {
+        setShowModal(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    loading,
+    insertImageModalOpen,
+    relatedModalOpen,
+    showModal,
+    resetImageModal,
+  ]);
+
+  /* =======================================================
+     BODY SCROLL LOCK
+     ======================================================= */
+
+  useEffect(() => {
+    const modalOpen = showModal || insertImageModalOpen || relatedModalOpen;
+
+    if (!modalOpen) {
+      return undefined;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [showModal, insertImageModalOpen, relatedModalOpen]);
+
+  /* =======================================================
+     CLEANUP
+     ======================================================= */
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+
+      quillRef.current = null;
+
+      currentSelectionRef.current = null;
+    };
+  }, []);
+
+  /* =======================================================
+     PREVIEW
+     ======================================================= */
+
+  const previewSource = thumbnailPreview || "";
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
 
   return (
     <div className="page menulis-form-page">
-      <main className="content">
-        <section className="write-form">
+      <Helmet>
+        <html lang="id-ID" />
 
-          {/* HEADER */}
+        <title>Tulis Artikel - {SITE_NAME}</title>
+
+        <meta
+          name="description"
+          content="Halaman penulisan dan pengiriman artikel SukaMuda."
+        />
+
+        <meta name="robots" content="noindex,follow" />
+
+        <meta name="googlebot" content="noindex,follow" />
+      </Helmet>
+
+      <main className="content">
+        <section className="write-form" aria-labelledby="write-page-title">
+          {/* =================================================
+              HEADER
+              ================================================= */}
+
           <div className="write-header">
             <button
               className="back-link-btn"
-              onClick={() =>
-                navigate(returnPath)
-              }
+              type="button"
+              onClick={() => navigate(returnPath)}
               aria-label="Kembali"
+              disabled={loading}
             >
-              <span
-                className="back-icon"
-                aria-hidden="true"
-              >
-                {" "}
-                ←{" "}
+              <span className="back-icon" aria-hidden="true">
+                ←
               </span>
             </button>
 
-            <h1 className="write-heading">
+            <h1 className="write-heading" id="write-page-title">
               WRITE
             </h1>
 
             <div />
           </div>
 
-          {/* CATEGORY */}
-          <div className="form-row">
-            <label
-              className="form-label"
-              htmlFor="write-category"
+          {/* =================================================
+              ERROR
+              ================================================= */}
+
+          {errors.load && (
+            <div
+              role="alert"
+              style={{
+                color: "#b42318",
+                marginBottom: 16,
+              }}
             >
+              {errors.load}
+            </div>
+          )}
+
+          {errors.submit && (
+            <div
+              role="alert"
+              style={{
+                color: "#b42318",
+                marginBottom: 16,
+              }}
+            >
+              {errors.submit}
+            </div>
+          )}
+
+          {/* =================================================
+              CATEGORY
+              ================================================= */}
+
+          <div className="form-row">
+            <label className="form-label" htmlFor="write-category">
               Category
             </label>
 
@@ -1207,27 +1841,18 @@ function Write() {
               id="write-category"
               className="form-select"
               value={form.category}
-              onChange={
-                handleCategoryChange
-              }
+              onChange={handleCategoryChange}
+              disabled={loading}
             >
-              <option
-                value=""
-                disabled
-              >
+              <option value="" disabled>
                 Pilih Kategori
               </option>
 
-              {availableCategories.map(
-                (item) => (
-                  <option
-                    key={item.slug}
-                    value={item.slug}
-                  >
-                    {item.label}
-                  </option>
-                )
-              )}
+              {availableCategories.map((item) => (
+                <option key={item.slug} value={item.slug}>
+                  {item.label}
+                </option>
+              ))}
             </select>
 
             {errors.category && (
@@ -1244,12 +1869,12 @@ function Write() {
             )}
           </div>
 
-          {/* TITLE */}
+          {/* =================================================
+              TITLE
+              ================================================= */}
+
           <div className="form-row">
-            <label
-              className="form-label"
-              htmlFor="write-title"
-            >
+            <label className="form-label" htmlFor="write-title">
               Title
             </label>
 
@@ -1258,12 +1883,12 @@ function Write() {
               className="form-input"
               placeholder="Write Here"
               value={form.title}
-              onChange={(e) =>
-                handleInputChange(
-                  "title",
-                  e.target.value
-                )
+              onChange={(event) =>
+                handleInputChange("title", event.target.value)
               }
+              maxLength={MAX_TITLE_LENGTH}
+              disabled={loading}
+              autoComplete="off"
             />
 
             {errors.title && (
@@ -1280,28 +1905,29 @@ function Write() {
             )}
           </div>
 
-          {/* PODCAST */}
-          {isPodcast ? (
+          {/* =================================================
+              PODCAST
+              ================================================= */}
+
+          {actualIsPodcast ? (
             <>
               <div className="form-row">
-                <label
-                  className="form-label"
-                  htmlFor="write-spotify"
-                >
+                <label className="form-label" htmlFor="write-spotify">
                   Link Spotify
                 </label>
 
                 <input
                   id="write-spotify"
                   className="form-input"
+                  type="url"
+                  inputMode="url"
                   placeholder="Masukkan link Spotify episode"
                   value={form.audioLink}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "audioLink",
-                      e.target.value
-                    )
+                  onChange={(event) =>
+                    handleInputChange("audioLink", event.target.value)
                   }
+                  disabled={loading}
+                  autoComplete="off"
                 />
 
                 {errors.audioLink && (
@@ -1319,24 +1945,22 @@ function Write() {
               </div>
 
               <div className="form-row">
-                <label
-                  className="form-label"
-                  htmlFor="write-youtube"
-                >
+                <label className="form-label" htmlFor="write-youtube">
                   Link YouTube
                 </label>
 
                 <input
                   id="write-youtube"
                   className="form-input"
+                  type="url"
+                  inputMode="url"
                   placeholder="Masukkan link YouTube video"
                   value={form.videoLink}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "videoLink",
-                      e.target.value
-                    )
+                  onChange={(event) =>
+                    handleInputChange("videoLink", event.target.value)
                   }
+                  disabled={loading}
+                  autoComplete="off"
                 />
 
                 {errors.videoLink && (
@@ -1353,92 +1977,55 @@ function Write() {
                 )}
               </div>
 
+              {/* PODCAST THUMBNAIL */}
+
               <div className="form-row">
-                <label className="form-label">
-                  Thumbnail (opsional)
-                </label>
+                <label className="form-label">Thumbnail (opsional)</label>
 
                 <div className="thumbnail-upload-row">
                   <div
                     className="thumbnail-drop-mini"
                     role="button"
-                    tabIndex={0}
+                    tabIndex={loading ? -1 : 0}
                     aria-label="Pilih file thumbnail"
-                    onKeyDown={
-                      dropZoneKeyDown
-                    }
-                    onDragOver={(e) =>
-                      e.preventDefault()
-                    }
-                    onDrop={(e) => {
-                      e.preventDefault();
-
-                      const file =
-                        e.dataTransfer
-                          .files?.[0];
-
-                      if (
-                        file &&
-                        file.type.startsWith(
-                          "image/"
-                        )
-                      ) {
-                        processFile(file);
-                      }
-                    }}
-                    onClick={() =>
-                      fileInputRef.current?.click()
-                    }
+                    aria-disabled={loading}
+                    onKeyDown={dropZoneKeyDown}
+                    onDragOver={(event) => !loading && event.preventDefault()}
+                    onDrop={loading ? undefined : handleThumbnailDrop}
+                    onClick={() => !loading && fileInputRef.current?.click()}
                   >
                     <input
                       ref={fileInputRef}
                       className="hidden-file-input"
                       type="file"
-                      accept="image/*"
-                      onChange={
-                        handleThumbnailChange
-                      }
+                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                      onChange={handleThumbnailChange}
                       aria-hidden="true"
                       tabIndex={-1}
+                      disabled={loading}
                     />
 
-                    <span>
-                      Choose File
-                    </span>
+                    <span>Choose File</span>
                   </div>
 
-                  {thumbnailPreview && (
+                  {previewSource && (
                     <div className="thumbnail-preview-box">
                       <img
                         className="thumbnail-preview-mini"
-                        src={
-                          thumbnailPreview
-                        }
+                        src={previewSource}
                         alt="Preview thumbnail"
+                        width="240"
+                        height="135"
+                        loading="lazy"
+                        decoding="async"
                       />
 
                       <button
                         type="button"
                         className="remove-thumbnail-btn"
                         aria-label="Hapus thumbnail"
-                        onClick={(e) => {
-                          e.stopPropagation();
-
-                          setThumbnailPreview(
-                            null
-                          );
-
-                          setThumbnailFile(
-                            null
-                          );
-
-                          if (
-                            fileInputRef.current
-                          ) {
-                            fileInputRef.current.value =
-                              "";
-                          }
-                        }}
+                        onClick={removeThumbnail}
+                        disabled={loading}
                       >
                         ×
                       </button>
@@ -1461,119 +2048,107 @@ function Write() {
               </div>
 
               <div className="form-row">
-                <label
-                  className="form-label"
-                  htmlFor="write-thumb-caption"
-                >
-                  Caption Thumbnail
-                  (opsional)
+                <label className="form-label" htmlFor="write-thumb-caption">
+                  Caption Thumbnail (opsional)
                 </label>
 
                 <input
                   id="write-thumb-caption"
                   className="form-input"
                   placeholder="Tulis caption thumbnail jika ingin"
-                  value={
-                    form.thumbnailCaption
+                  value={form.thumbnailCaption}
+                  onChange={(event) =>
+                    handleInputChange("thumbnailCaption", event.target.value)
                   }
-                  onChange={(e) =>
-                    handleInputChange(
-                      "thumbnailCaption",
-                      e.target.value
-                    )
-                  }
+                  maxLength={MAX_CAPTION_LENGTH}
+                  disabled={loading}
                 />
+              </div>
+
+              <div className="form-row">
+                <label className="form-label" htmlFor="write-desc">
+                  Description
+                </label>
+
+                <input
+                  id="write-desc"
+                  className="form-input"
+                  placeholder="Deskripsi singkat podcast"
+                  value={form.teaser}
+                  onChange={(event) =>
+                    handleInputChange("teaser", event.target.value)
+                  }
+                  maxLength={MAX_DESCRIPTION_LENGTH}
+                  disabled={loading}
+                />
+
+                {errors.teaser && (
+                  <small
+                    role="alert"
+                    style={{
+                      color: "red",
+                      marginTop: 4,
+                      display: "block",
+                    }}
+                  >
+                    {errors.teaser}
+                  </small>
+                )}
               </div>
             </>
           ) : (
             <>
-              {/* THUMBNAIL */}
+              {/* =================================================
+                  THUMBNAIL
+                  ================================================= */}
+
               <div className="form-row">
-                <label className="form-label">
-                  Thumbnail
-                </label>
+                <label className="form-label">Thumbnail</label>
 
                 <div className="thumbnail-upload-row">
                   <div
                     className="thumbnail-drop-mini"
                     role="button"
-                    tabIndex={0}
+                    tabIndex={loading ? -1 : 0}
                     aria-label="Pilih file thumbnail"
-                    onKeyDown={
-                      dropZoneKeyDown
-                    }
-                    onDragOver={(e) =>
-                      e.preventDefault()
-                    }
-                    onDrop={(e) => {
-                      e.preventDefault();
-
-                      const file =
-                        e.dataTransfer
-                          .files?.[0];
-
-                      if (
-                        file &&
-                        file.type.startsWith(
-                          "image/"
-                        )
-                      ) {
-                        processFile(file);
-                      }
-                    }}
-                    onClick={() =>
-                      fileInputRef.current?.click()
-                    }
+                    aria-disabled={loading}
+                    onKeyDown={dropZoneKeyDown}
+                    onDragOver={(event) => !loading && event.preventDefault()}
+                    onDrop={loading ? undefined : handleThumbnailDrop}
+                    onClick={() => !loading && fileInputRef.current?.click()}
                   >
                     <input
                       ref={fileInputRef}
                       className="hidden-file-input"
                       type="file"
-                      accept="image/*"
-                      onChange={
-                        handleThumbnailChange
-                      }
+                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                      onChange={handleThumbnailChange}
                       aria-hidden="true"
                       tabIndex={-1}
+                      disabled={loading}
                     />
 
-                    <span>
-                      Choose File
-                    </span>
+                    <span>Choose File</span>
                   </div>
 
-                  {thumbnailPreview && (
+                  {previewSource && (
                     <div className="thumbnail-preview-box">
                       <img
                         className="thumbnail-preview-mini"
-                        src={
-                          thumbnailPreview
-                        }
+                        src={previewSource}
                         alt="Preview thumbnail"
+                        width="240"
+                        height="135"
+                        loading="lazy"
+                        decoding="async"
                       />
 
                       <button
                         type="button"
                         className="remove-thumbnail-btn"
                         aria-label="Hapus thumbnail"
-                        onClick={(e) => {
-                          e.stopPropagation();
-
-                          setThumbnailPreview(
-                            null
-                          );
-
-                          setThumbnailFile(
-                            null
-                          );
-
-                          if (
-                            fileInputRef.current
-                          ) {
-                            fileInputRef.current.value =
-                              "";
-                          }
-                        }}
+                        onClick={removeThumbnail}
+                        disabled={loading}
                       >
                         ×
                       </button>
@@ -1595,12 +2170,10 @@ function Write() {
                 )}
               </div>
 
-              {/* CAPTION THUMBNAIL */}
+              {/* CAPTION */}
+
               <div className="form-row">
-                <label
-                  className="form-label"
-                  htmlFor="write-thumb-caption"
-                >
+                <label className="form-label" htmlFor="write-thumb-caption">
                   Caption Thumbnail
                 </label>
 
@@ -1609,31 +2182,26 @@ function Write() {
                     id="write-thumb-caption"
                     className="form-input"
                     placeholder="Tulis caption gambar thumbnail"
-                    value={
-                      form.thumbnailCaption
+                    value={form.thumbnailCaption}
+                    onChange={(event) =>
+                      handleInputChange("thumbnailCaption", event.target.value)
                     }
-                    onChange={(e) =>
-                      handleInputChange(
-                        "thumbnailCaption",
-                        e.target.value
-                      )
-                    }
+                    maxLength={MAX_CAPTION_LENGTH}
+                    disabled={loading}
                   />
 
                   <p className="thumbnail-caption-hint">
-                    Caption ini akan tampil
-                    di bawah gambar utama
-                    artikel.
+                    Caption ini akan tampil di bawah gambar utama artikel.
                   </p>
                 </div>
               </div>
 
-              {/* EDITOR */}
+              {/* =================================================
+                  EDITOR
+                  ================================================= */}
+
               <div className="editor-wrapper">
-                <div
-                  id="quill-toolbar"
-                  className="editor-toolbar"
-                >
+                <div id="quill-toolbar" className="editor-toolbar">
                   <button
                     className="ql-undo"
                     type="button"
@@ -1644,23 +2212,18 @@ function Write() {
                         className="ql-fill ql-stroke"
                         points="6 10 4 12 2 10 6 10"
                       />
-                      <path
-                        className="ql-stroke"
-                        d="M6,10a4,4,0,1,1,1.5,3.1"
-                      />
+
+                      <path className="ql-stroke" d="M6,10a4,4,0,1,1,1.5,3.1" />
                     </svg>
                   </button>
 
-                  <button
-                    className="ql-redo"
-                    type="button"
-                    aria-label="Ulangi"
-                  >
+                  <button className="ql-redo" type="button" aria-label="Ulangi">
                     <svg viewBox="0 0 18 18">
                       <polygon
                         className="ql-fill ql-stroke"
                         points="12 10 14 12 16 10 12 10"
                       />
+
                       <path
                         className="ql-stroke"
                         d="M12,10a4,4,0,1,0-1.5,3.1"
@@ -1712,7 +2275,6 @@ function Write() {
                     aria-label="Daftar poin"
                   />
 
-                  {/* RATA KIRI */}
                   <button
                     className="ql-align"
                     value=""
@@ -1720,7 +2282,6 @@ function Write() {
                     aria-label="Rata kiri"
                   />
 
-                  {/* RATA TENGAH */}
                   <button
                     className="ql-align"
                     value="center"
@@ -1728,7 +2289,6 @@ function Write() {
                     aria-label="Rata tengah"
                   />
 
-                  {/* RATA KANAN */}
                   <button
                     className="ql-align"
                     value="right"
@@ -1736,7 +2296,6 @@ function Write() {
                     aria-label="Rata kanan"
                   />
 
-                  {/* JUSTIFY */}
                   <button
                     className="ql-align"
                     value="justify"
@@ -1775,18 +2334,14 @@ function Write() {
                   <button
                     className="related-button"
                     type="button"
-                    onClick={
-                      openRelatedModal
-                    }
+                    onClick={openRelatedModal}
+                    disabled={loading}
                   >
                     + Baca Juga
                   </button>
                 </div>
 
-                <div
-                  ref={editorRef}
-                  className="editor-body"
-                />
+                <div ref={editorRef} className="editor-body" />
 
                 {errors.content && (
                   <small
@@ -1802,12 +2357,12 @@ function Write() {
                 )}
               </div>
 
-              {/* DESCRIPTION */}
+              {/* =================================================
+                  DESCRIPTION
+                  ================================================= */}
+
               <div className="form-row">
-                <label
-                  className="form-label"
-                  htmlFor="write-desc"
-                >
+                <label className="form-label" htmlFor="write-desc">
                   Description
                 </label>
 
@@ -1816,24 +2371,35 @@ function Write() {
                   className="form-input"
                   placeholder="Write Here"
                   value={form.teaser}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "teaser",
-                      e.target.value
-                    )
+                  onChange={(event) =>
+                    handleInputChange("teaser", event.target.value)
                   }
-                  maxLength={300}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
+                  disabled={loading}
                 />
+
+                {errors.teaser && (
+                  <small
+                    role="alert"
+                    style={{
+                      color: "red",
+                      marginTop: 4,
+                      display: "block",
+                    }}
+                  >
+                    {errors.teaser}
+                  </small>
+                )}
               </div>
             </>
           )}
 
-          {/* TAG */}
+          {/* =================================================
+              TAGS
+              ================================================= */}
+
           <div className="form-row">
-            <label
-              className="form-label"
-              htmlFor="write-tags"
-            >
+            <label className="form-label" htmlFor="write-tags">
               Tag
             </label>
 
@@ -1842,12 +2408,10 @@ function Write() {
               className="form-input"
               placeholder="Pisahkan dengan koma"
               value={form.tags}
-              onChange={(e) =>
-                handleInputChange(
-                  "tags",
-                  e.target.value
-                )
+              onChange={(event) =>
+                handleInputChange("tags", event.target.value)
               }
+              disabled={loading}
             />
 
             {errors.tags && (
@@ -1864,14 +2428,15 @@ function Write() {
             )}
           </div>
 
-          {/* ACTION */}
+          {/* =================================================
+              ACTION
+              ================================================= */}
+
           <div className="form-actions">
             <button
               className="btn-draft"
               type="button"
-              onClick={() =>
-                openModal("draft")
-              }
+              onClick={() => openModal("draft")}
               disabled={loading}
             >
               Draft
@@ -1880,135 +2445,138 @@ function Write() {
             <button
               className="btn-submit-write"
               type="button"
-              onClick={() =>
-                openModal("publish")
-              }
+              onClick={() => openModal("publish")}
               disabled={loading}
             >
               {loading
                 ? "Mengirim..."
-                : "Kirim"}
+                : editData?.id
+                  ? "Simpan Perubahan"
+                  : "Kirim"}
             </button>
           </div>
         </section>
       </main>
 
-      {/* MODAL SUBMIT */}
+      {/* =====================================================
+          SUBMIT MODAL
+          ===================================================== */}
+
       {showModal && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !loading) {
+              setShowModal(false);
+            }
+          }}
+        >
           <div
             className="modal-container"
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="submit-modal-title"
           >
-            <h2
-              className="modal-title"
-              id="submit-modal-title"
-            >
+            <h2 className="modal-title" id="submit-modal-title">
               {modalType === "draft"
                 ? "Simpan sebagai Draft?"
-                : "Kirim artikel untuk ditinjau admin?"}
+                : "Kirim artikel?"}
             </h2>
 
             <p className="modal-subtitle">
               {modalType === "draft"
-                ? "Artikel akan disimpan dan bisa kamu lanjutkan nanti."
-                : '"Artikel akan masuk antrian review sebelum dipublikasikan."'}
+                ? "Artikel akan disimpan sebagai draft dan dapat dilanjutkan nanti."
+                : isAdmin
+                  ? "Artikel akan langsung dipublikasikan karena kamu adalah admin."
+                  : "Artikel akan masuk ke antrian review sebelum dipublikasikan."}
             </p>
 
             <div className="modal-buttons">
               <button
                 className="btn-batal"
-                onClick={() =>
-                  setShowModal(false)
-                }
+                type="button"
+                onClick={() => setShowModal(false)}
+                disabled={loading}
               >
                 Batal
               </button>
 
               <button
                 className="btn-konfirmasi-hapus"
+                type="button"
                 style={{
-                  backgroundColor:
-                    modalType === "draft"
-                      ? "#555"
-                      : "#007bff",
+                  backgroundColor: modalType === "draft" ? "#555" : "#007bff",
                 }}
-                onClick={
-                  handleFinalSubmit
-                }
+                onClick={handleFinalSubmit}
                 disabled={loading}
               >
                 {loading
                   ? "Menyimpan..."
                   : modalType === "draft"
-                  ? "Simpan Draft"
-                  : "Kirim ke Admin"}
+                    ? "Simpan Draft"
+                    : editData?.id
+                      ? "Simpan Perubahan"
+                      : isAdmin
+                        ? "Publikasikan"
+                        : "Kirim ke Admin"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL INSERT GAMBAR */}
+      {/* =====================================================
+          IMAGE MODAL
+          ===================================================== */}
+
       {insertImageModalOpen && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              resetImageModal();
+            }
+          }}
+        >
           <div
             className="modal-container"
             role="dialog"
             aria-modal="true"
             aria-labelledby="insert-image-title"
           >
-            <h2
-              className="modal-title"
-              id="insert-image-title"
-              style={{
-                marginBottom: "24px",
-              }}
-            >
+            <h2 className="modal-title" id="insert-image-title">
               Sisipkan Gambar
             </h2>
 
             <div
               className="form-row"
               style={{
-                gridTemplateColumns:
-                  "1fr",
+                gridTemplateColumns: "1fr",
                 textAlign: "left",
-                gap: "8px",
-                marginBottom:
-                  "16px",
+                gap: 8,
+                marginBottom: 16,
               }}
             >
-              <label
-                className="form-label"
-                htmlFor="insert-image-file"
-                style={{
-                  marginBottom: 0,
-                }}
-              >
+              <label className="form-label" htmlFor="insert-image-file">
                 Pilih Gambar
               </label>
 
               <input
                 id="insert-image-file"
                 type="file"
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                 className="form-input"
-                onChange={
-                  handleModalFileChange
-                }
-                style={{
-                  padding: "10px",
-                }}
+                onChange={handleModalFileChange}
+                disabled={loading}
               />
 
               {insertImageBase64 && (
                 <p
                   role="status"
                   style={{
-                    fontSize: "12px",
+                    fontSize: 12,
                     color: "green",
                     margin: 0,
                   }}
@@ -2021,23 +2589,14 @@ function Write() {
             <div
               className="form-row"
               style={{
-                gridTemplateColumns:
-                  "1fr",
+                gridTemplateColumns: "1fr",
                 textAlign: "left",
-                gap: "8px",
-                marginBottom:
-                  "16px",
+                gap: 8,
+                marginBottom: 16,
               }}
             >
-              <label
-                className="form-label"
-                htmlFor="insert-image-caption"
-                style={{
-                  marginBottom: 0,
-                }}
-              >
-                Keterangan Gambar
-                (Opsional)
+              <label className="form-label" htmlFor="insert-image-caption">
+                Keterangan Gambar (Opsional)
               </label>
 
               <input
@@ -2045,37 +2604,23 @@ function Write() {
                 type="text"
                 className="form-input"
                 placeholder="Ilustrasi - Keterangan gambar..."
-                value={
-                  insertImageCaption
-                }
-                onChange={(e) =>
-                  setInsertImageCaption(
-                    e.target.value
-                  )
-                }
+                value={insertImageCaption}
+                onChange={(event) => setInsertImageCaption(event.target.value)}
+                maxLength={MAX_CAPTION_LENGTH}
+                disabled={loading}
               />
             </div>
 
-            {/* ALIGNMENT GAMBAR */}
             <div
               className="form-row"
               style={{
-                gridTemplateColumns:
-                  "1fr",
+                gridTemplateColumns: "1fr",
                 textAlign: "left",
-                gap: "8px",
-                marginBottom:
-                  "24px",
+                gap: 8,
+                marginBottom: 24,
               }}
             >
-              <label
-                className="form-label"
-                style={{
-                  marginBottom: 0,
-                }}
-              >
-                Posisi Gambar
-              </label>
+              <label className="form-label">Posisi Gambar</label>
 
               <div
                 style={{
@@ -2083,74 +2628,52 @@ function Write() {
                   gap: 8,
                 }}
               >
-                {[
-                  "left",
-                  "center",
-                  "right",
-                ].map((pos) => (
+                {["left", "center", "right"].map((position) => (
                   <button
-                    key={pos}
+                    key={position}
                     type="button"
                     className="btn-batal"
                     style={{
                       backgroundColor:
-                        insertImageAlign ===
-                        pos
+                        insertImageAlign === position
                           ? "#e0e0e0"
                           : "transparent",
 
-                      textTransform:
-                        "capitalize",
+                      textTransform: "capitalize",
 
                       fontWeight:
-                        insertImageAlign ===
-                        pos
-                          ? "bold"
-                          : "normal",
+                        insertImageAlign === position ? "bold" : "normal",
 
-                      color:
-                        insertImageAlign ===
-                        pos
-                          ? "#000"
-                          : "#555",
+                      color: insertImageAlign === position ? "#000" : "#555",
 
                       border:
-                        insertImageAlign ===
-                        pos
+                        insertImageAlign === position
                           ? "1px solid #999"
                           : "1px solid #ccc",
 
                       flex: 1,
                     }}
                     onClick={() => {
-                      setInsertImageAlign(
-                        pos
-                      );
+                      setInsertImageAlign(position);
 
                       if (
-                        pos !== "center" &&
-                        insertImageWidth ===
-                          "100%"
+                        position !== "center" &&
+                        insertImageWidth === "100%"
                       ) {
-                        setInsertImageWidth(
-                          "50%"
-                        );
-                      } else if (
-                        pos === "center" &&
-                        insertImageWidth ===
-                          "50%"
-                      ) {
-                        setInsertImageWidth(
-                          "100%"
-                        );
+                        setInsertImageWidth("50%");
+                      }
+
+                      if (position === "center" && insertImageWidth === "50%") {
+                        setInsertImageWidth("100%");
                       }
                     }}
+                    disabled={loading}
                   >
-                    {pos === "left"
+                    {position === "left"
                       ? "Kiri"
-                      : pos === "center"
-                      ? "Tengah"
-                      : "Kanan"}
+                      : position === "center"
+                        ? "Tengah"
+                        : "Kanan"}
                   </button>
                 ))}
               </div>
@@ -2160,54 +2683,53 @@ function Write() {
                   fontSize: 12,
                   color: "#666",
                   display: "block",
-                  marginTop: "8px",
+                  marginTop: 8,
                 }}
               >
-                💡 Tips: Setelah
-                disisipkan, gunakan
-                tombol <b>- Img</b> atau{" "}
-                <b>+ Img</b> di menu atas
-                untuk menyesuaikan ukuran.
+                Gunakan tombol <b>- Img</b> atau <b>+ Img</b> setelah gambar
+                disisipkan untuk mengubah ukuran.
               </small>
             </div>
+
+            {insertImageBase64 && (
+              <div
+                style={{
+                  marginBottom: 20,
+                  textAlign: "center",
+                }}
+              >
+                <img
+                  src={insertImageBase64}
+                  alt="Preview gambar yang akan disisipkan"
+                  width="600"
+                  height="400"
+                  style={{
+                    maxWidth: "100%",
+                    height: "auto",
+                    borderRadius: 8,
+                  }}
+                />
+              </div>
+            )}
 
             <div className="modal-buttons">
               <button
                 className="btn-batal"
-                onClick={() => {
-                  setInsertImageModalOpen(
-                    false
-                  );
-
-                  setInsertImageBase64(
-                    null
-                  );
-
-                  setInsertImageCaption(
-                    ""
-                  );
-
-                  setInsertImageAlign(
-                    "center"
-                  );
-
-                  setInsertImageWidth(
-                    "100%"
-                  );
-                }}
+                type="button"
+                onClick={resetImageModal}
+                disabled={loading}
               >
                 Batal
               </button>
 
               <button
                 className="btn-konfirmasi-hapus"
+                type="button"
                 style={{
-                  backgroundColor:
-                    "#1e76d0",
+                  backgroundColor: "#1e76d0",
                 }}
-                onClick={
-                  handleInsertCustomImage
-                }
+                onClick={handleInsertCustomImage}
+                disabled={loading || !insertImageBase64}
               >
                 Sisipkan
               </button>
@@ -2216,9 +2738,20 @@ function Write() {
         </div>
       )}
 
-      {/* MODAL BACA JUGA */}
+      {/* =====================================================
+          RELATED MODAL
+          ===================================================== */}
+
       {relatedModalOpen && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setRelatedModalOpen(false);
+            }
+          }}
+        >
           <div
             className="related-modal-container"
             role="dialog"
@@ -2227,29 +2760,20 @@ function Write() {
           >
             <div className="modal-header-row">
               <div>
-                <h2
-                  className="modal-title"
-                  id="related-modal-title"
-                >
+                <h2 className="modal-title" id="related-modal-title">
                   Pilih Artikel Baca Juga
                 </h2>
 
                 <p className="modal-subtitle">
-                  Menampilkan artikel
-                  dengan kategori yang
-                  sama:{" "}
-                  {form.category ||
-                    "Belum dipilih"}
+                  Menampilkan artikel kategori:{" "}
+                  {form.category || "Belum dipilih"}
                 </p>
               </div>
 
               <button
                 className="btn-batal"
-                onClick={() =>
-                  setRelatedModalOpen(
-                    false
-                  )
-                }
+                type="button"
+                onClick={() => setRelatedModalOpen(false)}
               >
                 Tutup
               </button>
@@ -2276,44 +2800,34 @@ function Write() {
               >
                 {relatedError}
               </p>
-            ) : relatedArticles.length ===
-              0 ? (
+            ) : relatedArticles.length === 0 ? (
               <p
                 style={{
                   textAlign: "center",
                   marginTop: 18,
                 }}
               >
-                Tidak ada artikel
-                dalam kategori ini.
+                Tidak ada artikel dalam kategori ini.
               </p>
             ) : (
               <div className="related-article-list">
-                {relatedArticles.map(
-                  (item) => (
-                    <button
-                      key={item.id}
-                      className="related-article-item"
-                      type="button"
-                      onClick={() =>
-                        insertRelatedShortcode(
-                          item.id,
-                          item.title,
-                          item.slug
-                        )
-                      }
-                    >
-                      <span>
-                        {item.title}
-                      </span>
+                {relatedArticles.map((item) => (
+                  <button
+                    key={item.id}
+                    className="related-article-item"
+                    type="button"
+                    onClick={() =>
+                      insertRelatedShortcode(item.id, item.title, item.slug)
+                    }
+                  >
+                    <span>{item.title}</span>
 
-                      <strong>
-                        [related:
-                        {item.id}]
-                      </strong>
-                    </button>
-                  )
-                )}
+                    <strong>
+                      [related:
+                      {item.id}]
+                    </strong>
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -2321,6 +2835,14 @@ function Write() {
       )}
     </div>
   );
+}
+
+/* =========================================================
+   SAFE CATEGORY HELPER
+   ========================================================= */
+
+function formCategoryFromState(draft) {
+  return draft?.category || "";
 }
 
 export default Write;

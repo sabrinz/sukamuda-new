@@ -1,13 +1,16 @@
 /* ================= RESET GLOBAL ANTI-SCROLL ================= */
-*, *::before, *::after {
+.article-detail-page,
+.article-detail-page *,
+.article-detail-page *::before,
+.article-detail-page *::after {
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 }
 
-html, body {
-  overflow-x: clip !important;
-  width: 100% !important;
-  max-width: 100vw !important;
+.article-detail-page {
+  overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
   position: relative;
 }
 
@@ -20,7 +23,10 @@ html, body {
   min-height: 60vh;
   gap: 16px;
   color: #555;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .spinner {
@@ -43,7 +49,9 @@ html, body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-container {
@@ -54,11 +62,22 @@ html, body {
   min-height: 60vh;
   gap: 8px;
   text-align: center;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
-.error-container h2 { font-size: 24px; margin: 0; color: #222; }
-.error-container p { color: #777; margin: 0; font-size: 15px; }
+.error-container h2 {
+  font-size: 24px;
+  margin: 0;
+  color: #222;
+}
+.error-container p {
+  color: #595959;
+  margin: 0;
+  font-size: 15px;
+} /* Dipergelap untuk kontras */
 .error-container a {
   color: black;
   font-weight: 600;
@@ -134,9 +153,12 @@ html, body {
 
 /* ==================== BREADCRUMB ==================== */
 .breadcrumb {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 13px;
-  color: #888;
+  color: #595959; /* Dipergelap untuk kontras */
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -145,7 +167,7 @@ html, body {
 }
 
 .breadcrumb a {
-  color: #666;
+  color: #595959; /* Dipergelap untuk kontras */
   text-decoration: none;
   transition: color 0.2s;
   display: flex;
@@ -153,7 +175,9 @@ html, body {
   gap: 4px;
 }
 
-.breadcrumb a:hover { color: black; }
+.breadcrumb a:hover {
+  color: black;
+}
 
 /* ==================== HEADER ==================== */
 .article-header {
@@ -177,7 +201,10 @@ html, body {
   border-radius: 3px;
   background: #000;
   color: #fff;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.6px;
@@ -192,7 +219,10 @@ html, body {
   border-radius: 3px;
   background: #fef3c7;
   color: #92400e;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.3px;
@@ -205,9 +235,12 @@ html, body {
   align-items: center;
   gap: 4px;
   margin-left: auto;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 12px;
-  color: #aaa;
+  color: #595959; /* Dipergelap untuk kontras */
 }
 
 .article-title {
@@ -239,7 +272,10 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .author-avatar {
@@ -270,11 +306,15 @@ html, body {
   min-width: 0;
 }
 
-.author-name { font-weight: 600; font-size: 14px; color: #111; }
+.author-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #111;
+}
 
 .author-profession {
   font-size: 12px;
-  color: #666;
+  color: #595959; /* Dipergelap untuk kontras */
   margin-top: 2px;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -287,12 +327,18 @@ html, body {
   flex-wrap: wrap;
 }
 
-.publish-date { font-size: 12px; color: #888; }
-.meta-dot { color: #ccc; font-size: 10px; }
+.publish-date {
+  font-size: 12px;
+  color: #595959;
+} /* Dipergelap untuk kontras */
+.meta-dot {
+  color: #757575;
+  font-size: 10px;
+} /* Dipergelap untuk kontras */
 
 .read-time {
   font-size: 12px;
-  color: #999;
+  color: #595959; /* Dipergelap untuk kontras */
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -313,7 +359,7 @@ html, body {
   margin-top: 12px;
   margin-bottom: 28px;
   font-size: 14px;
-  color: #666;
+  color: #595959; /* Dipergelap untuk kontras */
   font-style: italic;
   text-align: center;
   line-height: 1.5;
@@ -375,10 +421,13 @@ html, body {
   display: block;
   text-align: center;
   font-size: 12px;
-  color: #999;
+  color: #595959; /* Dipergelap untuk kontras */
   padding: 10px 16px;
   background: #fafafa;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-style: italic;
   width: 100%;
   max-width: 100%;
@@ -427,7 +476,7 @@ html, body {
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: #666;
+  color: #595959; /* Dipergelap untuk kontras */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -459,7 +508,10 @@ html, body {
   border-radius: 8px;
   padding: 16px 20px;
   margin-bottom: 28px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: #92400e;
 }
 
@@ -514,7 +566,10 @@ html, body {
 }
 
 /* Default paragraf yang tidak memiliki alignment khusus = kiri */
-.text-render p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not([style*="text-align"]) {
+.text-render
+  p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not(
+    [style*="text-align"]
+  ) {
   text-align: left;
 }
 
@@ -566,7 +621,10 @@ html, body {
 .text-render h3 {
   margin: 28px 0 12px;
   color: #111;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   word-break: break-word;
   overflow-wrap: break-word;
 }
@@ -680,7 +738,54 @@ html, body {
   word-break: break-word;
 }
 
-.text-render strong { color: #111; }
+/* ==================== QUILL LIST FIX ==================== */
+.article-detail-page .text-render li[data-list="bullet"] {
+  list-style-type: disc !important;
+}
+
+.article-detail-page .text-render li[data-list="ordered"] {
+  list-style-type: decimal !important;
+}
+
+.article-detail-page .text-render li[data-list="checked"],
+.article-detail-page .text-render li[data-list="unchecked"] {
+  list-style-type: none !important;
+}
+
+.article-detail-page .text-render li[data-list="checked"]::before,
+.article-detail-page .text-render li[data-list="unchecked"]::before {
+  display: inline-block;
+  width: 1.5em;
+  margin-left: -1.5em;
+}
+
+.article-detail-page .text-render li[data-list="checked"]::before {
+  content: "☑";
+}
+
+.article-detail-page .text-render li[data-list="unchecked"]::before {
+  content: "☐";
+}
+
+.article-detail-page .text-render li.ql-indent-1 {
+  margin-left: 1.5em;
+}
+
+.article-detail-page .text-render li.ql-indent-2 {
+  margin-left: 3em;
+}
+
+.article-detail-page .text-render li.ql-indent-3 {
+  margin-left: 4.5em;
+}
+
+.article-detail-page .text-render li.ql-indent-4 {
+  margin-left: 6em;
+}
+
+.text-render strong {
+  color: #111;
+}
 
 .text-render figure {
   margin: 28px 0;
@@ -693,10 +798,13 @@ html, body {
   display: block;
   text-align: center;
   font-size: 13px;
-  color: #999;
+  color: #595959; /* Dipergelap untuk kontras */
   margin-top: 8px;
   font-style: italic;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   word-break: break-word;
   overflow-wrap: break-word;
 }
@@ -719,7 +827,7 @@ html, body {
   font-family: inherit;
   font-size: 13px;
   font-style: italic;
-  color: #666c79;
+  color: #595959; /* Dipergelap untuk kontras */
   margin-top: 8px !important;
   line-height: 1.5;
   display: block !important;
@@ -737,7 +845,10 @@ html, body {
 }
 
 .tag-chip {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 12px;
   color: #d83a34;
   background: #fef2f2;
@@ -786,7 +897,10 @@ html, body {
   border: 1px solid #ddd;
   padding: 9px 16px;
   border-radius: 8px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-weight: 600;
   font-size: 13px;
   color: #555;
@@ -796,14 +910,20 @@ html, body {
   flex-shrink: 0;
 }
 
-.like-btn:hover { border-color: #d83a34; color: #d83a34; }
+.like-btn:hover {
+  border-color: #d83a34;
+  color: #d83a34;
+}
 .like-btn.active {
   border-color: #d83a34;
   color: #d83a34;
   background: #fef2f2;
 }
 
-.bookmark-btn:hover { border-color: #f59e0b; color: #f59e0b; }
+.bookmark-btn:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
 .bookmark-btn.active {
   border-color: #f59e0b;
   color: #f59e0b;
@@ -828,9 +948,12 @@ html, body {
 }
 
 .share-label {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 12px;
-  color: #aaa;
+  color: #595959; /* Dipergelap untuk kontras */
   font-weight: 500;
   margin-right: 2px;
   white-space: nowrap;
@@ -856,15 +979,31 @@ html, body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.soc-btn:active { transform: translateY(0); }
+.soc-btn:active {
+  transform: translateY(0);
+}
 
-.soc-btn.wa { background: #25d366; }
-.soc-btn.fb { background: #1877f2; }
-.soc-btn.x { background: #111; }
-.soc-btn.tg { background: #0088cc; }
-.soc-btn.li { background: #0a66c2; }
-.soc-btn.email { background: #6b7280; }
-.soc-btn.threads { background: #000; }
+.soc-btn.wa {
+  background: #25d366;
+}
+.soc-btn.fb {
+  background: #1877f2;
+}
+.soc-btn.x {
+  background: #111;
+}
+.soc-btn.tg {
+  background: #0088cc;
+}
+.soc-btn.li {
+  background: #0a66c2;
+}
+.soc-btn.email {
+  background: #6b7280;
+}
+.soc-btn.threads {
+  background: #000;
+}
 
 .soc-btn.copy {
   background: #374151;
@@ -873,7 +1012,10 @@ html, body {
   gap: 4px;
   font-size: 11px;
   font-weight: 600;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   white-space: nowrap;
 }
 
@@ -918,7 +1060,10 @@ html, body {
 
 .author-bio-info h4 {
   margin: 0 0 4px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 15px;
   font-weight: 700;
   color: #111;
@@ -926,9 +1071,12 @@ html, body {
 
 .author-bio-info p {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 13px;
-  color: #777;
+  color: #595959; /* Dipergelap untuk kontras */
   line-height: 1.5;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -954,7 +1102,10 @@ html, body {
   gap: 8px;
   padding: 9px 16px;
   border-radius: 8px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
@@ -1036,12 +1187,19 @@ html, body {
   word-break: break-word;
 }
 
-.report-feedback.success { color: #166534; }
-.report-feedback.error { color: #b91c1c; }
+.report-feedback.success {
+  color: #166534;
+}
+.report-feedback.error {
+  color: #b91c1c;
+}
 
 /* ==================== SIDEBAR KOMENTAR ==================== */
 .discussion-sidebar {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   background: #f8f9fa;
   padding: 0;
   border: 1px solid #eaeaea;
@@ -1054,7 +1212,9 @@ html, body {
   flex-direction: column;
 }
 
-.discussion-sidebar::-webkit-scrollbar { width: 3px; }
+.discussion-sidebar::-webkit-scrollbar {
+  width: 3px;
+}
 .discussion-sidebar::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 3px;
@@ -1078,7 +1238,9 @@ html, body {
   gap: 6px;
 }
 
-.sidebar-header h3 svg { color: #999; }
+.sidebar-header h3 svg {
+  color: #595959;
+} /* Dipergelap untuk kontras */
 
 .comment-sort {
   display: flex;
@@ -1096,7 +1258,7 @@ html, body {
   font-family: inherit;
   font-size: 11px;
   font-weight: 600;
-  color: #888;
+  color: #595959; /* Dipergelap untuk kontras */
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1171,7 +1333,7 @@ html, body {
 
 .char-count {
   font-size: 11px;
-  color: #bbb;
+  color: #757575; /* Dipergelap untuk kontras */
 }
 
 .comment-input-box button {
@@ -1191,10 +1353,13 @@ html, body {
   white-space: nowrap;
 }
 
-.comment-input-box button:hover:not(:disabled) { background: #c22e28; }
+.comment-input-box button:hover:not(:disabled) {
+  background: #c22e28;
+}
 .comment-input-box button:disabled {
   background: #e0e0e0;
   cursor: not-allowed;
+  color: #757575; /* Pastikan teks disabled bisa dibaca minimal A11Y */
 }
 
 .login-prompt {
@@ -1206,12 +1371,14 @@ html, body {
   border-radius: 8px;
 }
 
-.login-prompt svg { margin-bottom: 8px; }
+.login-prompt svg {
+  margin-bottom: 8px;
+}
 
 .login-prompt p {
   margin: 0;
   font-size: 13px;
-  color: #666;
+  color: #595959; /* Dipergelap untuk kontras */
 }
 
 .login-prompt a {
@@ -1220,7 +1387,9 @@ html, body {
   text-decoration: none;
 }
 
-.login-prompt a:hover { text-decoration: underline; }
+.login-prompt a:hover {
+  text-decoration: underline;
+}
 
 .comments-feed {
   padding: 16px 20px 20px;
@@ -1239,7 +1408,7 @@ html, body {
 .no-comments p {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #bbb;
+  color: #757575; /* Dipergelap untuk kontras */
 }
 
 .comment-bubble {
@@ -1301,7 +1470,7 @@ html, body {
 .btn-del {
   background: none;
   border: none;
-  color: #ccc;
+  color: #757575; /* Dipergelap untuk kontras */
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -1326,7 +1495,7 @@ html, body {
 }
 
 .comment-bubble small {
-  color: #bbb;
+  color: #595959; /* Dipergelap untuk kontras */
   font-size: 11px;
 }
 
@@ -1345,7 +1514,10 @@ html, body {
 }
 
 .section-title {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   text-transform: uppercase;
   font-size: 15px;
   font-weight: 800;
@@ -1358,7 +1530,10 @@ html, body {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: #d83a34;
@@ -1367,7 +1542,9 @@ html, body {
   white-space: nowrap;
 }
 
-.see-all-link:hover { gap: 8px; }
+.see-all-link:hover {
+  gap: 8px;
+}
 
 .related-grid-new {
   display: grid;
@@ -1404,7 +1581,9 @@ html, body {
   transition: transform 0.4s;
 }
 
-.related-card:hover img { transform: scale(1.05); }
+.related-card:hover img {
+  transform: scale(1.05);
+}
 
 .related-cat {
   position: absolute;
@@ -1413,7 +1592,10 @@ html, body {
   padding: 3px 8px;
   background: rgba(0, 0, 0, 0.7);
   color: #fff;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1429,7 +1611,10 @@ html, body {
 
 .related-card h4 {
   margin: 0 0 8px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.45;
@@ -1444,12 +1629,17 @@ html, body {
   overflow-wrap: break-word;
 }
 
-.related-card:hover h4 { color: #d83a34; }
+.related-card:hover h4 {
+  color: #d83a34;
+}
 
 .related-date {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 11px;
-  color: #aaa;
+  color: #595959; /* Dipergelap untuk kontras */
 }
 
 /* ==================== ARTICLE LAYOUT WRAPPER (DENGAN AD SIDEBAR) ==================== */
@@ -1527,10 +1717,15 @@ html, body {
   font-size: 0.95rem;
   cursor: pointer;
   transition: background 0.2s;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
-.load-more-btn:hover { background: #353535; }
+.load-more-btn:hover {
+  background: #353535;
+}
 
 .load-more-counter {
   font-size: 0.8rem;
@@ -1570,7 +1765,9 @@ html, body {
     width: 100%;
   }
 
-  .hero-img { max-height: 300px; }
+  .hero-img {
+    max-height: 300px;
+  }
 }
 
 /* ==================== RESPONSIVE ==================== */
@@ -1636,7 +1833,10 @@ html, body {
   }
 
   /* Alignment tetap mengikuti pilihan dari Write */
-  .text-render p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not([style*="text-align"]) {
+  .text-render
+    p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not(
+      [style*="text-align"]
+    ) {
     text-align: left !important;
   }
 
@@ -1885,7 +2085,10 @@ html, body {
     line-height: 1.7;
   }
 
-  .text-render p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not([style*="text-align"]) {
+  .text-render
+    p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify):not(
+      [style*="text-align"]
+    ) {
     text-align: left !important;
   }
 
@@ -1961,7 +2164,8 @@ html, body {
 
 /* ===== A11Y: indikator fokus keyboard ===== */
 .article-detail-page a:focus-visible,
-.article-detail-page button:focus-visible {
+.article-detail-page button:focus-visible,
+.back-to-top:focus-visible {
   outline: 3px solid #111;
   outline-offset: 3px;
 }
@@ -1981,10 +2185,46 @@ html, body {
 /* Profesi + asal sekolah/kampus di kartu bio penulis */
 .author-bio-profession {
   display: block;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 12.5px;
-  color: #777;
+  color: #595959; /* Dipergelap untuk kontras */
   margin: 0 0 6px;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+/* =========================================================
+   ===== TAMBAHAN BARU (tidak mengubah style yang sudah ada) =====
+
+   .text-render-clamp
+   Dipakai oleh ArticleDetail.jsx.
+
+   Kenapa perlu: seluruh isi artikel kini SELALU ada di DOM
+   supaya Googlebot membaca artikel utuh. Tapi bagi pembaca,
+   tampilannya harus tetap terpotong seperti sebelumnya sampai
+   menekan "Muat Lebih Banyak". Pemotongan itu dilakukan di sini.
+
+   Atur --tinggi-potong kalau potongannya terasa terlalu
+   pendek atau terlalu panjang dibanding versi lama.
+   ========================================================= */
+.text-render-clamp {
+  --tinggi-potong: 2400px;
+  max-height: var(--tinggi-potong);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Gradasi memudar di bawah potongan, penanda masih ada lanjutan */
+.text-render-clamp::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 120px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 85%);
 }

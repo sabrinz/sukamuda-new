@@ -1,217 +1,738 @@
+/* =========================================================
+   SUKAMUDA — VIDEO REELS PAGE
+   =========================================================
+
+   Fokus:
+   - Responsive
+   - SEO friendly layout
+   - Accessibility
+   - Keyboard navigation
+   - CLS prevention
+   - Reduced motion
+   - Mobile first
+   - Tidak bergantung pada inline color
+   ========================================================= */
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
 .video-reels-page {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 48px 20px 64px;
+  box-sizing: border-box;
 }
 
-.page-header {
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.video-reels-page .video-reels-header {
+  width: 100%;
+  margin: 0 0 36px;
   text-align: center;
-  margin-bottom: 40px;
 }
 
-.page-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 32px;
+.video-reels-page .video-reels-header-content {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.video-reels-page .video-reels-eyebrow {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.4;
   font-weight: 700;
-  color: #1a1a1a;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #667eea;
 }
 
-.page-header p {
+.video-reels-page .video-reels-title {
   margin: 0;
-  font-size: 16px;
-  color: #666;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #111827;
 }
 
-/* Platform Filters */
-.platform-filters {
+.video-reels-page .video-reels-description {
+  max-width: 600px;
+  margin: 12px auto 0;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #667085;
+}
+
+/* =========================================================
+   PLATFORM FILTER
+   ========================================================= */
+
+.video-reels-page .platform-filters {
+  width: 100%;
+  margin: 0 0 36px;
+}
+
+.video-reels-page .platform-filters-inner {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 40px;
-  padding: 20px;
-  background: #f9f9f9;
-  border-radius: 12px;
-}
-
-.platform-filter-btn {
-  display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  width: 100%;
+  padding: 14px;
+
+  box-sizing: border-box;
+
+  background: #f8fafc;
+  border: 1px solid #eaecf0;
+  border-radius: 14px;
+}
+
+/* =========================================================
+   FILTER BUTTON
+   ========================================================= */
+
+.video-reels-page .platform-filter-btn {
+  appearance: none;
+  -webkit-appearance: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
-  border: 2px solid;
-  border-radius: 8px;
-  color: white;
+
+  min-height: 42px;
+  padding: 9px 15px;
+
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: #344054;
+
+  font: inherit;
   font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  opacity: 0.8;
-}
-
-.platform-filter-btn:hover {
-  opacity: 1;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.platform-filter-btn.active {
-  opacity: 1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.platform-icon-filter {
-  font-size: 18px;
-}
-
-/* Reels Section */
-.reels-section {
-  margin-top: 40px;
-}
-
-.reels-count {
-  margin-bottom: 20px;
-  font-size: 14px;
-  color: #666;
-  text-align: center;
-}
-
-.reels-count strong {
-  color: #667eea;
+  line-height: 1.2;
   font-weight: 600;
+
+  cursor: pointer;
+
+  box-sizing: border-box;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
-/* Loading State */
-.loading-state {
+/* Hover */
+
+.video-reels-page .platform-filter-btn:hover {
+  transform: translateY(-1px);
+  border-color: #98a2b3;
+  box-shadow: 0 3px 10px rgba(16, 24, 40, 0.08);
+}
+
+/* Active */
+
+.video-reels-page .platform-filter-btn.active {
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.16);
+}
+
+/* =========================================================
+   PLATFORM COLORS
+   ========================================================= */
+
+/* Semua */
+
+.video-reels-page .platform-filter-btn.platform-all.active {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+/* Instagram */
+
+.video-reels-page .platform-filter-btn.platform-instagram.active {
+  background: #e4405f;
+  border-color: #e4405f;
+}
+
+/* TikTok */
+
+.video-reels-page .platform-filter-btn.platform-tiktok.active {
+  background: #111111;
+  border-color: #111111;
+}
+
+/* Facebook */
+
+.video-reels-page .platform-filter-btn.platform-facebook.active {
+  background: #1877f2;
+  border-color: #1877f2;
+}
+
+/* YouTube */
+
+.video-reels-page .platform-filter-btn.platform-youtube.active {
+  background: #ff0000;
+  border-color: #ff0000;
+}
+
+/* =========================================================
+   ICON
+   ========================================================= */
+
+.video-reels-page .platform-icon-filter {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+}
+
+/* =========================================================
+   KEYBOARD FOCUS
+   ========================================================= */
+
+.video-reels-page .platform-filter-btn:focus {
+  outline: none;
+}
+
+.video-reels-page .platform-filter-btn:focus-visible {
+  outline: 3px solid #111827;
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.video-reels-page .video-reels-content {
+  width: 100%;
+  min-width: 0;
+}
+
+/* =========================================================
+   SCREEN READER ONLY
+   ========================================================= */
+
+.video-reels-page .sr-only {
+  position: absolute !important;
+
+  width: 1px !important;
+  height: 1px !important;
+
+  padding: 0 !important;
+  margin: -1px !important;
+
+  overflow: hidden !important;
+
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+
+  border: 0 !important;
+}
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.video-reels-page .loading-state {
+  min-height: 320px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+
+  padding: 48px 20px;
+
+  box-sizing: border-box;
+
   text-align: center;
 }
 
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid #f0f0f0;
+.video-reels-page .loading-state p {
+  margin: 18px 0 0;
+
+  font-size: 15px;
+  line-height: 1.5;
+  color: #667085;
+}
+
+/* =========================================================
+   SPINNER
+   ========================================================= */
+
+.video-reels-page .spinner {
+  width: 42px;
+  height: 42px;
+
+  border: 4px solid #eaecf0;
   border-top-color: #667eea;
+
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+
+  animation: videoReelsSpin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes videoReelsSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.loading-state p {
-  margin: 0;
-  font-size: 16px;
-  color: #666;
-}
+/* =========================================================
+   ERROR
+   ========================================================= */
 
-/* Error State */
-.error-state {
-  padding: 40px 20px;
+.video-reels-page .error-state {
+  width: 100%;
+  max-width: 620px;
+
+  margin: 0 auto;
+  padding: 40px 24px;
+
+  box-sizing: border-box;
+
   text-align: center;
-  background: #fee2e2;
+
+  background: #fff7f7;
+
   border: 1px solid #fecaca;
-  border-radius: 8px;
+  border-radius: 14px;
+}
+
+.video-reels-page .error-state-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 14px;
+
+  border-radius: 50%;
+
+  background: #fee2e2;
+  color: #991b1b;
+
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.video-reels-page .error-state h2 {
+  margin: 0;
+
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 700;
+
+  color: #7f1d1d;
+}
+
+.video-reels-page .error-state p {
+  margin: 8px auto 20px;
+
+  max-width: 460px;
+
+  font-size: 14px;
+  line-height: 1.6;
+
   color: #991b1b;
 }
 
-.error-state p {
-  margin: 0;
+/* =========================================================
+   RETRY BUTTON
+   ========================================================= */
+
+.video-reels-page .retry-button,
+.video-reels-page .empty-reels-button {
+  appearance: none;
+  -webkit-appearance: none;
+
+  min-height: 42px;
+
+  padding: 10px 18px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #111827;
+  color: #ffffff;
+
+  font: inherit;
   font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-/* Empty State */
-.empty-reels {
-  padding: 60px 20px;
-  text-align: center;
-  background: #f9f9f9;
-  border: 2px dashed #ddd;
-  border-radius: 12px;
+.video-reels-page .retry-button:hover,
+.video-reels-page .empty-reels-button:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.15);
 }
 
-.empty-reels p {
+.video-reels-page .retry-button:focus,
+.video-reels-page .empty-reels-button:focus {
+  outline: none;
+}
+
+.video-reels-page .retry-button:focus-visible,
+.video-reels-page .empty-reels-button:focus-visible {
+  outline: 3px solid #667eea;
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   REELS SECTION
+   ========================================================= */
+
+.video-reels-page .reels-section {
+  width: 100%;
+  min-width: 0;
+}
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
+.video-reels-page .reels-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  min-height: 28px;
+
+  margin: 0 0 20px;
+}
+
+.video-reels-page .reels-count {
   margin: 0;
-  font-size: 16px;
-  color: #999;
+
+  font-size: 14px;
+  line-height: 1.5;
+
+  color: #667085;
 }
 
-/* Responsive */
+.video-reels-page .reels-count strong {
+  color: #667eea;
+  font-weight: 700;
+}
+
+.video-reels-page .reels-platform-label {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 28px;
+  padding: 5px 10px;
+
+  box-sizing: border-box;
+
+  border-radius: 999px;
+
+  background: #f2f4f7;
+  color: #475467;
+
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.video-reels-page .reels-refreshing {
+  font-size: 12px;
+  color: #667eea;
+}
+
+/* =========================================================
+   REELS DISPLAY
+   ========================================================= */
+
+.video-reels-page .reels-display {
+  width: 100%;
+  min-width: 0;
+}
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.video-reels-page .empty-reels {
+  width: 100%;
+  max-width: 680px;
+
+  margin: 0 auto;
+  padding: 56px 24px;
+
+  box-sizing: border-box;
+
+  text-align: center;
+
+  background: #f8fafc;
+
+  border: 1px dashed #d0d5dd;
+  border-radius: 14px;
+}
+
+.video-reels-page .empty-reels-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 16px;
+
+  border-radius: 50%;
+
+  background: #eef2ff;
+  color: #667eea;
+
+  font-size: 18px;
+}
+
+.video-reels-page .empty-reels h2 {
+  margin: 0;
+
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 700;
+
+  color: #344054;
+}
+
+.video-reels-page .empty-reels p {
+  max-width: 480px;
+
+  margin: 8px auto 20px;
+
+  font-size: 14px;
+  line-height: 1.6;
+
+  color: #667085;
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
 @media (max-width: 768px) {
   .video-reels-page {
-    padding: 24px 16px;
+    padding: 32px 16px 48px;
   }
 
-  .page-header {
-    margin-bottom: 32px;
+  .video-reels-page .video-reels-header {
+    margin-bottom: 28px;
   }
 
-  .page-header h1 {
-    font-size: 24px;
-  }
-
-  .page-header p {
+  .video-reels-page .video-reels-description {
+    margin-top: 10px;
     font-size: 14px;
   }
 
-  .platform-filters {
-    gap: 8px;
-    padding: 16px;
-    margin-bottom: 32px;
+  .video-reels-page .platform-filters {
+    margin-bottom: 28px;
   }
 
-  .platform-filter-btn {
-    padding: 8px 12px;
+  .video-reels-page .platform-filters-inner {
+    justify-content: stretch;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .video-reels-page .platform-filter-btn {
+    flex: 1 1 calc(50% - 8px);
+
+    min-height: 42px;
+
+    padding: 9px 10px;
+
     font-size: 13px;
   }
 
-  .platform-icon-filter {
-    font-size: 16px;
+  .video-reels-page .reels-toolbar {
+    align-items: flex-start;
+  }
+
+  .video-reels-page .loading-state {
+    min-height: 260px;
   }
 }
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
 
 @media (max-width: 480px) {
   .video-reels-page {
-    padding: 16px 12px;
+    padding: 24px 12px 40px;
   }
 
-  .page-header h1 {
-    font-size: 20px;
+  .video-reels-page .video-reels-header {
+    margin-bottom: 24px;
   }
 
-  .platform-filters {
+  .video-reels-page .video-reels-eyebrow {
+    font-size: 10px;
+  }
+
+  .video-reels-page .video-reels-title {
+    font-size: 26px;
+  }
+
+  .video-reels-page .video-reels-description {
+    font-size: 13px;
+  }
+
+  .video-reels-page .platform-filters-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .video-reels-page .platform-filter-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .video-reels-page .platform-filter-btn:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .video-reels-page .reels-toolbar {
     flex-direction: column;
+    align-items: flex-start;
     gap: 8px;
   }
 
-  .platform-filter-btn {
-    width: 100%;
-    justify-content: center;
+  .video-reels-page .reels-count {
+    font-size: 13px;
   }
 
-  .reels-count {
-    font-size: 12px;
+  .video-reels-page .empty-reels {
+    padding: 44px 18px;
+  }
+
+  .video-reels-page .empty-reels h2 {
+    font-size: 18px;
+  }
+
+  .video-reels-page .empty-reels p {
+    font-size: 13px;
   }
 }
 
-/* ===== A11y: indikator fokus keyboard ===== */
-.platform-filter-btn:focus-visible {
-  outline: 3px solid #111;
-  outline-offset: 2px;
+/* =========================================================
+   VERY SMALL DEVICES
+   ========================================================= */
+
+@media (max-width: 360px) {
+  .video-reels-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .video-reels-page .platform-filters-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .video-reels-page .platform-filter-btn:first-child {
+    grid-column: auto;
+  }
+
+  .video-reels-page .platform-filter-btn {
+    flex: none;
+  }
 }
 
-/* ===== Hormati preferensi kurangi animasi ===== */
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
 @media (prefers-reduced-motion: reduce) {
-  .platform-filter-btn,
-  .reels-section,
-  .spinner {
-    animation: none !important;
+  .video-reels-page .platform-filter-btn,
+  .video-reels-page .retry-button,
+  .video-reels-page .empty-reels-button {
     transition: none !important;
+  }
+
+  .video-reels-page .spinner {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   DARK MODE SUPPORT
+   ========================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .video-reels-page .video-reels-title {
+    color: #f9fafb;
+  }
+
+  .video-reels-page .video-reels-description,
+  .video-reels-page .reels-count {
+    color: #98a2b3;
+  }
+
+  .video-reels-page .platform-filters-inner {
+    background: #111827;
+    border-color: #1f2937;
+  }
+
+  .video-reels-page .platform-filter-btn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+  }
+
+  .video-reels-page .platform-filter-btn:hover {
+    border-color: #667085;
+  }
+
+  .video-reels-page .platform-filter-btn.platform-tiktok.active {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #111111;
+  }
+
+  .video-reels-page .reels-platform-label {
+    background: #1f2937;
+    color: #d1d5db;
+  }
+
+  .video-reels-page .empty-reels {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .video-reels-page .empty-reels h2 {
+    color: #f3f4f6;
+  }
+
+  .video-reels-page .empty-reels p {
+    color: #98a2b3;
+  }
+
+  .video-reels-page .empty-reels-icon {
+    background: #1e1b4b;
   }
 }

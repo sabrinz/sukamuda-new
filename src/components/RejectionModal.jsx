@@ -1,96 +1,209 @@
-import React, { useState, useEffect } from 'react';
-import './RejectionModal.css';
+import React, { useEffect, useId, useRef, useState } from "react";
+import "./RejectionModal.css";
 
-const RejectionModal = ({ isOpen, articleTitle, onConfirm, onCancel, isLoading }) => {
-  const [reason, setReason] = useState('');
+function RejectionModal({
+  isOpen,
+  articleTitle = "",
+  onConfirm,
+  onCancel,
+  isLoading = false,
+}) {
+  const uid = useId().replace(/:/g, "");
+  const titleId = `rejection-title-${uid}`;
+  const descriptionId = `rejection-description-${uid}`;
+  const reasonId = `rejection-reason-${uid}`;
+  const countId = `rejection-count-${uid}`;
+  const errorId = `rejection-error-${uid}`;
 
-  const handleConfirm = () => {
-    if (!reason.trim()) {
-      alert('Mohon masukkan alasan penolakan');
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const modalRef = useRef(null);
+  const textareaRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  function cancel() {
+    if (isLoading) return;
+    setReason("");
+    setError("");
+    if (typeof onCancel === "function") onCancel();
+  }
+
+  function confirm() {
+    if (isLoading) return;
+
+    const normalizedReason = reason.trim();
+    if (!normalizedReason) {
+      setError("Mohon masukkan alasan penolakan.");
+      textareaRef.current?.focus();
       return;
     }
-    onConfirm(reason);
-    setReason('');
-  };
 
-  const handleCancel = () => {
-    setReason('');
-    onCancel();
-  };
+    setError("");
+    if (typeof onConfirm === "function") onConfirm(normalizedReason);
+  }
 
-  // Tutup dengan tombol Escape
   useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e) => {
-      if (e.key === 'Escape' && !isLoading) {
-        setReason('');
-        onCancel();
+    if (!isOpen || typeof document === "undefined") return undefined;
+
+    previousFocusRef.current = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusTimer = window.setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        if (!isLoading) {
+          event.preventDefault();
+          cancel();
+        }
+        return;
+      }
+
+      if (event.key !== "Tab" || !modalRef.current) return;
+
+      const focusable = Array.from(
+        modalRef.current.querySelectorAll(
+          'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        modalRef.current.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+
+      const previousFocus = previousFocusRef.current;
+      if (previousFocus && typeof previousFocus.focus === "function") {
+        previousFocus.focus();
       }
     };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, isLoading, onCancel]);
+  }, [isOpen, isLoading]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setReason("");
+      setError("");
+    }
+  }, [isOpen, articleTitle]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="rejection-modal-overlay">
-      <div
+    <div
+      className="rejection-modal-overlay"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) cancel();
+      }}
+    >
+      <section
+        ref={modalRef}
         className="rejection-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="rejection-modal-title"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        aria-busy={isLoading}
+        tabIndex={-1}
+        onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="rejection-modal-header">
-          <h3 id="rejection-modal-title">Tolak Artikel</h3>
+        <header className="rejection-modal-header">
+          <h2 id={titleId}>Tolak Artikel</h2>
           <button
+            type="button"
             className="rejection-modal-close"
-            onClick={handleCancel}
-            aria-label="Tutup"
+            onClick={cancel}
+            disabled={isLoading}
+            aria-label="Tutup dialog penolakan"
           >
-            ✕
+            <span aria-hidden="true">×</span>
           </button>
-        </div>
+        </header>
 
         <div className="rejection-modal-content">
-          <p className="article-title-label">Artikel: <strong>{articleTitle}</strong></p>
-          
-          <label htmlFor="rejection-reason" className="rejection-reason-label">
-            Alasan Penolakan:
+          <p id={descriptionId} className="rejection-modal-article-title">
+            Artikel: <strong>{articleTitle || "Tanpa judul"}</strong>
+          </p>
+
+          <label htmlFor={reasonId} className="rejection-modal-reason-label">
+            Alasan penolakan <span aria-hidden="true">*</span>
           </label>
           <textarea
-            id="rejection-reason"
-            className="rejection-reason-textarea"
-            placeholder="Jelaskan mengapa artikel ini ditolak..."
+            ref={textareaRef}
+            id={reasonId}
+            className="rejection-modal-reason-textarea"
+            placeholder="Jelaskan alasan artikel ditolak dan perbaikan yang diperlukan..."
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={(event) => {
+              setReason(event.target.value);
+              if (error) setError("");
+            }}
             maxLength={1000}
+            rows={6}
             disabled={isLoading}
-            autoFocus
-            aria-describedby="rejection-char-count"
+            required
+            aria-invalid={Boolean(error)}
+            aria-describedby={`${countId}${error ? ` ${errorId}` : ""}`}
           />
-          <p className="char-count" id="rejection-char-count">{reason.length}/1000</p>
+
+          <div className="rejection-modal-meta">
+            {error ? (
+              <p id={errorId} className="rejection-modal-error" role="alert">
+                {error}
+              </p>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+            <p id={countId} className="rejection-modal-char-count">
+              {reason.length}/1000
+            </p>
+          </div>
         </div>
 
-        <div className="rejection-modal-footer">
+        <footer className="rejection-modal-footer">
           <button
-            className="btn-cancel"
-            onClick={handleCancel}
+            type="button"
+            className="rejection-modal-cancel"
+            onClick={cancel}
             disabled={isLoading}
           >
             Batal
           </button>
           <button
-            className="btn-reject"
-            onClick={handleConfirm}
-            disabled={isLoading}
+            type="button"
+            className="rejection-modal-confirm"
+            onClick={confirm}
+            disabled={isLoading || !reason.trim()}
           >
-            {isLoading ? 'Memproses...' : 'Tolak Artikel'}
+            {isLoading ? "Memproses..." : "Tolak Artikel"}
           </button>
-        </div>
-      </div>
+        </footer>
+      </section>
     </div>
   );
-};
+}
 
 export default RejectionModal;

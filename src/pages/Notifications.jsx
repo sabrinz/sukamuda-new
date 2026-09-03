@@ -1,154 +1,289 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
-import axios from '../utils/axiosConfig';
-import './Notifications.css';
+import React, { useCallback, useEffect, useState } from "react";
+
+import { useNavigate } from "react-router-dom";
+
+import { Helmet } from "react-helmet-async";
+
+import axios from "../utils/axiosConfig";
+
+import "./Notifications.css";
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+const getNotificationIcon = (type) => {
+  switch (type) {
+    case "article_approved":
+      return "✓";
+
+    case "article_rejected":
+      return "✕";
+
+    case "article_liked":
+      return "❤";
+
+    case "article_pending":
+      return "⏳";
+
+    default:
+      return "📄";
+  }
+};
+
+const getNotificationClass = (type) => {
+  switch (type) {
+    case "article_approved":
+      return "notif-approved";
+
+    case "article_rejected":
+      return "notif-rejected";
+
+    case "article_liked":
+      return "notif-liked";
+
+    case "article_pending":
+      return "notif-pending";
+
+    default:
+      return "";
+  }
+};
+
+const formatNotificationDate = (date) => {
+  if (!date) {
+    return "";
+  }
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return parsedDate.toLocaleString("id-ID", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const getArticleSlug = (notification) => {
+  const slug = notification?.article?.slug;
+
+  if (slug !== undefined && slug !== null && String(slug).trim()) {
+    return String(slug).trim();
+  }
+
+  const articleId = notification?.article_id;
+
+  if (
+    articleId !== undefined &&
+    articleId !== null &&
+    String(articleId).trim()
+  ) {
+    return String(articleId).trim();
+  }
+
+  return "";
+};
+
+/* =========================================================
+   NOTIFICATIONS
+   ========================================================= */
 
 const Notifications = () => {
   const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState(null);
 
-  const fetchNotifications = useCallback(async () => {
+  const [deletingId, setDeletingId] = useState(null);
+
+  const [readingId, setReadingId] = useState(null);
+
+  /* =======================================================
+     FETCH
+     ======================================================= */
+
+  const fetchNotifications = useCallback(async (signal) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get('/api/notifications');
+      const response = await axios.get("/api/notifications", {
+        signal,
+      });
 
-      setNotifications(response.data.data || []);
+      const data = response?.data?.data;
+
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
-      setError('Gagal memuat notifikasi');
+      /*
+       * Abort bukan error UI.
+       */
+      if (err?.code === "ERR_CANCELED" || err?.name === "CanceledError") {
+        return;
+      }
+
+      console.error("Error fetching notifications:", err);
+
       setNotifications([]);
+
+      setError(err?.response?.data?.message || "Gagal memuat notifikasi.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }, []);
 
+  /* =======================================================
+     INITIAL LOAD
+     ======================================================= */
+
   useEffect(() => {
-    fetchNotifications();
+    const controller = new AbortController();
+
+    fetchNotifications(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, [fetchNotifications]);
 
-  const markAsRead = async (notificationId) => {
+  /* =======================================================
+     MARK AS READ
+     ======================================================= */
+
+  const markAsRead = useCallback(async (notificationId) => {
+    if (notificationId === undefined || notificationId === null) {
+      return;
+    }
+
+    setReadingId(notificationId);
+
     try {
       await axios.patch(
-        '/api/notifications/' + notificationId + '/read'
+        `/api/notifications/${encodeURIComponent(String(notificationId))}/read`,
       );
 
-      setNotifications((currentNotifications) =>
-        currentNotifications.map((notification) =>
-          notification.id === notificationId
-            ? { ...notification, is_read: true }
-            : notification
-        )
+      setNotifications((current) =>
+        current.map((notification) =>
+          String(notification.id) === String(notificationId)
+            ? {
+                ...notification,
+                is_read: true,
+              }
+            : notification,
+        ),
       );
     } catch (err) {
-      console.error('Error marking notification as read:', err);
+      console.error("Error marking notification as read:", err);
+    } finally {
+      setReadingId(null);
     }
-  };
+  }, []);
 
-  const deleteNotification = async (notificationId) => {
+  /* =======================================================
+     DELETE
+     ======================================================= */
+
+  const deleteNotification = useCallback(async (notificationId) => {
+    if (notificationId === undefined || notificationId === null) {
+      return;
+    }
+
+    setDeletingId(notificationId);
+
     try {
       await axios.delete(
-        '/api/notifications/' + notificationId
+        `/api/notifications/${encodeURIComponent(String(notificationId))}`,
       );
 
-      setNotifications((currentNotifications) =>
-        currentNotifications.filter(
-          (notification) => notification.id !== notificationId
-        )
+      setNotifications((current) =>
+        current.filter(
+          (notification) => String(notification.id) !== String(notificationId),
+        ),
       );
     } catch (err) {
-      console.error('Error deleting notification:', err);
+      console.error("Error deleting notification:", err);
+
+      setError(err?.response?.data?.message || "Gagal menghapus notifikasi.");
+    } finally {
+      setDeletingId(null);
     }
-  };
+  }, []);
 
-  const handleNotificationClick = (notification) => {
-    if (!notification.is_read) {
-      markAsRead(notification.id);
-    }
+  /* =======================================================
+     OPEN NOTIFICATION
+     ======================================================= */
 
-    if (notification.article_id) {
-      const articleSlug =
-        notification.article?.slug || notification.article_id;
+  const handleNotificationClick = useCallback(
+    async (notification) => {
+      if (!notification) {
+        return;
+      }
 
-      navigate('/article/' + articleSlug);
-    }
-  };
+      if (!notification.is_read && notification.id !== undefined) {
+        /*
+         * Update UI dahulu agar terasa responsif.
+         */
+        setNotifications((current) =>
+          current.map((item) =>
+            String(item.id) === String(notification.id)
+              ? {
+                  ...item,
+                  is_read: true,
+                }
+              : item,
+          ),
+        );
 
-  const handleNotificationKeyDown = (event, notification) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      handleNotificationClick(notification);
-    }
-  };
+        /*
+         * Simpan status ke backend,
+         * tetapi jangan menghambat navigasi.
+         */
+        markAsRead(notification.id);
+      }
 
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case 'article_approved':
-        return '✓';
+      const articleSlug = getArticleSlug(notification);
 
-      case 'article_rejected':
-        return '✕';
+      if (articleSlug) {
+        navigate(`/article/${encodeURIComponent(articleSlug)}`);
+      }
+    },
+    [markAsRead, navigate],
+  );
 
-      case 'article_liked':
-        return '❤';
+  /* =======================================================
+     COUNTERS
+     ======================================================= */
 
-      case 'article_pending':
-        return '⏳';
+  const unreadCount = notifications.filter((item) => !item?.is_read).length;
 
-      default:
-        return '📄';
-    }
-  };
-
-  const getNotificationClass = (type) => {
-    switch (type) {
-      case 'article_approved':
-        return 'notif-approved';
-
-      case 'article_rejected':
-        return 'notif-rejected';
-
-      case 'article_liked':
-        return 'notif-liked';
-
-      case 'article_pending':
-        return 'notif-pending';
-
-      default:
-        return '';
-    }
-  };
-
-  const formatNotificationDate = (date) => {
-    const parsedDate = new Date(date);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return '';
-    }
-
-    return parsedDate.toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  /* =======================================================
+     RENDER
+     ======================================================= */
 
   return (
     <div className="notif-page-wrapper">
       <Helmet>
-        <title>Notifikasi - Sukamuda</title>
-        <meta name="robots" content="noindex, nofollow" />
+        <title>Notifikasi - SukaMuda</title>
+
+        <meta name="robots" content="noindex,follow" />
       </Helmet>
 
       <div className="notif-container">
-        {/* HEADER */}
+        {/* =================================================
+            HEADER
+            ================================================= */}
+
         <header className="notif-header-section">
           <button
             type="button"
@@ -159,39 +294,46 @@ const Notifications = () => {
             <span aria-hidden="true">←</span>
           </button>
 
-          <h1 className="notif-page-title">NOTIFICATION</h1>
+          <div>
+            <h1 className="notif-page-title">NOTIFICATION</h1>
+
+            {!loading && notifications.length > 0 && (
+              <p className="notif-unread-count" aria-live="polite">
+                {unreadCount > 0
+                  ? `${unreadCount} belum dibaca`
+                  : "Semua sudah dibaca"}
+              </p>
+            )}
+          </div>
         </header>
 
-        {/* LIST NOTIFIKASI */}
+        {/* =================================================
+            MAIN
+            ================================================= */}
+
         <main className="notif-main-content">
           {loading ? (
-            <div
-              className="notif-loading"
-              role="status"
-              aria-live="polite"
-            >
+            <div className="notif-loading" role="status" aria-live="polite">
               <p>Memuat notifikasi...</p>
             </div>
           ) : error ? (
-            <div
-              className="notif-error"
-              role="alert"
-            >
+            <div className="notif-error" role="alert">
               <p>{error}</p>
 
               <button
                 type="button"
-                onClick={fetchNotifications}
+                onClick={() => {
+                  const controller = new AbortController();
+
+                  fetchNotifications(controller.signal);
+                }}
                 className="btn-retry"
               >
                 Coba Lagi
               </button>
             </div>
           ) : notifications.length === 0 ? (
-            <div
-              className="notif-empty"
-              role="status"
-            >
+            <div className="notif-empty" role="status">
               <p>Tidak ada notifikasi</p>
             </div>
           ) : (
@@ -200,62 +342,89 @@ const Notifications = () => {
               id="notifications"
               aria-label="Daftar notifikasi"
             >
-              {notifications.map((item) => (
-                <div
-                  key={item.id}
-                  className={`notif-row-item ${
-                    !item.is_read ? 'unread' : ''
-                  } ${getNotificationClass(item.type)}`}
-                  onClick={() => handleNotificationClick(item)}
-                  onKeyDown={(event) =>
-                    handleNotificationKeyDown(event, item)
-                  }
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${item.message}${
-                    !item.is_read ? ', belum dibaca' : ''
-                  }`}
-                >
-                  <div
-                    className={`notif-avatar-circle ${item.type}`}
-                    aria-hidden="true"
+              {notifications.map((item) => {
+                const notificationId = item.id;
+
+                const isUnread = !item.is_read;
+
+                const isDeleting =
+                  String(deletingId) === String(notificationId);
+
+                const isReading = String(readingId) === String(notificationId);
+
+                return (
+                  <article
+                    key={notificationId}
+                    className={`notif-row-item${
+                      isUnread ? " unread" : ""
+                    } ${getNotificationClass(item.type)}`}
                   >
-                    {getNotificationIcon(item.type)}
-                  </div>
+                    <button
+                      type="button"
+                      className="notif-content-button"
+                      onClick={() => handleNotificationClick(item)}
+                      disabled={isDeleting || isReading}
+                      aria-label={`${item.message || "Notifikasi"}${
+                        isUnread ? ", belum dibaca" : ""
+                      }`}
+                    >
+                      <span
+                        className={`notif-avatar-circle ${
+                          getNotificationClass(item.type) || "notif-default"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {getNotificationIcon(item.type)}
+                      </span>
 
-                  <div className="notif-bubble-box">
-                    <p className="notif-message">
-                      {item.message}
-                    </p>
+                      <span className="notif-bubble-box">
+                        <span className="notif-message">
+                          {item.message || "Notifikasi"}
+                        </span>
 
-                    {item.rejection_reason && (
-                      <div className="notif-rejection-reason">
-                        <strong>Alasan:</strong>
-                        {item.rejection_reason}
-                      </div>
-                    )}
+                        {item.rejection_reason && (
+                          <span className="notif-rejection-reason">
+                            <strong>Alasan:</strong> {item.rejection_reason}
+                          </span>
+                        )}
 
-                    <span className="notif-time">
-                      {formatNotificationDate(item.created_at)}
-                    </span>
-                  </div>
+                        <time
+                          className="notif-time"
+                          dateTime={item.created_at || undefined}
+                        >
+                          {formatNotificationDate(item.created_at)}
+                        </time>
 
-                  <button
-                    type="button"
-                    className="notif-delete-btn"
-                    aria-label="Hapus notifikasi"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      deleteNotification(item.id);
-                    }}
-                    onKeyDown={(event) => {
-                      event.stopPropagation();
-                    }}
-                  >
-                    <span aria-hidden="true">✕</span>
-                  </button>
-                </div>
-              ))}
+                        {isReading && (
+                          <span
+                            className="notif-action-status"
+                            aria-live="polite"
+                          >
+                            Menandai sudah dibaca...
+                          </span>
+                        )}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="notif-delete-btn"
+                      aria-label={`Hapus notifikasi${
+                        item.message ? `: ${item.message}` : ""
+                      }`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        deleteNotification(notificationId);
+                      }}
+                      disabled={isDeleting}
+                    >
+                      <span aria-hidden="true">{isDeleting ? "…" : "✕"}</span>
+                    </button>
+                  </article>
+                );
+              })}
             </div>
           )}
         </main>

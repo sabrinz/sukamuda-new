@@ -1,100 +1,227 @@
-import axios from 'axios';
+import axios from "axios";
 
-const apiBaseUrl = import.meta.env.VITE_API_URL;
+const DEFAULT_API_URL = "https://sukamuda.co.id";
+const TOKEN_KEY = "token";
+const USER_KEY = "user";
+const UNAUTHORIZED_EVENT = "auth:unauthorized";
 
-const normalizeUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return `https://${url}`;
-};
+function normalizeBaseUrl(value) {
+  const candidate = String(value || DEFAULT_API_URL).trim();
+  const withProtocol = /^https?:\/\//i.test(candidate)
+    ? candidate
+    : "https://" + candidate;
 
-const baseURL = normalizeUrl(apiBaseUrl) || 'https://sukamuda.co.id';
-
-// 1. Konfigurasi Dasar (Wajib agar Session & Cookie sinkron)
-axios.defaults.withCredentials = true;
-axios.defaults.baseURL = baseURL;
-axios.defaults.headers.common['Accept'] = 'application/json';
-axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-
-// 2. Setting XSRF (Standar Laravel Sanctum)
-axios.defaults.xsrfCookieName = 'XSRF-TOKEN';
-axios.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
-
-// 3. Helper untuk ambil Cookie
-export const getCookie = (name) => {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-  return null;
-};
-
-/**
- * Helper: Memastikan CSRF Token Siap
- * Dipanggil sebelum Login atau Register agar tidak error 419.
- */
-export const ensureCsrfToken = async () => {
   try {
-    const existingToken = getCookie('XSRF-TOKEN');
+    const parsed = new URL(withProtocol);
 
-    if (!existingToken) {
-      await axios.get('/sanctum/csrf-cookie');
-      await new Promise(resolve => setTimeout(resolve, 300));
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return DEFAULT_API_URL;
     }
 
-    return true;
-  } catch (error) {
-    console.error('Gagal mengambil CSRF Token:', error);
+    parsed.search = "";
+    parsed.hash = "";
+
+    return parsed.toString().replace(/\/+$/, "");
+  } catch {
+    return DEFAULT_API_URL;
+  }
+}
+
+const baseURL = normalizeBaseUrl(import.meta.env.VITE_API_URL);
+const apiOrigin = new URL(baseURL).origin;
+
+const api = axios.create({
+  baseURL,
+  withCredentials: true,
+  headers: {
+    Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+  },
+  xsrfCookieName: "XSRF-TOKEN",
+  xsrfHeaderName: "X-XSRF-TOKEN",
+  timeout: 30_000,
+});
+
+function getToken() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const token = window.localStorage.getItem(TOKEN_KEY)?.trim();
+    return token || null;
+  } catch {
+    return null;
+  }
+}
+
+function clearStoredSession() {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem(TOKEN_KEY);
+    window.localStorage.removeItem(USER_KEY);
+  } catch {
+    // Penyimpanan browser dapat dinonaktifkan.
+  }
+}
+
+export function getCookie(name) {
+  if (typeof document === "undefined" || !name) return null;
+
+  try {
+    const encodedName = `${encodeURIComponent(name)}=`;
+    const matched = document.cookie
+      .split(";")
+      .map((cookie) => cookie.trim())
+      .find((cookie) => cookie.startsWith(encodedName));
+
+    if (!matched) return null;
+
+    const rawValue = matched.slice(encodedName.length);
+    if (!rawValue) return null;
+
+    try {
+      return decodeURIComponent(rawValue);
+    } catch {
+      return rawValue;
+    }
+  } catch {
+    return null;
+  }
+}
+
+export function isOwnApiRequest(config = {}) {
+  const requestUrl = String(config.url || "").trim();
+  const requestBaseUrl = normalizeBaseUrl(config.baseURL || baseURL);
+
+  try {
+    const resolved = new URL(requestUrl || requestBaseUrl, requestBaseUrl);
+
+    return (
+      (resolved.protocol === "http:" || resolved.protocol === "https:") &&
+      resolved.origin === apiOrigin
+    );
+  } catch {
     return false;
   }
-};
+}
 
-/**
- * Helper: cek apakah request menuju API kita sendiri.
- * SECURITY FIX: token Bearer TIDAK BOLEH dikirim ke domain luar.
- */
-const isOwnApiRequest = (config) => {
-  const url = config.url || '';
-  // URL relatif ("/api/...") selalu menuju baseURL kita
-  if (!/^https?:\/\//i.test(url)) return true;
-  // URL absolut: hanya kirim token kalau masih ke API kita
-  return url.startsWith(baseURL);
-};
+function removeAuthorizationHeader(headers) {
+  if (!headers) return;
 
-/**
- * 4. INTERCEPTOR OTOMATIS (Solusi Unauthenticated)
- * Cek localStorage setiap kirim data ke Laravel.
- * SECURITY FIX: token hanya ditempel untuk request ke API sendiri.
- */
-axios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token && isOwnApiRequest(config)) {
-      config.headers.Authorization = `Bearer ${token}`;
+  try {
+    if (typeof headers.delete === "function") {
+      headers.delete("Authorization");
+      headers.delete("authorization");
+      return;
     }
+
+    delete headers.Authorization;
+    delete headers.authorization;
+  } catch {
+    // Header yang tidak dapat diubah tidak boleh merusak aplikasi.
+  }
+}
+
+let csrfPromise = null;
+
+export async function ensureCsrfToken() {
+  if (typeof window === "undefined") return false;
+  if (getCookie("XSRF-TOKEN")) return true;
+  if (csrfPromise) return csrfPromise;
+
+  csrfPromise = api
+    .get("/sanctum/csrf-cookie", {
+      skipAuth: true,
+      skipUnauthorizedHandler: true,
+    })
+    .then(() => Boolean(getCookie("XSRF-TOKEN")))
+    .catch((error) => {
+      if (import.meta.env.DEV) {
+        console.warn("Gagal mengambil CSRF token:", error?.message || error);
+      }
+
+      return false;
+    })
+    .finally(() => {
+      csrfPromise = null;
+    });
+
+  return csrfPromise;
+}
+
+let unauthorizedEventSent = false;
+
+api.interceptors.request.use(
+  (config) => {
+    config.headers = config.headers || {};
+
+    const ownRequest = isOwnApiRequest(config);
+
+    if (!ownRequest) {
+      // Jangan pernah mengirim kredensial atau token SukaMuda ke origin lain.
+      config.withCredentials = false;
+      removeAuthorizationHeader(config.headers);
+      return config;
+    }
+
+    config.withCredentials = true;
+
+    if (config.skipAuth === true) {
+      removeAuthorizationHeader(config.headers);
+    } else {
+      const token = getToken();
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        removeAuthorizationHeader(config.headers);
+      }
+    }
+
+    if (config.url === "/sanctum/csrf-cookie") {
+      config.skipUnauthorizedHandler = true;
+      removeAuthorizationHeader(config.headers);
+    }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error),
 );
 
-/**
- * 5. RESPONSE INTERCEPTOR
- * Kalau token mati (expired/revoked):
- * - Hapus token dari storage (mencegah state "login palsu")
- * - Broadcast event supaya AuthContext bisa update state tanpa hard redirect
- */
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      console.warn('Sesi kamu habis, silakan login ulang.');
-      localStorage.removeItem('token');
-      // Kabari AuthContext / komponen lain tanpa memaksa redirect
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+api.interceptors.response.use(
+  (response) => {
+    const config = response?.config;
+
+    if (isOwnApiRequest(config) && config?.url !== "/sanctum/csrf-cookie") {
+      unauthorizedEventSent = false;
     }
+
+    return response;
+  },
+  (error) => {
+    const config = error?.config;
+    const shouldHandleUnauthorized =
+      error?.response?.status === 401 &&
+      isOwnApiRequest(config) &&
+      config?.skipUnauthorizedHandler !== true;
+
+    if (shouldHandleUnauthorized) {
+      clearStoredSession();
+
+      if (!unauthorizedEventSent && typeof window !== "undefined") {
+        unauthorizedEventSent = true;
+
+        try {
+          window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+        } catch {
+          // AuthContext akan memeriksa ulang sesi pada interaksi berikutnya.
+        }
+      }
+    }
+
     return Promise.reject(error);
-  }
+  },
 );
 
-export default axios;
+export { baseURL };
+export default api;

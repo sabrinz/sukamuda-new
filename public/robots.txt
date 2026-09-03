@@ -1,23 +1,76 @@
+# https://sukamuda.co.id/robots.txt
+
 User-agent: *
 Allow: /
 
-# Halaman privat / tidak perlu diindeks
+# WAJIB: endpoint data publik harus boleh di-crawl.
+# Kalau /api diblokir, Googlebot membuka artikel dan melihat
+# halaman kosong. Itu penyebab utama tuduhan "konten bernilai
+# rendah" di situs SPA.
+Allow: /api/public-articles
+Allow: /api/public/
+
+# Area privat & non-konten
 Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard/
 Disallow: /profile
 Disallow: /notifications
 Disallow: /write
 Disallow: /write-success
 Disallow: /login
 Disallow: /register
-Disallow: /verify-otp
 Disallow: /forgot-password
+Disallow: /verify-otp
 Disallow: /interests
 Disallow: /success
-Disallow: /api/
-Disallow: /sanctum/
+Disallow: /api/private/
 
-# Sitemap (digenerate oleh backend Laravel)
+# Jebakan crawl dari parameter tak terbatas
+Disallow: /*?*q=
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*utm_
+Disallow: /*?*fbclid=
+Disallow: /*?*gclid=
+
+# CATATAN: /search TIDAK di-Disallow di sini karena App.jsx sudah
+# memberinya noindex,follow. Kalau URL diblokir robots.txt, Google
+# tidak bisa membaca tag noindex-nya, jadi URL tetap bisa muncul di
+# hasil pencarian tanpa deskripsi. Pilih SALAH SATU, jangan dua-duanya.
+
+# Aset wajib boleh dibaca. Kalau CSS/JS diblokir, render Google rusak.
+Allow: /assets/
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.webp$
+Allow: /*.avif$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.svg$
+
+# Bot AI: keputusan bisnis. Hapus blok ini kalau Anda tidak keberatan
+# konten dipakai melatih model.
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+# Google-Extended mengatur pemakaian untuk Gemini.
+# TIDAK memengaruhi peringkat Google Search.
+User-agent: Google-Extended
+Disallow: /
+
+# Bot SEO agresif tanpa nilai bisnis
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
 Sitemap: https://sukamuda.co.id/sitemap.xml
-Sitemap: https://sukamuda.co.id/sitemap-news.xml
-Sitemap: https://sukamuda.co.id/sitemap-images.xml
-Sitemap: https://sukamuda.co.id/sitemap-videos.xml

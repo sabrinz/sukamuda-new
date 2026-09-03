@@ -1,1273 +1,720 @@
-import React from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import axios from "../utils/axiosConfig";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import axios, { baseURL } from "../utils/axiosConfig";
 import { categoryGroups } from "../data/articles";
+
 import VideoReels from "../components/VideoReels";
 import AdSlot from "../components/AdSlot";
+
 import "./Home.css";
 
-const baseUrl = import.meta.env.VITE_API_URL || "https://sukamuda.co.id";
+/* =========================================================
+   SITE CONFIGURATION
+   ========================================================= */
 
-const resolveImageUrl = (value) => {
-  if (!value) return null;
-  return value.startsWith("http") ? value : baseUrl + "/storage/" + value;
-};
+const SITE_URL = "https://sukamuda.co.id";
+const SITE_NAME = "SukaMuda";
+const DEFAULT_TITLE = "SukaMuda - Portal Berita & Informasi Anak Muda Indonesia";
+const DEFAULT_DESCRIPTION =
+  "SukaMuda adalah portal berita dan informasi anak muda Indonesia yang menyajikan berita terkini, edukasi, teknologi, lifestyle, hiburan, olahraga, dan berbagai informasi inspiratif.";
+const DEFAULT_SHARE_IMAGE = `${SITE_URL}/sukamuda-share.jpg`;
+const PLACEHOLDER_IMAGE = "/placeholder.svg";
 
-const fetchArticles = async () => {
-  const response = await axios.get("/api/public-articles");
-  return Array.isArray(response.data) ? response.data : [];
-};
+/* =========================================================
+   ADSENSE CONFIGURATION
+   ========================================================= */
 
-const fetchTrending = async () => {
-  const response = await axios.get("/api/trending");
-  return Array.isArray(response.data) ? response.data : [];
-};
-
-const fetchVideoReels = async () => {
-  const response = await axios.get("/api/video-reels/homepage");
-  return Array.isArray(response.data) ? response.data : [];
-};
+const ADSENSE_CLIENT = "ca-pub-7608424206122269";
+const ADSENSE_VERTICAL_SLOT = "9190843316";
+const ADSENSE_HORIZONTAL_SLOT = "9097520145";
 
 const AD_CONFIG = {
-  news: {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
-  },
-  lifestyle: {
-    kanan: { tampil: false },
-    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
-  },
-  sport: {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: false },
-  },
-  "sport-e-sport": {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: false },
-  },
-  "music-film": {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
-  },
-  otomotif: {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
-  },
-  science: {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
-  },
-  health: {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
-  },
-  tech: {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
-  },
-  technology: {
-    kanan: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9190843316" },
-    bawah: { tampil: true, adClient: "ca-pub-7608424206122269", adSlot: "9097520145" },
-  },
+  news: { right: true, bottom: true },
+  lifestyle: { right: false, bottom: true },
+  sport: { right: true, bottom: false },
+  "sport-e-sport": { right: true, bottom: false },
+  music: { right: true, bottom: false },
+  "music-film": { right: true, bottom: false },
+  otomotif: { right: true, bottom: true },
+  science: { right: true, bottom: false },
+  health: { right: true, bottom: true },
+  tech: { right: true, bottom: false },
+  technology: { right: true, bottom: false },
+  podcast: { right: false, bottom: false },
 };
 
+/* =========================================================
+   URL HELPERS
+   ========================================================= */
+
+const isAbsoluteHttpUrl = (value) => {
+  if (typeof value !== "string" || !value.trim()) return false;
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const resolveImageUrl = (value) => {
+  if (typeof value !== "string" || !value.trim()) return PLACEHOLDER_IMAGE;
+  const image = value.trim();
+
+  if (isAbsoluteHttpUrl(image)) {
+    return image
+      .replace("http://127.0.0.1:8000", SITE_URL)
+      .replace("http://localhost:8000", SITE_URL)
+      .replace("https://api.sukamuda.co.id", SITE_URL);
+  }
+
+  if (image.startsWith("data:") || image.startsWith("blob:")) return image;
+  if (image.startsWith("/storage/")) return `${baseURL}${image}`;
+  if (image.startsWith("/")) return `${baseURL}${image}`;
+
+  return `${baseURL}/storage/${image.replace(/^\/+/, "")}`;
+};
+
+/* =========================================================
+   CATEGORY & ARTICLE HELPERS
+   ========================================================= */
+
+const normalizeCategory = (value) =>
+  String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+const normalizeCategorySlug = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const CATEGORY_LABELS = {
+  news: "News", school: "School", college: "College", general: "General",
+  lifestyle: "Lifestyle", style: "Style", culinary: "Culinary", traveling: "Traveling",
+  sport: "Sport & E-Sport", "sport-e-sport": "Sport & E-Sport",
+  music: "Music & Film", "music-film": "Music & Film",
+  otomotif: "Otomotif", science: "Science", health: "Health",
+  tech: "Tech", technology: "Tech", podcast: "Podcast",
+};
+
+const formatCategory = (category) => {
+  const raw = String(category || "").trim();
+  if (!raw) return "Umum";
+  const normalized = normalizeCategorySlug(raw);
+  if (CATEGORY_LABELS[normalized]) return CATEGORY_LABELS[normalized];
+  return raw.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().split(" ")
+    .filter(Boolean).map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
+};
+
+const getSafeArticleSlug = (article) => String(article?.slug || "").trim();
+
+const getInitials = (name) => {
+  const value = String(name || "").trim();
+  if (!value) return "?";
+  return value.split(/\s+/).filter(Boolean).map((part) => part.charAt(0)).join("").toUpperCase().slice(0, 2);
+};
+
+const handleImageError = (event) => {
+  const image = event?.currentTarget;
+  if (!image) return;
+  image.onerror = null;
+  const currentSrc = String(image.currentSrc || image.src || "");
+  if (currentSrc.endsWith(PLACEHOLDER_IMAGE)) return;
+  image.src = PLACEHOLDER_IMAGE;
+};
+
+/* =========================================================
+   EMBED HELPERS
+   ========================================================= */
+
+const getYoutubeVideoId = (value) => {
+  if (typeof value !== "string" || !value.trim()) return "";
+  try {
+    const parsed = new URL(value.trim());
+    const host = parsed.hostname.toLowerCase();
+    if (host === "youtu.be" || host.endsWith(".youtu.be")) return parsed.pathname.replace(/^\/+/, "").split("/")[0].trim();
+    const isYoutubeHost = ["youtube.com", "www.youtube.com", "m.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com"].includes(host);
+    if (!isYoutubeHost) return "";
+    if (parsed.pathname === "/watch") return (parsed.searchParams.get("v") || "").trim();
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (["embed", "shorts", "live"].includes(parts[0])) return String(parts[1] || "").split("?")[0].split("&")[0].split("#")[0].trim();
+    return "";
+  } catch { return ""; }
+};
+
+const getYoutubeThumbnailUrl = (value) => {
+  const videoId = getYoutubeVideoId(value);
+  return videoId ? `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : "";
+};
+
+const getYoutubeEmbedUrl = (value) => {
+  const videoId = getYoutubeVideoId(value);
+  return videoId ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}` : "";
+};
+
+const getSpotifyEmbedUrl = (value) => {
+  if (typeof value !== "string" || !value.trim()) return "";
+  const allowedTypes = ["track", "episode", "album", "playlist", "show", "artist"];
+  try {
+    const normalized = value.trim();
+    if (normalized.startsWith("spotify:")) {
+      const parts = normalized.split(":").filter(Boolean);
+      if (parts.length >= 3 && allowedTypes.includes(parts[1]) && parts[2]) return `https://open.spotify.com/embed/${encodeURIComponent(parts[1])}/${encodeURIComponent(parts[2])}`;
+      return "";
+    }
+    const parsed = new URL(normalized);
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname !== "open.spotify.com" && !hostname.endsWith(".spotify.com")) return "";
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts[0] === "embed") parts.shift();
+    if (parts.length < 2 || !allowedTypes.includes(parts[0])) return "";
+    return `https://open.spotify.com/embed/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`;
+  } catch { return ""; }
+};
+
+/* =========================================================
+   API & DATA FETCHING
+   ========================================================= */
+
+const extractArrayPayload = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === "object") {
+    if (Array.isArray(payload.data)) return payload.data;
+    if (Array.isArray(payload.articles)) return payload.articles;
+    if (Array.isArray(payload.results)) return payload.results;
+  }
+  return [];
+};
+
+const PUBLIC_ARTICLE_PAGE_SIZE = 18;
+const HOMEPAGE_CATEGORY_LIMIT = 12;
+
+const fetchArticles = async ({ signal, page = 1, perPage = PUBLIC_ARTICLE_PAGE_SIZE, categories = [] } = {}) => {
+  const normalizedCategories = Array.from(new Set((Array.isArray(categories) ? categories : [categories]).map(normalizeCategorySlug).filter(Boolean)));
+  const response = await axios.get("/api/public-articles", {
+    signal,
+    params: { page, per_page: perPage, ...(normalizedCategories.length > 0 ? { categories: normalizedCategories.join(",") } : {}) },
+  });
+  return extractArrayPayload(response?.data);
+};
+
+const fetchVideoReels = async ({ signal } = {}) => {
+  const response = await axios.get("/api/video-reels/homepage", { signal });
+  return extractArrayPayload(response?.data);
+};
+
+const normalizeArticleList = (articles) => {
+  if (!Array.isArray(articles)) return [];
+  const seen = new Set();
+  return articles.filter((article) => {
+    if (!article || typeof article !== "object") return false;
+    const identity = article.id ?? article.slug ?? article.title;
+    if (identity === undefined || identity === null || String(identity).trim() === "") return false;
+    const key = String(identity).trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+/* =========================================================
+   SKELETON LOADERS
+   ========================================================= */
+
+const SkeletonCard = memo(function SkeletonCard() {
+  return (
+    <div className="article-card skeleton" aria-hidden="true">
+      <div className="article-image-wrapper skeleton-img" />
+      <div className="card-content">
+        <div className="skeleton-line short" />
+        <div className="skeleton-line long" />
+        <div className="skeleton-line medium" />
+      </div>
+    </div>
+  );
+});
+
+const SkeletonTrending = memo(function SkeletonTrending() {
+  return (
+    <div className="trending-item skeleton" aria-hidden="true">
+      <div className="trending-rank"><div className="skeleton-box" /></div>
+      <div className="trending-thumb"><div className="skeleton-img" /></div>
+      <div className="trending-details">
+        <div className="skeleton-line short" />
+        <div className="skeleton-line long" />
+      </div>
+    </div>
+  );
+});
+
+const SkeletonReels = memo(function SkeletonReels() {
+  return (
+    <div className="vr-skeleton-scroll" aria-hidden="true">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div className="vr-skeleton-card" key={index}>
+          <div className="vr-skeleton-thumb" />
+          <div className="vr-skeleton-info">
+            <div className="vr-skeleton-line vr-skeleton-line--title" />
+            <div className="vr-skeleton-line vr-skeleton-line--desc" />
+            <div className="vr-skeleton-line vr-skeleton-line--author" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+});
+
+/* =========================================================
+   HOME COMPONENT
+   ========================================================= */
+
 function Home() {
-  // FIX CLS: nilai awal langsung dibaca dari lebar layar, supaya di HP
-  // sidebar iklan tidak sempat dirender lalu hilang (bikin layout "loncat").
-  const [isMobile, setIsMobile] = React.useState(() => {
+  const [isCompactLayout, setIsCompactLayout] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth <= 1100;
   });
 
-  React.useEffect(() => {
+  const [activePodcastId, setActivePodcastId] = useState(null);
+
+  useEffect(() => {
     if (typeof window === "undefined") return undefined;
-
-    // matchMedia lebih hemat daripada event resize (tidak memicu re-render
-    // setiap piksel saat jendela diubah ukurannya).
     const mediaQuery = window.matchMedia("(max-width: 1100px)");
-    const handleChange = (event) => setIsMobile(event.matches);
-
-    setIsMobile(mediaQuery.matches);
-
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
+    const updateLayout = (event) => setIsCompactLayout(Boolean(event?.matches ?? mediaQuery.matches));
+    updateLayout(mediaQuery);
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", updateLayout);
+      return () => mediaQuery.removeEventListener("change", updateLayout);
     }
-
-    // Fallback untuk Safari lama
-    mediaQuery.addListener(handleChange);
-    return () => mediaQuery.removeListener(handleChange);
+    mediaQuery.addListener(updateLayout);
+    return () => mediaQuery.removeListener(updateLayout);
   }, []);
 
-  const { data: allArticles = [], isLoading: articleLoading } = useQuery({
-    queryKey: ["publicArticles"],
-    queryFn: fetchArticles,
-    staleTime: 1000 * 60 * 5,
+  const homepageCategoryRequests = useMemo(() => {
+    if (!Array.isArray(categoryGroups)) return [];
+    return categoryGroups.map((group, index) => {
+      const fallbackSlug = normalizeCategorySlug(group?.slug);
+      const categories = Array.from(new Set((Array.isArray(group?.categorySlugs) ? group.categorySlugs : [fallbackSlug]).map(normalizeCategorySlug).filter(Boolean)));
+      return { key: String(group?.slug || `category-${index}`), categories };
+    }).filter((request) => request.categories.length > 0);
+  }, []);
+
+  const { data: latestRawArticles = [], isLoading: latestArticlesLoading, isError: latestArticlesError, refetch: refetchLatestArticles } = useQuery({
+    queryKey: ["publicArticles", "homepage", "latest"],
+    queryFn: ({ signal }) => fetchArticles({ signal, page: 1, perPage: PUBLIC_ARTICLE_PAGE_SIZE }),
+    staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 30, retry: 1, refetchOnWindowFocus: false, refetchOnReconnect: true,
   });
 
-  const {
-    data: trendingArticles = [],
-    isLoading: trendingLoading,
-    isError: trendingError,
-  } = useQuery({
-    queryKey: ["trendingArticles"],
-    queryFn: fetchTrending,
-    gcTime: 0,
-    staleTime: 0,
-    retry: 1,
+  const categoryArticleQueries = useQueries({
+    queries: homepageCategoryRequests.map((request) => ({
+      queryKey: ["publicArticles", "homepage", "category", request.key, request.categories.join(",")],
+      queryFn: ({ signal }) => fetchArticles({ signal, page: 1, perPage: HOMEPAGE_CATEGORY_LIMIT, categories: request.categories }),
+      staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 30, retry: 1, refetchOnWindowFocus: false, refetchOnReconnect: true,
+    })),
   });
 
-  const { data: videoReels = [], isLoading: videoReelsLoading } = useQuery({
+  const rawArticles = useMemo(
+    () => [
+      ...extractArrayPayload(latestRawArticles),
+      ...categoryArticleQueries.flatMap((query) => extractArrayPayload(query.data)),
+    ],
+    [latestRawArticles, categoryArticleQueries]
+  );
+
+  const refetchArticles = useCallback(() => {
+    return Promise.allSettled([refetchLatestArticles(), ...categoryArticleQueries.map((query) => query.refetch())]);
+  }, [refetchLatestArticles, categoryArticleQueries]);
+
+  const { data: videoReels = [], isLoading: videoReelsLoading, isError: videoReelsError, refetch: refetchVideoReels } = useQuery({
     queryKey: ["videoReels"],
-    queryFn: fetchVideoReels,
-    staleTime: 1000 * 60 * 5,
+    queryFn: ({ signal }) => fetchVideoReels({ signal }),
+    staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 30, retry: 1, refetchOnWindowFocus: false, refetchOnReconnect: true,
   });
 
-  const articlesImageMap = React.useMemo(() => {
-    const map = new Map();
+  const allArticles = useMemo(() => normalizeArticleList(rawArticles), [rawArticles]);
+  
+  // PERBAIKAN PENTING: latestArticles sekarang hanya bergantung pada latestRawArticles
+  const latestArticles = useMemo(() => {
+    return normalizeArticleList(extractArrayPayload(latestRawArticles)).filter(Boolean).slice(0, 5);
+  }, [latestRawArticles]);
 
-    if (Array.isArray(allArticles)) {
-      allArticles.forEach((article) => {
-        if (article) {
-          if (article.id) map.set(String(article.id), article);
-          if (article.slug) map.set(article.slug, article);
-        }
-      });
-    }
-
-    return map;
+  const recommendedArticles = useMemo(() => {
+    const seen = new Set();
+    return allArticles.filter((article) => {
+      if (!article || normalizeCategory(article.category) === "podcast") return false;
+      const identity = article.id ?? article.slug ?? article.title;
+      if (identity === undefined || identity === null) return false;
+      const key = String(identity).trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 4);
   }, [allArticles]);
 
-  const getYoutubeThumbnailUrl = (url) => {
-    if (!url) return "";
+  const togglePodcastPlayer = useCallback((articleId) => {
+    if (articleId === undefined || articleId === null) return;
+    setActivePodcastId((previousId) => (String(previousId) === String(articleId) ? null : articleId));
+  }, []);
 
-    try {
-      const normalized = url.trim();
-      const parsed = new URL(normalized);
-      const host = parsed.hostname.toLowerCase();
-      let videoId = "";
+  const handleRetryAll = useCallback(() => {
+    refetchArticles();
+    refetchVideoReels();
+  }, [refetchArticles, refetchVideoReels]);
 
-      if (host.includes("youtu.be")) {
-        videoId = parsed.pathname.slice(1);
-      } else if (
-        host.includes("youtube.com") ||
-        host.includes("youtube-nocookie.com")
-      ) {
-        if (parsed.pathname.startsWith("/watch")) {
-          videoId = parsed.searchParams.get("v");
-        } else if (parsed.pathname.startsWith("/embed/")) {
-          videoId = parsed.pathname.split("/embed/")[1];
-        } else if (parsed.pathname.startsWith("/shorts/")) {
-          videoId = parsed.pathname.split("/shorts/")[1];
-        } else if (parsed.pathname.startsWith("/live")) {
-          videoId = parsed.searchParams.get("v");
-        } else {
-          const parts = parsed.pathname.split("/").filter(Boolean);
-          videoId = parts[parts.length - 1] || "";
-        }
-      }
-
-      return videoId
-        ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-        : "";
-    } catch {
-      return "";
-    }
-  };
-
-  const getYoutubeEmbedUrl = (url) => {
-    if (!url) return "";
-
-    try {
-      const normalized = url.trim();
-      const parsed = new URL(normalized);
-      const host = parsed.hostname.toLowerCase();
-      let videoId = "";
-
-      if (host.includes("youtu.be")) {
-        videoId = parsed.pathname.slice(1);
-      } else if (
-        host.includes("youtube.com") ||
-        host.includes("youtube-nocookie.com")
-      ) {
-        if (parsed.pathname.startsWith("/watch")) {
-          videoId = parsed.searchParams.get("v");
-        } else if (parsed.pathname.startsWith("/embed/")) {
-          videoId = parsed.pathname.split("/embed/")[1];
-        } else if (parsed.pathname.startsWith("/shorts/")) {
-          videoId = parsed.pathname.split("/shorts/")[1];
-        } else if (parsed.pathname.startsWith("/live")) {
-          videoId = parsed.searchParams.get("v");
-        } else {
-          const parts = parsed.pathname.split("/").filter(Boolean);
-          videoId = parts[parts.length - 1] || "";
-        }
-      }
-
-      return videoId
-        ? `https://www.youtube.com/embed/${videoId}`
-        : "";
-    } catch {
-      return "";
-    }
-  };
-
-  const getTrendingImage = (trendingArticle) => {
-    if (!trendingArticle) return "";
-
-    if (trendingArticle.image) {
-      if (
-        trendingArticle.image.startsWith("http://") ||
-        trendingArticle.image.startsWith("https://")
-      ) {
-        return trendingArticle.image;
-      }
-
-      return baseUrl + "/storage/" + trendingArticle.image;
-    }
-
-    if (trendingArticle.video_link) {
-      const ytThumb = getYoutubeThumbnailUrl(trendingArticle.video_link);
-      if (ytThumb) return ytThumb;
-    }
-
-    return `https://placehold.co/150x100/f5f5f5/999?text=${encodeURIComponent(
-      trendingArticle.category || "Berita"
-    )}`;
-  };
-
-  const formatCategory = (cat) =>
-    cat
-      ? cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase()
-      : "Umum";
-
-  const getInitials = (name) => {
-    if (!name) return "?";
-
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
-  const normalizeCategory = (value) =>
-    (value || "")
-      .toString()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "");
-
-  const getSpotifyEmbedUrl = (url) => {
-    if (!url) return "";
-
-    try {
-      const normalized = url.trim();
-
-      if (normalized.startsWith("spotify:")) {
-        const parts = normalized.split(":").filter(Boolean);
-
-        if (parts.length >= 3) {
-          return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
-        }
-
-        return "";
-      }
-
-      const parsed = new URL(normalized);
-
-      if (!parsed.hostname.includes("spotify.com")) return "";
-
-      const parts = parsed.pathname.split("/").filter(Boolean);
-
-      if (parts[0] === "embed") parts.shift();
-
-      if (parts.length >= 2) {
-        return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
-      }
-
-      return "";
-    } catch {
-      return "";
-    }
-  };
-
-  const [activePodcastId, setActivePodcastId] = React.useState(null);
-
-  const togglePodcastPlayer = (articleId) => {
-    setActivePodcastId((prev) =>
-      prev === articleId ? null : articleId
-    );
-  };
-
-  const renderTrendingItem = (article, index) => {
+  const renderLatestItem = useCallback((article, index) => {
     if (!article) return null;
+    const articleSlug = getSafeArticleSlug(article);
+    const imageUrl = article.image ? resolveImageUrl(article.image) : getYoutubeThumbnailUrl(article.video_link) || PLACEHOLDER_IMAGE;
+    const rawAuthorImage = article.user?.avatar || article.user?.profile_photo_url || article.author_avatar || "";
+    const authorPhoto = rawAuthorImage ? resolveImageUrl(rawAuthorImage) : "";
+    const authorName = article.user?.name || article.author_name || "Anonim";
+    const title = article.title || "Judul tidak tersedia";
+    const categoryLabel = formatCategory(article.category);
 
-    const imageUrl = getTrendingImage(article);
-    const authorPhoto = resolveImageUrl(
-      article.user?.avatar || article.user?.profile_photo_url
-    );
-    const authorName = article.user?.name || "Anonim";
-
-    return (
-      <Link
-        className="trending-item"
-        key={article.id || index}
-        to={`/article/${article.slug}`}
-      >
-        <div className="trending-rank">
-          <span>{String(index + 1).padStart(2, "0")}</span>
-        </div>
-
+    const content = (
+      <>
+        <div className="trending-rank"><span>{String(index + 1).padStart(2, "0")}</span></div>
         <div className="trending-thumb">
-          <img
-            src={imageUrl}
-            alt={article.title || "Thumbnail artikel"}
-            loading={index === 0 ? "eager" : "lazy"}
-            fetchPriority={index === 0 ? "high" : "auto"}
-            decoding="async"
-            width="150"
-            height="100"
-            style={{ aspectRatio: "3 / 2" }}
-            onError={(e) => {
-              e.currentTarget.src = `https://placehold.co/150x100/f5f5f5/999?text=${encodeURIComponent(
-                article.category || "Berita"
-              )}`;
-            }}
-          />
+          <img src={imageUrl} alt={title} loading={index === 0 ? "eager" : "lazy"} fetchPriority={index === 0 ? "high" : "auto"} decoding="async" width="126" height="88" sizes="126px" onError={handleImageError} />
         </div>
-
         <div className="trending-details">
-          <span className="tag-category">
-            {formatCategory(article.category)}
-          </span>
-
-          {/* FIX: jangan loncat heading level (dari h2 langsung ke h4) */}
-          <h3 className="trending-title">
-            {article.title || "Judul tidak tersedia"}
-          </h3>
-
+          <span className="tag-category">{categoryLabel}</span>
+          <h3 className="trending-title">{title}</h3>
           <div className="meta-info">
             <div className="author-avatar-xs">
-              {authorPhoto ? (
-                <img
-                  src={authorPhoto}
-                  alt={authorName}
-                  loading="lazy"
-                  decoding="async"
-                  width="24"
-                  height="24"
-                  style={{ aspectRatio: "1 / 1" }}
-                />
-              ) : (
-                <span>{getInitials(authorName)}</span>
-              )}
+              {authorPhoto ? <img src={authorPhoto} alt="" loading="lazy" decoding="async" width="20" height="20" sizes="20px" onError={handleImageError} /> : <span aria-hidden="true">{getInitials(authorName)}</span>}
             </div>
-
             <span>{authorName}</span>
           </div>
         </div>
-      </Link>
+      </>
     );
-  };
 
-  const renderCard = (
-    article,
-    index,
-    isNewsStyle = false,
-    isLifestyleStyle = false
-  ) => {
+    if (!articleSlug) return <article className="trending-item" key={article.id ?? `latest-${index}`}>{content}</article>;
+    return <Link className="trending-item" key={article.id ?? articleSlug} to={`/article/${encodeURIComponent(articleSlug)}`} aria-label={`Baca artikel: ${title}`}>{content}</Link>;
+  }, []);
+
+  const renderCard = useCallback((article, index, isNewsStyle = false, isLifestyleStyle = false, isPriority = false) => {
     if (!article) return null;
+    const isPodcast = normalizeCategory(article.category) === "podcast";
+    const articleSlug = getSafeArticleSlug(article);
+    const youtubeThumbnail = !article.image && isPodcast ? getYoutubeThumbnailUrl(article.video_link) : "";
+    const imageUrl = article.image ? resolveImageUrl(article.image) : youtubeThumbnail || PLACEHOLDER_IMAGE;
+    const rawAuthorImage = article.user?.avatar || article.user?.profile_photo_url || article.author_avatar || "";
+    const authorPhoto = rawAuthorImage ? resolveImageUrl(rawAuthorImage) : "";
+    const authorName = article.user?.name || article.author_name || "Anonim";
+    const title = article.title || "Judul tidak tersedia";
+    const spotifyEmbedUrl = article.audio_link ? getSpotifyEmbedUrl(article.audio_link) : "";
+    const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : "";
+    const showPodcastPlayer = isPodcast && String(activePodcastId) === String(article.id);
 
-    const isPodcast =
-      normalizeCategory(article.category) === "podcast";
+    const isHero = isLifestyleStyle ? index === 6 : index === 0;
+    const isSmallHorizontal = !isHero && (isNewsStyle || isLifestyleStyle);
+    const imageLoading = isPriority ? "eager" : "lazy";
+    const imageFetchPriority = isPriority ? "high" : "auto";
+    const imageWidth = isSmallHorizontal ? 110 : 600;
+    const imageHeight = isSmallHorizontal ? 80 : 400;
+    const imageSizes = isSmallHorizontal ? "(max-width: 768px) 130px, 110px" : "(max-width: 768px) 50vw, 600px";
 
-    const videoThumbnail =
-      !article.image && isPodcast
-        ? getYoutubeThumbnailUrl(article.video_link)
-        : "";
-
-    const imageUrl = article.image
-      ? article.image.startsWith("http")
-        ? article.image
-        : baseUrl + "/storage/" + article.image
-      : videoThumbnail ||
-        `https://placehold.co/600x400/f5f5f5/999?text=${encodeURIComponent(
-          article.category || "SukaMuda"
-        )}`;
-
-    const authorPhoto = isPodcast
-      ? null
-      : resolveImageUrl(
-          article.user?.avatar || article.user?.profile_photo_url
-        );
-
-    const authorName = article.user?.name || "Anonim";
-
-    const spotifyEmbedUrl = article.audio_link
-      ? getSpotifyEmbedUrl(article.audio_link)
-      : "";
-
-    const youtubeEmbedUrl = article.video_link
-      ? getYoutubeEmbedUrl(article.video_link)
-      : "";
-
-    const showPodcastPlayer =
-      isPodcast && activePodcastId === article.id;
-
-    const isHero = isLifestyleStyle
-      ? index === 6
-      : index === 0;
-
-    const isSmallHorizontal =
-      (isNewsStyle && !isHero) ||
-      (isLifestyleStyle && !isHero);
-
-    /*
-     * FIX LCP:
-     * Artikel hero adalah kandidat gambar utama di atas fold.
-     * Hero dimuat eager + high priority.
-     * Card lainnya tetap lazy agar tidak membebani initial load.
-     */
-    const imageLoading = isHero ? "eager" : "lazy";
-    const imageFetchPriority = isHero ? "high" : "auto";
-
-    let cardInner;
+    const commonImage = (
+      <div className="article-image-wrapper">
+        <img src={imageUrl} alt={title} loading={imageLoading} fetchPriority={imageFetchPriority} decoding="async" width={imageWidth} height={imageHeight} sizes={imageSizes} onError={handleImageError} />
+      </div>
+    );
 
     if (isSmallHorizontal) {
-      cardInner = (
+      const content = (
         <>
-          <div className="article-image-wrapper">
-            <img
-              src={imageUrl}
-              alt={article.title || "Gambar artikel"}
-              loading={imageLoading}
-              fetchPriority={imageFetchPriority}
-              decoding="async"
-              width="600"
-              height="400"
-              style={{ aspectRatio: "3 / 2" }}
-              onError={(e) => {
-                e.currentTarget.src = `https://placehold.co/600x400/f5f5f5/999?text=${encodeURIComponent(
-                  article.category || "SukaMuda"
-                )}`;
-              }}
-            />
-          </div>
-
+          {commonImage}
           <div className="card-content">
-            <h3 className="news-small-title">
-              {article.title || "Judul tidak tersedia"}
-            </h3>
-
-            <div
-              className="card-meta"
-              style={{ marginTop: "auto" }}
-            >
+            <h3 className="news-small-title">{title}</h3>
+            <div className="card-meta" style={{ marginTop: "auto" }}>
               <div className="card-author">
                 {authorPhoto ? (
-                  <div
-                    className="card-author-avatar-wrap"
-                    style={{ width: "18px", height: "18px" }}
-                  >
-                    <img
-                      src={authorPhoto}
-                      alt={authorName}
-                      className="card-author-avatar"
-                      loading="lazy"
-                      decoding="async"
-                      width="18"
-                      height="18"
-                      style={{ aspectRatio: "1 / 1" }}
-                    />
+                  <div className="card-author-avatar-wrap" style={{ width: "18px", height: "18px" }}>
+                    <img src={authorPhoto} alt="" className="card-author-avatar" loading="lazy" decoding="async" width="18" height="18" sizes="18px" onError={handleImageError} />
                   </div>
                 ) : (
-                  <div
-                    className="card-author-avatar-wrap"
-                    style={{ width: "18px", height: "18px" }}
-                  >
-                    <span className="card-author-initials">
-                      {getInitials(authorName)}
-                    </span>
+                  <div className="card-author-avatar-wrap" style={{ width: "18px", height: "18px" }} aria-hidden="true">
+                    <span className="card-author-initials">{getInitials(authorName)}</span>
                   </div>
                 )}
-
-                <span
-                  className="card-author-name"
-                  style={{ fontSize: "11px" }}
-                >
-                  {authorName}
-                </span>
+                <span className="card-author-name" style={{ fontSize: "11px" }}>{authorName}</span>
               </div>
             </div>
           </div>
         </>
       );
-    } else {
-      cardInner = (
-        <>
-          <div className="article-image-wrapper">
-            <img
-              src={imageUrl}
-              alt={article.title || "Gambar artikel"}
-              loading={imageLoading}
-              fetchPriority={imageFetchPriority}
-              decoding="async"
-              width="600"
-              height="400"
-              style={{ aspectRatio: "3 / 2" }}
-              onError={(e) => {
-                e.currentTarget.src = `https://placehold.co/600x400/f5f5f5/999?text=${encodeURIComponent(
-                  article.category || "SukaMuda"
-                )}`;
-              }}
-            />
-          </div>
-
-          <div className="card-content">
-            <h3>{article.title || "Judul tidak tersedia"}</h3>
-
-            <div className="card-meta">
-              <div className="card-author">
-                {authorPhoto ? (
-                  <div className="card-author-avatar-wrap">
-                    <img
-                      src={authorPhoto}
-                      alt={authorName}
-                      className="card-author-avatar"
-                      loading="lazy"
-                      decoding="async"
-                      width="24"
-                      height="24"
-                      style={{ aspectRatio: "1 / 1" }}
-                    />
-                  </div>
-                ) : !isPodcast ? (
-                  <div className="card-author-avatar-wrap">
-                    <span className="card-author-initials">
-                      {getInitials(authorName)}
-                    </span>
-                  </div>
-                ) : null}
-
-                <span className="card-author-name">
-                  {authorName}
-                </span>
-              </div>
-            </div>
-
-            {isPodcast && (
-              <span className="podcast-badge">
-                Podcast
-              </span>
-            )}
-
-            {isPodcast && (
-              <button
-                type="button"
-                className="podcast-toggle-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  togglePodcastPlayer(article.id);
-                }}
-                aria-expanded={showPodcastPlayer}
-                aria-controls={"podcast-player-" + article.id}
-              >
-                {showPodcastPlayer
-                  ? "Tutup Podcast"
-                  : "Putar Podcast"}
-              </button>
-            )}
-
-            {showPodcastPlayer && (
-              <div
-                className="podcast-player-panel"
-                id={"podcast-player-" + article.id}
-              >
-                {spotifyEmbedUrl && (
-                  <div className="podcast-embed podcast-audio">
-                    <iframe
-                      src={spotifyEmbedUrl}
-                      width="100%"
-                      height="232"
-                      frameBorder="0"
-                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                      title={
-                        "Pemutar Spotify untuk " +
-                        (article.title || "podcast")
-                      }
-                    ></iframe>
-                  </div>
-                )}
-
-                {youtubeEmbedUrl && (
-                  <div className="podcast-embed podcast-video">
-                    <iframe
-                      src={youtubeEmbedUrl}
-                      width="100%"
-                      height="240"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      title={
-                        "Pemutar YouTube untuk " +
-                        (article.title || "podcast")
-                      }
-                    ></iframe>
-                  </div>
-                )}
-
-                {!spotifyEmbedUrl && !youtubeEmbedUrl && (
-                  <p className="podcast-player-placeholder">
-                    Tidak ada embed podcast tersedia untuk artikel ini.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </>
-      );
+      const className = ["article-card", isHero ? "article-card--hero" : "", "article-card--news-small"].filter(Boolean).join(" ");
+      if (!articleSlug) return <article key={article.id ?? `card-${index}`} className={className}>{content}</article>;
+      return <Link key={article.id ?? articleSlug} className={className} to={`/article/${encodeURIComponent(articleSlug)}`} aria-label={`Baca artikel: ${title}`}>{content}</Link>;
     }
 
-    if (isPodcast) {
-      return (
-        <div
-          className={`article-card article-card--podcast ${
-            isHero ? "article-card--hero" : ""
-          } ${isSmallHorizontal ? "article-card--news-small" : ""}`}
-          key={article.id || index}
-        >
-          {cardInner}
+    const content = (
+      <>
+        {commonImage}
+        <div className="card-content">
+          <h3>{title}</h3>
+          <div className="card-meta">
+            <div className="card-author">
+              {authorPhoto ? (
+                <div className="card-author-avatar-wrap">
+                  <img src={authorPhoto} alt="" className="card-author-avatar" loading="lazy" decoding="async" width="24" height="24" sizes="24px" onError={handleImageError} />
+                </div>
+              ) : !isPodcast ? (
+                <div className="card-author-avatar-wrap" aria-hidden="true">
+                  <span className="card-author-initials">{getInitials(authorName)}</span>
+                </div>
+              ) : null}
+              <span className="card-author-name">{authorName}</span>
+            </div>
+          </div>
+          {isPodcast && <span className="podcast-badge">Podcast</span>}
+          {isPodcast && (
+            <button type="button" className="podcast-toggle-btn" onClick={(event) => { event.preventDefault(); event.stopPropagation(); togglePodcastPlayer(article.id); }} aria-expanded={showPodcastPlayer} aria-controls={article.id ? `podcast-player-${article.id}` : undefined}>
+              {showPodcastPlayer ? "Tutup Podcast" : "Putar Podcast"}
+            </button>
+          )}
+          {showPodcastPlayer && (
+            <div className="podcast-player-panel" id={article.id ? `podcast-player-${article.id}` : undefined}>
+              {spotifyEmbedUrl && <div className="podcast-embed podcast-audio"><iframe src={spotifyEmbedUrl} width="100%" height="232" frameBorder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" title={`Pemutar Spotify untuk ${title}`} /></div>}
+              {youtubeEmbedUrl && <div className="podcast-embed podcast-video"><iframe src={youtubeEmbedUrl} width="100%" height="240" frameBorder="0" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={`Pemutar YouTube untuk ${title}`} /></div>}
+              {!spotifyEmbedUrl && !youtubeEmbedUrl && <p className="podcast-player-placeholder">Tidak ada embed podcast tersedia untuk artikel ini.</p>}
+            </div>
+          )}
         </div>
-      );
-    }
-
-    return (
-      <Link
-        className={`article-card ${
-          isHero ? "article-card--hero" : ""
-        } ${isSmallHorizontal ? "article-card--news-small" : ""}`}
-        key={article.id || index}
-        to={`/article/${article.slug}`}
-      >
-        {cardInner}
-      </Link>
-    );
-  };
-
-  const SkeletonCard = () => (
-    <div
-      className="article-card skeleton"
-      aria-hidden="true"
-    >
-      <div className="article-image-wrapper skeleton-img"></div>
-
-      <div className="card-content">
-        <div className="skeleton-line short"></div>
-        <div className="skeleton-line long"></div>
-        <div className="skeleton-line medium"></div>
-      </div>
-    </div>
-  );
-
-  const SkeletonTrending = () => (
-    <div
-      className="trending-item skeleton"
-      aria-hidden="true"
-    >
-      <div className="trending-rank">
-        <div className="skeleton-box"></div>
-      </div>
-
-      <div className="trending-thumb">
-        <div
-          className="skeleton-img"
-          style={{
-            width: "100%",
-            height: "100%",
-          }}
-        ></div>
-      </div>
-
-      <div className="trending-details">
-        <div className="skeleton-line short"></div>
-        <div className="skeleton-line long"></div>
-      </div>
-    </div>
-  );
-
-  const SkeletonReels = () => (
-    <div
-      className="vr-skeleton-scroll"
-      aria-hidden="true"
-    >
-      {Array(5)
-        .fill(0)
-        .map((_, i) => (
-          <div
-            className="vr-skeleton-card"
-            key={i}
-          >
-            <div className="vr-skeleton-thumb" />
-
-            <div className="vr-skeleton-info">
-              <div className="vr-skeleton-line vr-skeleton-line--title" />
-              <div className="vr-skeleton-line vr-skeleton-line--desc" />
-              <div className="vr-skeleton-line vr-skeleton-line--author" />
-            </div>
-          </div>
-        ))}
-    </div>
-  );
-
-  const top5Trending = trendingLoading
-    ? []
-    : Array.isArray(trendingArticles)
-      ? trendingArticles.slice(0, 5)
-      : [];
-
-  const randomArticles = React.useMemo(() => {
-    if (!allArticles || !Array.isArray(allArticles)) return [];
-
-    const normalArticles = allArticles.filter(
-      (a) => normalizeCategory(a?.category) !== "podcast"
+      </>
     );
 
-    const shuffled = [...normalArticles].sort(
-      () => 0.5 - Math.random()
-    );
+    const className = ["article-card", isHero ? "article-card--hero" : "", isPodcast ? "article-card--podcast" : ""].filter(Boolean).join(" ");
 
-    // FIX MOBILE: Siapkan 4 artikel agar di HP bisa tampil 4
-    // (desktop tetap 3)
-    return shuffled.slice(0, 4);
-  }, [allArticles]);
+    if (isPodcast) return <div key={article.id ?? `podcast-${index}`} className={className}>{content}</div>;
+    if (!articleSlug) return <article key={article.id ?? `card-${index}`} className={className}>{content}</article>;
+    return <Link key={article.id ?? articleSlug} className={className} to={`/article/${encodeURIComponent(articleSlug)}`} aria-label={`Baca artikel: ${title}`}>{content}</Link>;
+  }, [activePodcastId, togglePodcastPlayer]);
 
-  const renderCategoryGroup = (group, index) => {
-    const isActualLifestyle =
-      group.slug.toLowerCase() === "lifestyle" ||
-      group.label.toLowerCase() === "lifestyle";
+  // PERBAIKAN: Fungsi direstrukturisasi untuk menerima status loading khusus per kategori
+  const renderCategoryGroup = useCallback((group, groupIndex, isGroupLoading, isGroupError) => {
+    if (!group?.slug) return null;
+    const groupSlug = normalizeCategorySlug(group.slug);
+    const groupLabel = String(group.label || group.slug).trim();
+    let isNewsStyle = groupIndex % 2 === 0;
+    let isLifestyleStyle = groupIndex % 2 !== 0;
 
-    const kategori = group.slug.toLowerCase();
-
-    // Logika selang-seling default
-    let isNewsStyle = index % 2 === 0;
-    let isLifestyleStyle = index % 2 !== 0;
-
-    // OVERRIDE: Paksa kategori tertentu jadi 2 kolom (News Style)
-    // khusus di Desktop
-    if (
-      !isMobile &&
-      (
-        kategori === "news" ||
-        kategori === "otomotif" ||
-        kategori === "sport" ||
-        kategori === "sport-e-sport"
-      )
-    ) {
-      isNewsStyle = true;
-      isLifestyleStyle = false;
+    if (!isCompactLayout && ["news", "otomotif", "sport", "sport-e-sport"].includes(groupSlug)) {
+      isNewsStyle = true; isLifestyleStyle = false;
     }
 
     let maxArticles = isLifestyleStyle ? 10 : 5;
+    if (isCompactLayout && ["lifestyle", "science", "music-film"].includes(groupSlug)) maxArticles += 1;
 
-    // FIX MOBILE: Tambah 1 artikel khusus di HP untuk kategori
-    // Lifestyle, Science, dan Music-Film
-    if (
-      isMobile &&
-      (
-        kategori === "lifestyle" ||
-        kategori === "science" ||
-        kategori === "music-film"
-      )
-    ) {
-      maxArticles += 1;
-    }
+    const allowedSlugs = Array.isArray(group.categorySlugs) ? group.categorySlugs.map(normalizeCategorySlug).filter(Boolean) : [groupSlug];
+    const groupArticles = allArticles.filter((article) => {
+      if (!article?.category) return false;
+      const articleCategory = normalizeCategorySlug(article.category);
+      if (normalizeCategory(article.category) === "podcast") return false;
+      return allowedSlugs.includes(articleCategory);
+    }).slice(0, maxArticles);
 
-    const groupArticles = (
-      Array.isArray(allArticles) ? allArticles : []
-    )
-      .filter(
-        (item) =>
-          item?.category &&
-          group.categorySlugs?.some(
-            (slug) =>
-              slug.toLowerCase() ===
-              item.category.toLowerCase()
-          ) &&
-          normalizeCategory(item.category) !== "podcast"
-      )
-      .slice(0, maxArticles);
+    if (groupArticles.length === 0 && !isGroupLoading) return null;
 
-    if (
-      groupArticles.length === 0 &&
-      !articleLoading
-    ) {
-      return null;
-    }
+    const adSetting = AD_CONFIG[groupSlug] || { right: false, bottom: false };
+    const showRightAd = Boolean(adSetting.right);
+    const showBottomAd = Boolean(adSetting.bottom);
 
-    const adSetting = AD_CONFIG[kategori] || {
-      kanan: { tampil: false },
-      bawah: { tampil: false },
-    };
-
-    const tampilIklanKanan =
-      adSetting.kanan?.tampil;
-
-    const tampilIklanBawah =
-      adSetting.bawah?.tampil;
+    const sectionClassName = ["home-section", isNewsStyle ? "news-section-special" : "", isLifestyleStyle ? "lifestyle-section-special" : ""].filter(Boolean).join(" ");
+    const articleGridClassName = ["article-grid", isNewsStyle ? "news-article-grid" : "", isLifestyleStyle ? "lifestyle-article-grid" : ""].filter(Boolean).join(" ");
 
     return (
-      <section
-        key={group.slug}
-        className={`home-section ${
-          isNewsStyle
-            ? "news-section-special"
-            : ""
-        } ${
-          isLifestyleStyle
-            ? "lifestyle-section-special"
-            : ""
-        }`}
-      >
+      <section key={group.slug} className={sectionClassName} aria-labelledby={`section-${groupSlug}`}>
         <div className="section-header">
-          <h2>{group.label}</h2>
-
-          <Link
-            to={`/category/${group.slug}`}
-            className="section-link"
-            aria-label={`Lihat semua artikel kategori ${group.label}`}
-          >
-            Lihat semua{" "}
-            <span
-              className="arrow-right"
-              aria-hidden="true"
-            >
-              →
-            </span>
+          <h2 id={`section-${groupSlug}`}>{groupLabel}</h2>
+          <Link to={`/category/${encodeURIComponent(groupSlug)}`} className="section-link" aria-label={`Lihat semua artikel kategori ${groupLabel}`}>
+            Lihat semua <span className="arrow-right" aria-hidden="true">→</span>
           </Link>
         </div>
-
-        <div
-          className={
-            isNewsStyle
-              ? "news-with-sidebar-wrapper"
-              : ""
-          }
-        >
-          <div
-            className={
-              isNewsStyle ? "news-frame" : ""
-            }
-          >
-            <div
-              className={`article-grid ${
-                isNewsStyle
-                  ? "news-article-grid"
-                  : ""
-              } ${
-                isLifestyleStyle
-                  ? "lifestyle-article-grid"
-                  : ""
-              }`}
-            >
-              {articleLoading
-                ? Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <SkeletonCard key={i} />
-                    ))
-                : groupArticles.map(
-                    (article, i) =>
-                      renderCard(
-                        article,
-                        i,
-                        isNewsStyle,
-                        isLifestyleStyle
-                      )
-                  )}
+        <div className={isNewsStyle ? "news-with-sidebar-wrapper" : ""}>
+          <div className={isNewsStyle ? "news-frame" : ""}>
+            <div className={articleGridClassName}>
+              {isGroupLoading ? (
+                Array.from({ length: isLifestyleStyle ? 6 : 3 }).map((_, skeletonIndex) => <SkeletonCard key={skeletonIndex} />)
+              ) : isGroupError ? (
+                <div className="empty-state" style={{ gridColumn: "1 / -1" }} role="alert">
+                  <p>Gagal memuat artikel kategori ini.</p>
+                </div>
+              ) : (
+                groupArticles.map((article, articleIndex) => renderCard(article, articleIndex, isNewsStyle, isLifestyleStyle, groupIndex === 0 && articleIndex === 0))
+              )}
             </div>
           </div>
-
-          {isNewsStyle &&
-            tampilIklanKanan &&
-            !isMobile && (
-              <div className="news-sidebar-right">
-                <div className="news-sidebar-static">
-                  <AdSlot
-                    type="vertical"
-                    mode="adsense"
-                    adClient={
-                      adSetting.kanan.adClient
-                    }
-                    adSlot={
-                      adSetting.kanan.adSlot
-                    }
-                  />
-                </div>
+          {isNewsStyle && showRightAd && !isCompactLayout && (
+            <aside className="news-sidebar-right" aria-label="Iklan">
+              <div className="news-sidebar-static">
+                <AdSlot type="vertical" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_VERTICAL_SLOT} />
               </div>
-            )}
+            </aside>
+          )}
         </div>
-
-        {tampilIklanBawah && (
+        {showBottomAd && (
           <div className="ad-news-horizontal">
-            <AdSlot
-              type="horizontal"
-              mode="adsense"
-              adClient={
-                adSetting.bawah.adClient
-              }
-              adSlot={
-                adSetting.bawah.adSlot
-              }
-            />
+            <AdSlot type="horizontal" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_HORIZONTAL_SLOT} />
           </div>
         )}
       </section>
     );
-  };
+  }, [allArticles, isCompactLayout, renderCard]);
 
-  const websiteSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Sukamuda",
-    url: "https://sukamuda.co.id/",
-    inLanguage: "id-ID",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate:
-          "https://sukamuda.co.id/search?q={search_term_string}",
-      },
-      "query-input":
-        "required name=search_term_string",
-    },
-  };
-
-  const organizationSchema = {
-    "@context": "https://schema.org",
-    "@type": "NewsMediaOrganization",
-    name: "Sukamuda",
-    url: "https://sukamuda.co.id/",
-    logo: {
-      "@type": "ImageObject",
-      url: "https://sukamuda.co.id/logo.png",
-    },
-  };
+  const homeWebPageSchema = useMemo(() => ({
+    "@context": "https://schema.org", "@type": "WebPage", "@id": `${SITE_URL}/#webpage`, url: `${SITE_URL}/`,
+    name: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION, isPartOf: { "@id": `${SITE_URL}/#website` },
+    about: { "@id": `${SITE_URL}/#organization` }, publisher: { "@id": `${SITE_URL}/#organization` },
+    primaryImageOfPage: { "@id": `${SITE_URL}/#logo` }, inLanguage: "id-ID",
+  }), []);
 
   return (
     <div className="home-container">
       <Helmet>
-        {/* Script Google AdSense */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
-          crossOrigin="anonymous"
-        ></script>
-
-        <title>
-          Sukamuda - Media Informasi dan Kreativitas Anak Muda
-        </title>
-
-        <link
-          rel="canonical"
-          href="https://sukamuda.co.id/"
-        />
-
-        <meta
-          name="description"
-          content="Sukamuda adalah media informasi dan ruang kreativitas anak muda untuk membaca, menulis, dan berbagi artikel inspiratif."
-        />
-
-        <meta
-          name="robots"
-          content="index, follow, max-image-preview:large"
-        />
-
-        <meta
-          name="theme-color"
-          content="#d32f2f"
-        />
-
-        <html lang="id" />
-
-        <meta
-          property="og:type"
-          content="website"
-        />
-
-        <meta
-          property="og:site_name"
-          content="Sukamuda"
-        />
-
-        <meta
-          property="og:locale"
-          content="id_ID"
-        />
-
-        <meta
-          property="og:url"
-          content="https://sukamuda.co.id/"
-        />
-
-        <meta
-          property="og:title"
-          content="Sukamuda - Media Informasi dan Kreativitas Anak Muda"
-        />
-
-        <meta
-          property="og:description"
-          content="Sukamuda adalah media informasi dan ruang kreativitas anak muda untuk membaca, menulis, dan berbagi artikel inspiratif."
-        />
-
-        <meta
-          property="og:image"
-          content="https://sukamuda.co.id/logo.png"
-        />
-
-        <meta
-          name="twitter:card"
-          content="summary_large_image"
-        />
-
-        <meta
-          name="twitter:title"
-          content="Sukamuda - Media Informasi dan Kreativitas Anak Muda"
-        />
-
-        <meta
-          name="twitter:description"
-          content="Sukamuda adalah media informasi dan ruang kreativitas anak muda untuk membaca, menulis, dan berbagi artikel inspiratif."
-        />
-
-        <meta
-          name="twitter:image"
-          content="https://sukamuda.co.id/logo.png"
-        />
-
-        <script type="application/ld+json">
-          {JSON.stringify(websiteSchema)}
-        </script>
-
-        <script type="application/ld+json">
-          {JSON.stringify(organizationSchema)}
-        </script>
+        <html lang="id-ID" />
+        <title>{DEFAULT_TITLE}</title>
+        <meta name="description" content={DEFAULT_DESCRIPTION} />
+        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+        <meta name="googlebot" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+        <link rel="canonical" href={`${SITE_URL}/`} />
+        <meta property="og:site_name" content={SITE_NAME} />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="id_ID" />
+        <meta property="og:title" content={DEFAULT_TITLE} />
+        <meta property="og:description" content={DEFAULT_DESCRIPTION} />
+        <meta property="og:url" content={`${SITE_URL}/`} />
+        <meta property="og:image" content={DEFAULT_SHARE_IMAGE} />
+        <meta property="og:image:secure_url" content={DEFAULT_SHARE_IMAGE} />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={DEFAULT_TITLE} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={DEFAULT_TITLE} />
+        <meta name="twitter:description" content={DEFAULT_DESCRIPTION} />
+        <meta name="twitter:image" content={DEFAULT_SHARE_IMAGE} />
+        <meta name="twitter:image:alt" content={DEFAULT_TITLE} />
+        <script type="application/ld+json">{JSON.stringify(homeWebPageSchema)}</script>
       </Helmet>
 
-      <h1 className="home-sr-only">
-        Sukamuda - Media Informasi dan Kreativitas Anak Muda
-      </h1>
+      <h1 className="home-sr-only">SukaMuda - Portal Berita &amp; Informasi Anak Muda Indonesia</h1>
 
-      {/* WADAH 1: TRENDING & IKLAN STICKY */}
       <div className="home-layout-wrapper">
-        {!isMobile && (
-          <div className="ad-sidebar ad-sidebar-left">
+        {!isCompactLayout && (
+          <aside className="ad-sidebar ad-sidebar-left" aria-label="Iklan">
             <div className="ad-sidebar-sticky">
-              <AdSlot
-                type="vertical"
-                mode="adsense"
-                adClient="ca-pub-7608424206122269"
-                adSlot="9190843316"
-              />
+              <AdSlot type="vertical" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_VERTICAL_SLOT} />
             </div>
-          </div>
+          </aside>
         )}
 
         <div className="home-main-content">
-          <section className="section-trending">
+          <section className="section-trending" aria-labelledby="trending-heading">
             <div className="section-header">
-              <h2>Artikel Terbaru</h2>
-
-              <div className="trending-count">
-                <span>
-                  Top{" "}
-                  {trendingLoading
-                    ? "..."
-                    : top5Trending.length}{" "}
-                  Artikel
-                </span>
+              <h2 id="trending-heading">Artikel Terbaru</h2>
+              <div className="trending-count" aria-live="polite">
+                <span>{latestArticlesLoading ? "Memuat..." : `${latestArticles.length} artikel terbaru`}</span>
               </div>
             </div>
-
             <div className="trending-grid">
-              {trendingError ? (
-                <div
-                  className="empty-state"
-                  style={{
-                    gridColumn: "1 / -1",
-                  }}
-                  role="alert"
-                >
-                  <p>
-                    Gagal memuat berita terbaru.
-                    Coba refresh halaman nanti.
-                  </p>
+              {latestArticlesError ? (
+                <div className="empty-state" style={{ gridColumn: "1 / -1" }} role="alert">
+                  <p>Gagal memuat artikel terbaru.</p>
+                  <button type="button" onClick={handleRetryAll}>Coba lagi</button>
                 </div>
-              ) : trendingLoading ? (
-                Array(5)
-                  .fill(0)
-                  .map((_, i) => (
-                    <SkeletonTrending key={i} />
-                  ))
-              ) : top5Trending.length > 0 ? (
-                top5Trending.map(
-                  (article, index) =>
-                    renderTrendingItem(
-                      article,
-                      index
-                    )
-                )
+              ) : latestArticlesLoading ? (
+                Array.from({ length: 5 }).map((_, index) => <SkeletonTrending key={index} />)
+              ) : latestArticles.length > 0 ? (
+                latestArticles.map((article, index) => renderLatestItem(article, index))
               ) : (
-                <div
-                  className="empty-state"
-                  style={{
-                    gridColumn: "1 / -1",
-                  }}
-                  role="status"
-                >
-                  <p>
-                    Belum ada berita terbaru
-                    saat ini.
-                  </p>
+                <div className="empty-state" style={{ gridColumn: "1 / -1" }} role="status">
+                  <p>Belum ada artikel terbaru saat ini.</p>
                 </div>
               )}
             </div>
           </section>
         </div>
 
-        {!isMobile && (
-          <div className="ad-sidebar ad-sidebar-right">
+        {!isCompactLayout && (
+          <aside className="ad-sidebar ad-sidebar-right" aria-label="Iklan">
             <div className="ad-sidebar-sticky">
-              <AdSlot
-                type="vertical"
-                mode="adsense"
-                adClient="ca-pub-7608424206122269"
-                adSlot="9190843316"
-              />
+              <AdSlot type="vertical" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_VERTICAL_SLOT} />
             </div>
-          </div>
+          </aside>
         )}
       </div>
 
-      {/* WADAH 2: KONTEN BAWAH (REELS, KATEGORI, DLL) */}
       <div className="home-layout-wrapper home-layout-wrapper--bottom">
         <div className="home-main-content">
-          {/* ── VIDEO REELS ── */}
-          <section className="home-section section-video-reels">
+          <section className="home-section section-video-reels" aria-labelledby="video-reels-heading">
             <div className="section-header">
-              <h2>Video Reels</h2>
-
-              <Link
-                to="/video-reels"
-                className="section-link"
-                aria-label="Lihat semua video reels"
-              >
-                Lihat semua{" "}
-                <span
-                  className="arrow-right"
-                  aria-hidden="true"
-                >
-                  →
-                </span>
+              <h2 id="video-reels-heading">Video Reels</h2>
+              <Link to="/video-reels" className="section-link" aria-label="Lihat semua video reels">
+                Lihat semua <span className="arrow-right" aria-hidden="true">→</span>
               </Link>
             </div>
-
-            {videoReelsLoading ? (
+            {videoReelsError ? (
+              <div className="vr-empty" role="alert">
+                <p>Gagal memuat video reels.</p>
+                <button type="button" onClick={refetchVideoReels}>Coba lagi</button>
+              </div>
+            ) : videoReelsLoading ? (
               <SkeletonReels />
-            ) : videoReels &&
-              videoReels.length > 0 ? (
+            ) : Array.isArray(videoReels) && videoReels.length > 0 ? (
               <VideoReels reels={videoReels} />
             ) : (
-              <div
-                className="vr-empty"
-                role="status"
-              >
-                <p>
-                  Belum ada video reels yang aktif.
-                </p>
-              </div>
+              <div className="vr-empty" role="status"><p>Belum ada video reels yang aktif.</p></div>
             )}
           </section>
 
-          {categoryGroups?.map(
-            (group, index) => {
-              const isActualLifestyle =
-                group.slug.toLowerCase() ===
-                  "lifestyle" ||
-                group.label.toLowerCase() ===
-                  "lifestyle";
+          {Array.isArray(categoryGroups) && categoryGroups.map((group, index) => {
+            const groupSlug = normalizeCategorySlug(group?.slug);
+            const groupLabel = normalizeCategorySlug(group?.label);
+            const isActualLifestyle = groupSlug === "lifestyle" || groupLabel === "lifestyle";
+            
+            // PERBAIKAN: Setiap kategori menunggu loading-nya masing-masing
+            const requestIndex = homepageCategoryRequests.findIndex(req => String(req.key) === String(group.slug));
+            const isGroupLoading = requestIndex >= 0 ? categoryArticleQueries[requestIndex]?.isLoading : false;
+            const isGroupError = requestIndex >= 0 ? categoryArticleQueries[requestIndex]?.isError : false;
 
-              return (
-                <React.Fragment
-                  key={group.slug}
-                >
-                  {renderCategoryGroup(
-                    group,
-                    index
-                  )}
+            return (
+              <React.Fragment key={group?.slug || `category-${index}`}>
+                {renderCategoryGroup(group, index, isGroupLoading, isGroupError)}
+                {isActualLifestyle && recommendedArticles.length > 0 && !latestArticlesLoading && (
+                  <section className="home-section random-section" aria-labelledby="recommendation-heading">
+                    <div className="section-header">
+                      <h2 id="recommendation-heading">Rekomendasi Pilihan</h2>
+                    </div>
+                    <div className="random-article-grid">
+                      {recommendedArticles.slice(0, isCompactLayout ? 4 : 3).map((article, articleIndex) => renderCard(article, articleIndex + 10, false, false, false))}
+                    </div>
+                  </section>
+                )}
+              </React.Fragment>
+            );
+          })}
 
-                  {isActualLifestyle &&
-                    randomArticles.length > 0 &&
-                    !articleLoading && (
-                      <section className="home-section random-section">
-                        <div className="section-header">
-                          <h2>
-                            Rekomendasi Pilihan
-                          </h2>
-                        </div>
-
-                        <div className="random-article-grid">
-                          {/* FIX MOBILE: Tampilkan 4 artikel di HP,
-                              dan 3 artikel di Desktop */}
-                          {randomArticles
-                            .slice(
-                              0,
-                              isMobile ? 4 : 3
-                            )
-                            .map(
-                              (article, i) =>
-                                renderCard(
-                                  article,
-                                  i + 10
-                                )
-                            )}
-                        </div>
-                      </section>
-                    )}
-                </React.Fragment>
-              );
-            }
+          {allArticles.length === 0 && !latestArticlesLoading && !latestArticlesError && (
+            <div className="empty-state" role="status"><p>Belum ada artikel yang diterbitkan saat ini.</p></div>
           )}
 
-          {(
-            Array.isArray(allArticles)
-              ? allArticles.length === 0
-              : true
-          ) &&
-            !articleLoading && (
-              <div
-                className="empty-state"
-                role="status"
-              >
-                <p>
-                  Belum ada artikel yang
-                  diterbitkan saat ini.
-                </p>
-              </div>
-            )}
+          {latestArticlesError && (
+            <div className="empty-state" role="alert">
+              <p>Gagal memuat artikel utama. Silakan refresh halaman atau coba lagi.</p>
+              <button type="button" onClick={handleRetryAll}>Coba lagi</button>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="ad-before-footer">
-        <AdSlot
-          type="horizontal"
-          mode="adsense"
-          adClient="ca-pub-7608424206122269"
-          adSlot="9097520145"
-        />
+        <AdSlot type="horizontal" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_HORIZONTAL_SLOT} />
       </div>
     </div>
   );

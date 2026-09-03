@@ -3,11 +3,9 @@
    RESPONSIVE ALL DEVICE
    ═══════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
-*,
-*::before,
-*::after {
+.x-root *,
+.x-root *::before,
+.x-root *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -17,7 +15,13 @@
   width: 100%;
   min-height: 100vh;
   background: #fefefe;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   color: #0a0a0a;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -33,11 +37,7 @@
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image: radial-gradient(
-    circle,
-    #d4d4d4 0.6px,
-    transparent 0.6px
-  );
+  background-image: radial-gradient(circle, #d4d4d4 0.6px, transparent 0.6px);
   background-size: 28px 28px;
   opacity: 0.3;
 }
@@ -108,6 +108,7 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #0a0a0a;
+  text-decoration: none;
 }
 
 .x-nav-right {
@@ -219,12 +220,7 @@
 }
 
 .x-h1-accent {
-  background: linear-gradient(
-    135deg,
-    #4f46e5 0%,
-    #7c3aed 50%,
-    #db2777 100%
-  );
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -471,7 +467,9 @@
   padding: 18px 16px;
   position: relative;
   overflow: hidden;
-  cursor: default;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
   transition:
     border-color 0.3s,
     box-shadow 0.3s,
@@ -503,16 +501,8 @@
 }
 
 .x-kat:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--kc) 30%,
-    #e8e8e8
-  );
-  box-shadow: 0 8px 26px color-mix(
-    in srgb,
-    var(--kc) 8%,
-    transparent
-  );
+  border-color: color-mix(in srgb, var(--kc) 30%, #e8e8e8);
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--kc) 8%, transparent);
   transform: translateY(-2px) !important;
 }
 
@@ -634,11 +624,7 @@
   width: 1.5px;
   flex: 1;
   min-height: 12px;
-  background: linear-gradient(
-    180deg,
-    #e0e0e0,
-    #f0f0f0
-  );
+  background: linear-gradient(180deg, #e0e0e0, #f0f0f0);
   margin: 6px 0;
 }
 
@@ -732,7 +718,7 @@
   border-color: #0a0a0a;
 }
 
-.x-com h4 {
+.x-com h3 {
   font-size: 12.5px;
   font-weight: 700;
   color: #0a0a0a;
@@ -776,12 +762,7 @@
   left: 0;
   right: 0;
   height: 2.5px;
-  background: linear-gradient(
-    90deg,
-    #4f46e5,
-    #7c3aed,
-    #db2777
-  );
+  background: linear-gradient(90deg, #4f46e5, #7c3aed, #db2777);
 }
 
 .x-cta h2 {
@@ -812,6 +793,7 @@
 .x-btn-p,
 .x-btn-s {
   min-height: 44px;
+  text-decoration: none;
 }
 
 .x-btn-p {
@@ -1255,9 +1237,10 @@
    ═══════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .x-root,
+  .x-root *,
+  .x-root *::before,
+  .x-root *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -1300,4 +1283,117 @@
 .x-root button,
 .x-root a {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* =====================================================================
+   BAGIAN "ALAMAT & KONTAK REDAKSI"  (tambahan, bukan perubahan)
+
+   Semua selector di bawah ini BARU dan hanya dipakai oleh <section
+   className="x-adr">. Tidak ada satu pun aturan lama yang disentuh,
+   jadi tampilan bagian /about yang sudah ada tidak berubah sama sekali.
+
+   Catatan: warna teks dan warna tautan ditulis eksplisit karena
+   index.css masih memuat sisa boilerplate Vite (a { color:#646cff })
+   yang kalau dibiarkan akan membuat email tampil ungu.
+   ===================================================================== */
+
+.x-adr {
+  padding: 72px 0 88px;
+}
+
+.x-adr-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.x-adr-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.x-adr-line {
+  display: block;
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.x-adr-title {
+  margin: 0 0 14px;
+  font-size: 28px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #111111;
+}
+
+.x-adr-desc {
+  margin: 0 0 32px;
+  max-width: 62ch;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #4b5563;
+}
+
+.x-adr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.x-adr-card {
+  padding: 22px 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.x-adr-key {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.x-adr-val {
+  display: block;
+  font-style: normal;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #111827;
+}
+
+.x-adr-link {
+  color: #d83a34;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(216, 58, 52, 0.35);
+}
+
+.x-adr-link:hover,
+.x-adr-link:focus-visible {
+  color: #b32e29;
+  border-bottom-color: #b32e29;
+}
+
+@media (max-width: 640px) {
+  .x-adr {
+    padding: 52px 0 64px;
+  }
+
+  .x-adr-title {
+    font-size: 23px;
+  }
+
+  .x-adr-card {
+    padding: 18px 18px;
+  }
 }

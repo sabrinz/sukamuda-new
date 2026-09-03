@@ -1,46 +1,35 @@
-/* ============================================
-   AdSlot — Final Responsive Edition
-   ============================================ */
-
-/* --- Container utama --- */
+/* =========================================================
+   SUKAMUDA — ADSLOT
+   Desain asli dipertahankan
+   ========================================================= */
 .ad-slot-box {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 8px;
-  font-size: 12px;
-  text-align: center;
-  box-sizing: border-box;
   position: relative;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   max-width: 100%;
-  animation: adSlotFadeIn 0.5s ease-out;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 12px;
 }
 
-@keyframes adSlotFadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-/* --- Horizontal --- */
 .ad-slot-box.horizontal {
   width: 100%;
   max-width: 900px;
-  height: 100px;
+  min-height: 90px;
   margin-left: auto;
   margin-right: auto;
 }
 
-/* --- Vertical --- */
 .ad-slot-box.vertical {
   width: 160px;
-  height: 250px;
+  min-height: 250px;
   flex-shrink: 0;
 }
 
-/* ============================================
-   MODE: Placeholder
-   ============================================ */
 .ad-slot-box.ad-placeholder {
   background-color: #f8f9fa;
   border: 1px dashed #d0d5dd;
@@ -53,20 +42,17 @@
     linear-gradient(45deg, transparent 75%, #f0f1f3 75%),
     linear-gradient(-45deg, transparent 75%, #f0f1f3 75%);
   background-size: 16px 16px;
-  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
-  transition: border-color 0.3s ease, background-color 0.3s ease;
-}
-
-.ad-slot-box.ad-placeholder:hover {
-  border-color: #b0b8c4;
-  background-color: #f1f3f5;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
 }
 
 .ad-placeholder-icon {
   font-size: 18px;
   opacity: 0.4;
   line-height: 1;
-  filter: grayscale(100%);
 }
 
 .ad-placeholder-label {
@@ -74,19 +60,14 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #98a2b3;
 }
 
 .ad-placeholder-size {
   font-size: 10px;
   color: #c0c5cc;
-  font-weight: 400;
-  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  font-family: "SF Mono", "Fira Code", "Courier New", monospace;
 }
 
-/* ============================================
-   MODE: Image
-   ============================================ */
 .ad-slot-box.ad-image {
   padding: 0;
   border: none;
@@ -94,31 +75,22 @@
 }
 
 .ad-slot-box.ad-image a {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
   overflow: hidden;
-  position: relative;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
 }
 
-.ad-slot-box.ad-image a:hover {
-  transform: scale(1.008);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-/* Shimmer saat gambar belum load */
 .ad-slot-box.ad-image a::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
   background-size: 200% 100%;
   animation: adImageShimmer 1.5s infinite;
   z-index: 1;
-  transition: opacity 0.4s ease;
 }
 
 .ad-slot-box.ad-image a.imgLoaded::before {
@@ -127,146 +99,81 @@
 }
 
 @keyframes adImageShimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .ad-slot-box.ad-image img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
   border-radius: 8px;
-  position: relative;
-  z-index: 0;
-  transition: opacity 0.4s ease;
 }
 
-/* ============================================
-   MODE: AdSense
-   ============================================ */
+.ad-slot-box.ad-image a:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: -3px;
+}
+
 .ad-slot-box.ad-adsense {
+  width: 100%;
+  max-width: 100%;
+  min-height: 90px;
   padding: 0;
   border: none;
   background: transparent;
   overflow: hidden;
 }
 
-.ad-slot-box.ad-adsense ins {
+.ad-slot-box.ad-adsense ins.adsbygoogle {
   display: block !important;
   width: 100% !important;
-  height: 100% !important;
+  max-width: 100% !important;
 }
 
-/* ============================================
-   MODE: AdSense Fallback
-   ============================================ */
-.ad-slot-box.ad-adsense-fallback {
-  background-color: #fffbeb;
-  border: 1px dashed #fbbf24;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.ad-adsense-fallback-icon {
-  font-size: 16px;
-  color: #f59e0b;
-  line-height: 1;
-  animation: adFallbackPulse 2s ease-in-out infinite;
-}
-
-@keyframes adFallbackPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.ad-adsense-fallback-label {
-  font-weight: 600;
-  font-size: 11px;
-  color: #92400e;
-}
-
-.ad-adsense-fallback-hint {
-  font-size: 10px;
-  color: #b45309;
-  opacity: 0.7;
-  max-width: 90%;
-  line-height: 1.4;
-}
-
-/* ============================================
-   RESPONSIF
-   ============================================ */
-
-/* Tablet */
-@media (max-width: 1024px) {
-  .ad-slot-box.vertical {
-    width: 120px;
-    height: 200px;
-  }
-}
-
-/* HP */
 @media (max-width: 768px) {
-  .ad-slot-box.vertical {
+  .ad-slot-box.horizontal,
+  .ad-slot-box.vertical,
+  .ad-slot-box.ad-adsense {
     width: 100%;
     max-width: 100%;
-    height: 90px;
-    flex-shrink: initial;
+    min-height: 90px;
   }
 
-  .ad-slot-box.horizontal {
-    max-width: 100%;
-    height: 90px;
+  .ad-placeholder-icon {
+    font-size: 14px;
   }
 
-  .ad-placeholder-icon { font-size: 14px; }
-  .ad-placeholder-label { font-size: 10px; }
-  .ad-placeholder-size { font-size: 9px; }
-  .ad-adsense-fallback-hint { font-size: 9px; }
-
-  .ad-layout-wrapper {
-    flex-direction: column !important;
-    gap: 10px !important;
+  .ad-placeholder-label {
+    font-size: 10px;
   }
 
-  .ad-layout-wrapper > div {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 90px !important;
+  .ad-placeholder-size {
+    font-size: 9px;
   }
 }
 
-/* HP kecil */
 @media (max-width: 480px) {
   .ad-slot-box.horizontal,
-  .ad-slot-box.vertical {
-    height: 80px;
-  }
-
-  .ad-layout-wrapper > div {
-    height: 80px !important;
+  .ad-slot-box.vertical,
+  .ad-slot-box.ad-adsense {
+    min-height: 80px;
   }
 }
 
-/* Ultra-wide monitor */
-@media (min-width: 1440px) {
-  .ad-slot-box.horizontal {
-    max-width: 1000px;
-    height: 110px;
-  }
-
-  .ad-slot-box.vertical {
-    width: 180px;
-    height: 280px;
-  }
-}
-
-/* Reduced motion: hentikan shimmer & pulse untuk user yang sensitif animasi */
 @media (prefers-reduced-motion: reduce) {
-  .ad-slot-box,
-  .ad-slot-box.ad-image a::before,
-  .ad-adsense-fallback-icon {
-    animation: none !important;
+  .ad-slot-box.ad-image a::before {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .ad-slot-box.ad-image a:focus-visible {
+    outline-color: Highlight;
   }
 }

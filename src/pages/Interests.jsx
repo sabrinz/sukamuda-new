@@ -62,7 +62,7 @@ const Interests = () => {
     <div className="interests-page">
       <Helmet>
         <title>Pilih Minat Anda - Sukamuda</title>
-        <meta name="robots" content="noindex" />
+        <meta name="robots" content="noindex,follow" />
       </Helmet>
 
       {/* Decorative */}

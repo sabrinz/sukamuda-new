@@ -1,211 +1,306 @@
-import React, { useEffect, useRef, useState } from 'react';
-import './AdSlot.css';
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
+import "./AdSlot.css";
 
-/**
- * AdSlot
- *
- * Perubahan penting dibanding versi lama:
- * 1. Iklan TIDAK lagi di-push setelah jeda 200ms secara buta.
- *    Kita menunggu sampai elemen <ins> benar-benar punya lebar > 0.
- *    Inilah penyebab galat "No slot size for availableWidth=0".
- * 2. Menggunakan ResizeObserver + IntersectionObserver, jadi iklan hanya
- *    dipasang saat kotaknya terlihat DAN sudah punya ukuran nyata.
- * 3. Kalau setelah 10 detik lebarnya tetap 0 (misalnya slot disembunyikan
- *    lewat CSS di layar kecil), kita menyerah dengan tenang tanpa push,
- *    sehingga tidak ada galat di konsol.
- * 4. Penanda isPushed baru diset SETELAH push berhasil, bukan sebelumnya.
- */
+const ADSENSE_MIN_WIDTH = 50;
+const ADSENSE_ROOT_MARGIN = "300px 0px";
+const ADSENSE_RETRY_INTERVAL = 500;
+const ADSENSE_MAX_WAIT = 15000;
+const CONSENT_KEY = "sukamuda_consent";
+const CONSENT_EVENT = "sukamuda:consent";
+const VALID_MODES = new Set(["placeholder", "image", "adsense"]);
+const VALID_TYPES = new Set(["horizontal", "vertical"]);
+
+const isLocalHost = () => {
+  if (typeof window === "undefined") return false;
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+};
+
+const getStoredConsent = () => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const value = window.localStorage.getItem(CONSENT_KEY);
+    return value === "granted" || value === "denied" ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+const getConsentFromEvent = (event) => {
+  const granted = event?.detail?.granted;
+  return typeof granted === "boolean" ? (granted ? "granted" : "denied") : null;
+};
+
+const getElementWidth = (element) => {
+  if (typeof window === "undefined" || !element) return 0;
+
+  try {
+    const style = window.getComputedStyle(element);
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      style.opacity === "0"
+    ) {
+      return 0;
+    }
+
+    const width = element.getBoundingClientRect().width;
+    return Number.isFinite(width) ? Math.floor(width) : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const getSafeLink = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw || raw === "#") return "#";
+
+  try {
+    const base =
+      typeof window === "undefined"
+        ? "https://sukamuda.co.id"
+        : window.location.origin;
+    const url = new URL(raw, base);
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "#";
+    return raw;
+  } catch {
+    return "#";
+  }
+};
+
 const AdSlot = ({
-  type = 'horizontal',
-  mode = 'placeholder',
-  label = 'Iklan',
-  imageUrl = '',
-  linkUrl = '#',
-  adClient = '',
-  adSlot = '',
+  type = "horizontal",
+  mode = "placeholder",
+  label = "Iklan",
+  imageUrl = "",
+  linkUrl = "#",
+  adClient = "",
+  adSlot = "",
 }) => {
-  const imgRef = useRef(null);
-
-  // Wadah pembungkus slot AdSense
   const boxRef = useRef(null);
-  // Elemen <ins> yang diukur AdSense
   const insRef = useRef(null);
-  // Penanda agar iklan mutlak hanya di-push 1x
-  const isPushed = useRef(false);
+  const pushedKeyRef = useRef("");
+  const [imageState, setImageState] = useState({
+    src: "",
+    status: "idle",
+  });
 
-  // Otomatis ubah jadi placeholder kalau dijalankan di localhost
-  const isLocal =
-    typeof window !== 'undefined' &&
-    ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-  const activeMode = isLocal ? 'placeholder' : mode;
-
-  // Dipakai hanya untuk memaksa render ulang kalau nanti dibutuhkan
-  const [, setSiap] = useState(false);
+  const safeType = VALID_TYPES.has(type) ? type : "horizontal";
+  const requestedMode = VALID_MODES.has(mode) ? mode : "placeholder";
+  const activeMode = isLocalHost() ? "placeholder" : requestedMode;
+  const safeLink = useMemo(() => getSafeLink(linkUrl), [linkUrl]);
+  const adKey = `${adClient}:${adSlot}:${safeType}`;
+  const imageLoaded =
+    imageState.src === imageUrl && imageState.status === "loaded";
+  const imageFailed =
+    imageState.src === imageUrl && imageState.status === "failed";
 
   useEffect(() => {
-    if (activeMode !== 'adsense') return;
-    if (isPushed.current) return;
-    if (typeof window === 'undefined') return;
+    if (
+      activeMode !== "adsense" ||
+      typeof window === "undefined" ||
+      !adClient ||
+      !adSlot ||
+      pushedKeyRef.current === adKey
+    ) {
+      return undefined;
+    }
 
-    let dibatalkan = false;
+    let cancelled = false;
+    let consent = getStoredConsent();
+    let nearViewport = typeof window.IntersectionObserver === "undefined";
     let resizeObserver = null;
     let intersectionObserver = null;
-    let timerMenyerah = null;
-    let timerCoba = null;
+    let retryTimer = null;
+    let timeoutTimer = null;
+    let frameOne = null;
+    let frameTwo = null;
 
-    const bersihkan = () => {
-      if (resizeObserver) resizeObserver.disconnect();
-      if (intersectionObserver) intersectionObserver.disconnect();
-      if (timerMenyerah) clearTimeout(timerMenyerah);
-      if (timerCoba) clearTimeout(timerCoba);
+    const stopRetryWindow = () => {
+      if (retryTimer !== null) {
+        window.clearInterval(retryTimer);
+        retryTimer = null;
+      }
+      if (timeoutTimer !== null) {
+        window.clearTimeout(timeoutTimer);
+        timeoutTimer = null;
+      }
     };
 
-    // Cek apakah elemen benar-benar punya lebar nyata
-    const lebarNyata = () => {
-      const el = insRef.current || boxRef.current;
-      if (!el) return 0;
-      // offsetParent null berarti elemen (atau induknya) display:none
-      if (el.offsetParent === null) return 0;
-      return el.getBoundingClientRect().width || 0;
+    const cleanup = () => {
+      stopRetryWindow();
+      if (frameOne !== null) window.cancelAnimationFrame(frameOne);
+      if (frameTwo !== null) window.cancelAnimationFrame(frameTwo);
+      resizeObserver?.disconnect();
+      intersectionObserver?.disconnect();
+      window.removeEventListener(CONSENT_EVENT, handleConsent);
     };
 
-    const cobaPush = () => {
-      if (dibatalkan || isPushed.current) return;
+    const canPush = () =>
+      !cancelled &&
+      pushedKeyRef.current !== adKey &&
+      consent === "granted" &&
+      nearViewport;
 
-      const lebar = lebarNyata();
+    const beginRetryWindow = () => {
+      if (!canPush() || retryTimer !== null) return;
 
-      // Belum punya ukuran. Jangan push, tunggu observer memanggil lagi.
-      if (lebar < 50) return;
+      retryTimer = window.setInterval(tryPush, ADSENSE_RETRY_INTERVAL);
+      timeoutTimer = window.setTimeout(stopRetryWindow, ADSENSE_MAX_WAIT);
+    };
+
+    const tryPush = () => {
+      if (!canPush()) return;
+
+      const box = boxRef.current;
+      const ins = insRef.current;
+      if (!box || !ins || getElementWidth(box) < ADSENSE_MIN_WIDTH) {
+        beginRetryWindow();
+        return;
+      }
 
       try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        isPushed.current = true;
-        bersihkan();
-        setSiap(true);
-      } catch (e) {
-        // Tandai tetap terpush supaya tidak mengulang galat berkali-kali
-        isPushed.current = true;
-        bersihkan();
-        if (import.meta.env && import.meta.env.DEV) {
-          console.error('AdSense push error:', e);
+        window.adsbygoogle = window.adsbygoogle || [];
+        window.adsbygoogle.push({});
+        pushedKeyRef.current = adKey;
+        cleanup();
+      } catch (error) {
+        beginRetryWindow();
+        if (import.meta.env.DEV) {
+          console.warn("[AdSlot] AdSense belum siap; mencoba kembali.", error);
         }
       }
     };
 
-    const mulaiMengamati = () => {
-      const el = insRef.current || boxRef.current;
-      if (!el) return;
+    function handleConsent(event) {
+      if (cancelled) return;
+      const nextConsent = getConsentFromEvent(event);
+      if (!nextConsent) return;
 
-      // 1. Pantau perubahan ukuran
-      if (typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(() => cobaPush());
-        resizeObserver.observe(el);
+      consent = nextConsent;
+      if (consent === "granted") {
+        tryPush();
+        beginRetryWindow();
+      } else {
+        stopRetryWindow();
+      }
+    }
+
+    const startObservers = () => {
+      if (cancelled || pushedKeyRef.current === adKey) return;
+      const target = boxRef.current || insRef.current;
+      if (!target) return;
+
+      if (typeof window.ResizeObserver !== "undefined") {
+        resizeObserver = new window.ResizeObserver(tryPush);
+        resizeObserver.observe(target);
       }
 
-      // 2. Pantau saat slot masuk ke layar
-      if (typeof IntersectionObserver !== 'undefined') {
-        intersectionObserver = new IntersectionObserver(
+      if (typeof window.IntersectionObserver !== "undefined") {
+        intersectionObserver = new window.IntersectionObserver(
           (entries) => {
-            if (entries.some((entry) => entry.isIntersecting)) cobaPush();
+            nearViewport = entries.some((entry) => entry.isIntersecting);
+            if (nearViewport) {
+              tryPush();
+              beginRetryWindow();
+            } else {
+              stopRetryWindow();
+            }
           },
-          { rootMargin: '200px' }
+          {
+            root: null,
+            rootMargin: ADSENSE_ROOT_MARGIN,
+            threshold: 0,
+          },
         );
-        intersectionObserver.observe(el);
+        intersectionObserver.observe(target);
       }
 
-      // 3. Coba sekali langsung, siapa tahu sudah siap
-      cobaPush();
-
-      // 4. Jaring pengaman untuk browser tanpa observer
-      if (
-        typeof ResizeObserver === 'undefined' ||
-        typeof IntersectionObserver === 'undefined'
-      ) {
-        timerCoba = setInterval(cobaPush, 500);
-      }
-
-      // 5. Kalau 10 detik tetap nol, berhenti diam-diam tanpa galat
-      timerMenyerah = setTimeout(() => {
-        if (!isPushed.current) bersihkan();
-      }, 10000);
+      tryPush();
+      beginRetryWindow();
     };
 
-    // Tunggu satu frame agar tata letak selesai dihitung browser
-    const raf = requestAnimationFrame(mulaiMengamati);
+    window.addEventListener(CONSENT_EVENT, handleConsent);
+    frameOne = window.requestAnimationFrame(() => {
+      frameTwo = window.requestAnimationFrame(startObservers);
+    });
 
     return () => {
-      dibatalkan = true;
-      cancelAnimationFrame(raf);
-      bersihkan();
-      if (timerCoba) clearInterval(timerCoba);
+      cancelled = true;
+      cleanup();
     };
-  }, [activeMode]);
+  }, [activeMode, adClient, adKey, adSlot]);
 
-  // Hapus shimmer saat gambar sudah load (untuk mode image)
-  const handleImageLoad = () => {
-    if (imgRef.current && imgRef.current.parentElement) {
-      imgRef.current.parentElement.classList.add('imgLoaded');
-    }
-  };
+  const sizeLabel = safeType === "horizontal" ? "728 × 90" : "160 × 250";
+  const className = `ad-slot-box ${safeType}`;
 
-  const sizeLabel = type === 'horizontal' ? '728 \u00d7 90' : '160 \u00d7 250';
-
-  // ── 1. Tampilan Placeholder (Otomatis saat di Localhost) ──
-  if (activeMode === 'placeholder') {
+  if (activeMode === "placeholder") {
     return (
-      <div className={`ad-slot-box ${type} ad-placeholder`}>
-        <span className="ad-placeholder-icon" aria-hidden="true">◻</span>
+      <div className={`${className} ad-placeholder`} aria-label={label}>
+        <span className="ad-placeholder-icon" aria-hidden="true">
+          ◻
+        </span>
         <span className="ad-placeholder-label">{label}</span>
         <span className="ad-placeholder-size">{sizeLabel}</span>
       </div>
     );
   }
 
-  // ── 2. Tampilan Iklan Gambar Custom ──
-  if (activeMode === 'image') {
+  if (activeMode === "image") {
+    if (!imageUrl || imageFailed) return null;
+
     return (
-      <div className={`ad-slot-box ${type} ad-image`}>
-        <a href={linkUrl} target="_blank" rel="noopener noreferrer sponsored">
+      <div className={`${className} ad-image`}>
+        <a
+          className={imageLoaded ? "imgLoaded" : undefined}
+          href={safeLink}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          aria-label={label}
+        >
           <img
-            ref={imgRef}
             src={imageUrl}
-            alt="Iklan"
+            alt={label}
             loading="lazy"
-            onLoad={handleImageLoad}
+            decoding="async"
+            onLoad={() => setImageState({ src: imageUrl, status: "loaded" })}
+            onError={() => setImageState({ src: imageUrl, status: "failed" })}
           />
         </a>
       </div>
     );
   }
 
-  // ── 3. Tampilan Google AdSense ──
-  if (activeMode === 'adsense') {
+  if (activeMode === "adsense") {
+    if (!adClient || !adSlot) {
+      if (import.meta.env.DEV) {
+        console.warn("[AdSlot] adClient dan adSlot wajib diisi.");
+      }
+      return null;
+    }
+
     return (
-      <div
+      <aside
         ref={boxRef}
-        className={`ad-slot-box ${type} ad-adsense`}
-        style={{
-          width: '100%',
-          minWidth: '250px',
-          minHeight: '90px',
-          overflow: 'hidden',
-        }}
+        className={`${className} ad-adsense`}
+        aria-label={label}
       >
         <ins
+          key={adKey}
           ref={insRef}
           className="adsbygoogle"
-          style={{ display: 'block', width: '100%', minWidth: '250px' }}
+          style={{ display: "block", width: "100%" }}
           data-ad-client={adClient}
           data-ad-slot={adSlot}
           data-ad-format="auto"
           data-full-width-responsive="true"
         />
-      </div>
+      </aside>
     );
   }
 
   return null;
 };
 
-// Bungkus dengan React.memo untuk mencegah re-render saat halaman di-scroll
-export default React.memo(AdSlot);
+export default memo(AdSlot);

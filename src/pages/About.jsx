@@ -1,179 +1,460 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
-import './About.css';
+import React, { useEffect, useRef, useState } from "react";
+
+import { Link } from "react-router-dom";
+
+import { Helmet } from "react-helmet-async";
+
+import "./About.css";
+
+/* =========================================================
+   SITE CONSTANTS
+   ========================================================= */
+
+const SITE_URL = "https://sukamuda.co.id";
+
+const PAGE_URL = `${SITE_URL}/about`;
+
+const SITE_NAME = "SukaMuda";
+
+const SHARE_IMAGE = `${SITE_URL}/sukamuda-share.jpg`;
+
+/* =========================================================
+   GLOBAL ENTITY IDS
+   ---------------------------------------------------------
+   Gunakan entity yang sama dengan index.html / halaman lain.
+   Jangan membuat Organization baru di halaman ini.
+   ========================================================= */
+
+const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+
+const WEBSITE_ID = `${SITE_URL}/#website`;
+
+const LOGO_ID = `${SITE_URL}/#logo`;
+
+/* =========================================================
+   PAGE SEO
+   ========================================================= */
+
+const PAGE_TITLE = "Tentang SukaMuda - Portal Berita & Informasi Anak Muda";
+
+const PAGE_DESCRIPTION =
+  "Mengenal SukaMuda, portal berita dan informasi anak muda Indonesia yang menyajikan berita, edukasi, teknologi, lifestyle, hiburan, olahraga, dan berbagai informasi inspiratif.";
+
+/* =========================================================
+   REDACTION ADDRESS
+   ---------------------------------------------------------
+   Pastikan informasi ini benar-benar merupakan informasi
+   resmi yang memang boleh dipublikasikan.
+   ========================================================= */
+
+const REDACTION_ADDRESS = {
+  streetAddress: "Jl. KH. Ahmad Sanusi No. 195",
+
+  addressLocality: "Sukakarya",
+
+  addressRegion: "Jawa Barat",
+
+  postalCode: "43135",
+
+  addressCountry: "ID",
+};
+
+const REDACTION_ADDRESS_TEXT = (
+  <>
+    {REDACTION_ADDRESS.streetAddress}
+    <br />
+    Sukakarya, Kec. Warudoyong
+    <br />
+    Kota Sukabumi, {REDACTION_ADDRESS.addressRegion}{" "}
+    {REDACTION_ADDRESS.postalCode}
+    <br />
+    Indonesia
+  </>
+);
+
+/* =========================================================
+   CATEGORY LINKS
+   ---------------------------------------------------------
+   Diselaraskan dengan slug kategori yang digunakan portal.
+   ========================================================= */
+
+const ABOUT_CATEGORIES = [
+  {
+    name: "News",
+    slug: "general",
+    description: "Informasi dan kabar terkini.",
+    color: "#4f46e5",
+  },
+
+  {
+    name: "Tech",
+    slug: "tech",
+    description: "Teknologi, tren digital, dan inovasi.",
+    color: "#7c3aed",
+  },
+
+  {
+    name: "Sport & E-Sport",
+    slug: "sport",
+    description: "Berita dan informasi dunia olahraga serta e-sport.",
+    color: "#059669",
+  },
+
+  {
+    name: "Music & Film",
+    slug: "music",
+    description: "Musik, film, hiburan, dan budaya populer.",
+    color: "#ca8a04",
+  },
+
+  {
+    name: "Lifestyle",
+    slug: "style",
+    description: "Gaya hidup dan kehidupan sehari-hari.",
+    color: "#db2777",
+  },
+
+  {
+    name: "Health",
+    slug: "health",
+    description: "Informasi kesehatan dan kebiasaan hidup.",
+    color: "#0891b2",
+  },
+];
+
+/* =========================================================
+   STRUCTURED DATA
+   ========================================================= */
+
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+
+  "@graph": [
+    {
+      "@type": "AboutPage",
+
+      "@id": `${PAGE_URL}#webpage`,
+
+      url: PAGE_URL,
+
+      name: PAGE_TITLE,
+
+      headline: "Tentang SukaMuda",
+
+      description: PAGE_DESCRIPTION,
+
+      isPartOf: {
+        "@id": WEBSITE_ID,
+      },
+
+      about: {
+        "@id": ORGANIZATION_ID,
+      },
+
+      mainEntity: {
+        "@id": ORGANIZATION_ID,
+      },
+
+      publisher: {
+        "@id": ORGANIZATION_ID,
+      },
+
+      primaryImageOfPage: {
+        "@id": LOGO_ID,
+      },
+
+      breadcrumb: {
+        "@id": `${PAGE_URL}#breadcrumb`,
+      },
+
+      inLanguage: "id-ID",
+    },
+
+    {
+      "@type": "BreadcrumbList",
+
+      "@id": `${PAGE_URL}#breadcrumb`,
+
+      itemListElement: [
+        {
+          "@type": "ListItem",
+
+          position: 1,
+
+          name: "Beranda",
+
+          item: `${SITE_URL}/`,
+        },
+
+        {
+          "@type": "ListItem",
+
+          position: 2,
+
+          name: "Tentang SukaMuda",
+
+          item: PAGE_URL,
+        },
+      ],
+    },
+  ],
+};
+
+/* =========================================================
+   ABOUT
+   ========================================================= */
 
 const About = () => {
-  const navigate = useNavigate();
-  const [visible, setVisible] = useState(new Set());
-  const [canonicalUrl, setCanonicalUrl] = useState(
-    'https://sukamuda.co.id/about'
-  );
-  const refs = useRef([]);
+  const [visible, setVisible] = useState(() => new Set());
+
+  const refs = useRef(new Map());
+
+  /* =======================================================
+     INTERSECTION OBSERVER
+     ======================================================= */
 
   useEffect(() => {
-    const io = new IntersectionObserver(
+    if (
+      typeof window === "undefined" ||
+      typeof window.IntersectionObserver !== "function"
+    ) {
+      /*
+       * Jika IntersectionObserver tidak tersedia,
+       * tampilkan semua section agar konten tetap terlihat.
+       */
+      setVisible(
+        new Set([
+          "nav",
+          "hero",
+          "visi",
+          "misi",
+          "kat",
+          "how",
+          "com",
+          "alamat",
+          "cta",
+        ]),
+      );
+
+      return undefined;
+    }
+
+    const observer = new window.IntersectionObserver(
       (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setVisible((p) => new Set([...p, e.target.id]));
-          }
+        setVisible((previous) => {
+          const next = new Set(previous);
+
+          let changed = false;
+
+          entries.forEach((entry) => {
+            const id = entry.target?.id;
+
+            if (!id || !entry.isIntersecting) {
+              return;
+            }
+
+            if (!next.has(id)) {
+              next.add(id);
+              changed = true;
+            }
+
+            observer.unobserve(entry.target);
+          });
+
+          return changed ? next : previous;
         });
       },
       {
         threshold: 0.1,
-        rootMargin: '0px 0px -30px 0px',
-      }
+
+        rootMargin: "0px 0px -30px 0px",
+      },
     );
 
-    refs.current.forEach((r) => r && io.observe(r));
+    refs.current.forEach((element) => {
+      if (element) {
+        observer.observe(element);
+      }
+    });
 
-    return () => io.disconnect();
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCanonicalUrl(
-        window.location.origin +
-          window.location.pathname.toLowerCase()
-      );
-    }
-  }, []);
+  /* =======================================================
+     REGISTER REF
+     ======================================================= */
 
-  const reg = (el, id) => {
-    if (
-      el &&
-      !refs.current.find((r) => r?.id === id)
-    ) {
-      refs.current.push(el);
+  const registerRef = (element, id) => {
+    if (!element || !id) {
+      return;
     }
+
+    refs.current.set(id, element);
   };
 
-  const on = (id) => visible.has(id);
+  const isVisible = (id) => visible.has(id);
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
 
   return (
     <div className="x-root">
       <Helmet>
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
-          crossOrigin="anonymous"
-        ></script>
+        {/* =================================================
+            LANGUAGE
+            ================================================= */}
 
-        <title>Tentang Kami - Sukamuda</title>
+        <html lang="id-ID" />
 
-        <link
-          rel="canonical"
-          href="https://sukamuda.co.id/about"
+        {/* =================================================
+            TITLE
+            ================================================= */}
+
+        <title>{PAGE_TITLE}</title>
+
+        {/* =================================================
+            CANONICAL
+            ================================================= */}
+
+        <link rel="canonical" href={PAGE_URL} />
+
+        {/* =================================================
+            DESCRIPTION
+            ================================================= */}
+
+        <meta name="description" content={PAGE_DESCRIPTION} />
+
+        {/* =================================================
+            ROBOTS
+            ================================================= */}
+
+        <meta
+          name="robots"
+          content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
         />
 
         <meta
-          name="description"
-          content="Sukamuda adalah wadah bagi siapa saja yang ingin menulis, membaca, dan berdiskusi dalam suasana yang positif, inspiratif, dan membangun."
+          name="googlebot"
+          content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
         />
 
-        <script type="application/ld+json">
-          {JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'AboutPage',
-            name: 'Tentang Kami - Sukamuda',
-            description:
-              'Sukamuda adalah wadah bagi siapa saja yang ingin menulis, membaca, dan berdiskusi dalam suasana yang positif, inspiratif, dan membangun.',
-            url: canonicalUrl,
-            isPartOf: {
-              '@type': 'WebSite',
-              name: 'Sukamuda',
-              url: 'https://sukamuda.co.id',
-            },
-            publisher: {
-              '@type': 'Organization',
-              name: 'Sukamuda',
-              url: 'https://sukamuda.co.id',
-              logo: {
-                '@type': 'ImageObject',
-                url: 'https://sukamuda.co.id/logo.png',
-              },
-            },
-            inLanguage: 'id-ID',
-          })}
-        </script>
+        {/* =================================================
+            BRAND
+            ================================================= */}
+
+        <meta name="author" content={SITE_NAME} />
+
+        <meta name="publisher" content={SITE_NAME} />
+
+        <meta name="application-name" content={SITE_NAME} />
+
+        {/* =================================================
+            OPEN GRAPH
+            ================================================= */}
+
+        <meta property="og:site_name" content={SITE_NAME} />
+
+        <meta property="og:type" content="website" />
+
+        <meta property="og:locale" content="id_ID" />
+
+        <meta property="og:title" content={PAGE_TITLE} />
+
+        <meta property="og:description" content={PAGE_DESCRIPTION} />
+
+        <meta property="og:url" content={PAGE_URL} />
+
+        <meta property="og:image" content={SHARE_IMAGE} />
+
+        <meta property="og:image:secure_url" content={SHARE_IMAGE} />
+
+        <meta property="og:image:type" content="image/jpeg" />
+
+        <meta property="og:image:width" content="1200" />
+
+        <meta property="og:image:height" content="630" />
+
+        <meta property="og:image:alt" content={"SukaMuda - Tentang Kami"} />
+
+        {/* =================================================
+            TWITTER / X
+            ================================================= */}
+
+        <meta name="twitter:card" content="summary_large_image" />
+
+        <meta name="twitter:title" content={PAGE_TITLE} />
+
+        <meta name="twitter:description" content={PAGE_DESCRIPTION} />
+
+        <meta name="twitter:image" content={SHARE_IMAGE} />
+
+        <meta name="twitter:image:alt" content={"SukaMuda - Tentang Kami"} />
+
+        {/* =================================================
+            STRUCTURED DATA
+            ================================================= */}
 
         <script type="application/ld+json">
-          {JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              {
-                '@type': 'ListItem',
-                position: 1,
-                name: 'Beranda',
-                item: 'https://sukamuda.co.id',
-              },
-              {
-                '@type': 'ListItem',
-                position: 2,
-                name: 'Tentang Kami',
-              },
-            ],
-          })}
+          {JSON.stringify(STRUCTURED_DATA)}
         </script>
       </Helmet>
 
-      <div
-        className="x-grid-bg"
-        aria-hidden="true"
-      />
+      {/* =======================================================
+          BACKGROUND DECORATION
+          ======================================================= */}
+
+      <div className="x-grid-bg" aria-hidden="true" />
 
       <div className="x-wrap">
-        {/* NAV */}
+        {/* =====================================================
+            NAVIGATION
+            ===================================================== */}
+
         <nav
-          className={`x-nav ${on('nav') ? 'x-on' : ''}`}
+          className={`x-nav ${isVisible("nav") ? "x-on" : ""}`}
           id="nav"
-          ref={(e) => reg(e, 'nav')}
-          aria-label="Navigasi Utama"
+          ref={(element) => registerRef(element, "nav")}
+          aria-label="Navigasi utama"
         >
-          <span className="x-logo">sukamuda</span>
+          <Link to="/" className="x-logo" aria-label="SukaMuda - Beranda">
+            SukaMuda
+          </Link>
 
           <div className="x-nav-right">
-            <span
-              className="x-nav-line"
-              aria-hidden="true"
-            />
-            <span className="x-nav-tag">About</span>
+            <span className="x-nav-line" aria-hidden="true" />
+
+            <span className="x-nav-tag">Tentang Kami</span>
           </div>
         </nav>
 
-        {/* MAIN */}
-        <main
-          className="x-main"
-          id="main-content"
-        >
-          {/* HERO */}
+        {/* =====================================================
+            MAIN
+            ===================================================== */}
+
+        <main className="x-main" id="main-content">
+          {/* ===================================================
+              HERO
+              =================================================== */}
+
           <header
-            className={`x-hero ${
-              on('hero') ? 'x-on' : ''
-            }`}
+            className={`x-hero ${isVisible("hero") ? "x-on" : ""}`}
             id="hero"
-            ref={(e) => reg(e, 'hero')}
+            ref={(element) => registerRef(element, "hero")}
           >
             <div className="x-hero-top">
               <div className="x-hero-badge">
-                <span
-                  className="x-badge-dot"
-                  aria-hidden="true"
-                />
+                <span className="x-badge-dot" aria-hidden="true" />
 
-                <span>
-                  Platform Digital untuk Generasi Muda
-                </span>
+                <span>Portal Digital untuk Generasi Muda Indonesia</span>
               </div>
             </div>
 
             <div className="x-hero-body">
               <h1 className="x-hero-title">
-                <span className="x-h1-line">
-                  Ruang Berbagi
-                </span>
+                <span className="x-h1-line">Ruang Berita,</span>
 
                 <span className="x-h1-line x-h1-accent">
                   Ide &amp; Kreativitas
@@ -181,46 +462,36 @@ const About = () => {
               </h1>
 
               <p className="x-hero-desc">
-                Sukamuda adalah wadah bagi siapa saja
-                yang ingin menulis, membaca, dan
-                berdiskusi dalam suasana yang positif,
-                inspiratif, dan membangun.
+                SukaMuda adalah portal berita dan informasi untuk anak muda
+                Indonesia. Kami menghadirkan informasi, wawasan, edukasi, dan
+                berbagai cerita yang relevan dengan kehidupan generasi muda di
+                era digital.
               </p>
             </div>
 
             <div className="x-hero-bottom">
-              <div
-                className="x-hero-bar"
-                aria-hidden="true"
-              />
+              <div className="x-hero-bar" aria-hidden="true" />
             </div>
           </header>
 
-          {/* VISI */}
+          {/* ===================================================
+              VISI
+              =================================================== */}
+
           <section
-            className={`x-sec ${
-              on('visi') ? 'x-on' : ''
-            }`}
+            className={`x-sec ${isVisible("visi") ? "x-on" : ""}`}
             id="visi"
-            ref={(e) => reg(e, 'visi')}
+            ref={(element) => registerRef(element, "visi")}
             aria-labelledby="label-visi"
           >
-            <div
-              className="x-label-row"
-              id="label-visi"
-            >
+            <div className="x-label-row" id="label-visi">
               <span className="x-label">01</span>
 
-              <span className="x-label-text">
-                Visi
-              </span>
+              <span className="x-label-text">Visi</span>
             </div>
 
             <article className="x-visi">
-              <div
-                className="x-visi-deco"
-                aria-hidden="true"
-              >
+              <div className="x-visi-deco" aria-hidden="true">
                 <div className="x-visi-ring" />
                 <div className="x-visi-ring x-visi-ring2" />
                 <div className="x-visi-dot" />
@@ -228,45 +499,41 @@ const About = () => {
 
               <div className="x-visi-body">
                 <h2>
-                  Menjadi platform media digital yang
-                  mendorong kreativitas, literasi, dan
-                  kontribusi positif generasi muda di
-                  era digital.
+                  Menjadi platform media digital yang mendorong kreativitas,
+                  literasi, dan kontribusi positif generasi muda di era digital.
                 </h2>
 
                 <p>
-                  Kami percaya setiap suara punya nilai —
-                  dan Sukamuda hadir supaya suara itu
-                  terdengar, dibaca, dan berdampak nyata.
+                  SukaMuda hadir sebagai ruang untuk menemukan informasi,
+                  berbagi gagasan, memperluas wawasan, dan mendorong karya yang
+                  memberikan nilai positif bagi masyarakat.
                 </p>
               </div>
             </article>
           </section>
 
-          {/* MISI */}
+          {/* ===================================================
+              MISI
+              =================================================== */}
+
           <section
-            className={`x-sec ${
-              on('misi') ? 'x-on' : ''
-            }`}
+            className={`x-sec ${isVisible("misi") ? "x-on" : ""}`}
             id="misi"
-            ref={(e) => reg(e, 'misi')}
+            ref={(element) => registerRef(element, "misi")}
             aria-labelledby="label-misi"
           >
-            <div
-              className="x-label-row"
-              id="label-misi"
-            >
+            <div className="x-label-row" id="label-misi">
               <span className="x-label">02</span>
 
-              <span className="x-label-text">
-                Misi
-              </span>
+              <span className="x-label-text">Misi</span>
             </div>
 
             <div className="x-bento">
               <article
                 className="x-ben x-ben-wide"
-                style={{ transitionDelay: '0ms' }}
+                style={{
+                  transitionDelay: "0ms",
+                }}
               >
                 <div className="x-ben-icon">
                   <svg
@@ -284,20 +551,20 @@ const About = () => {
                   </svg>
                 </div>
 
-                <h3>
-                  Ruang Publikasi Aman &amp; Terpercaya
-                </h3>
+                <h3>Ruang Informasi yang Aman &amp; Terpercaya</h3>
 
                 <p>
-                  Platform yang menjamin keamanan dan
-                  kredibilitas setiap konten yang
-                  dipublikasikan.
+                  Menyediakan informasi yang relevan, bertanggung jawab, dan
+                  disajikan dengan memperhatikan kualitas serta kredibilitas
+                  konten.
                 </p>
               </article>
 
               <article
                 className="x-ben"
-                style={{ transitionDelay: '70ms' }}
+                style={{
+                  transitionDelay: "70ms",
+                }}
               >
                 <div className="x-ben-icon">
                   <svg
@@ -315,16 +582,19 @@ const About = () => {
                   </svg>
                 </div>
 
-                <h3>Dorong Berkarya</h3>
+                <h3>Mendorong Berkarya</h3>
 
                 <p>
-                  Penulis muda berkembang lewat tulisan.
+                  Memberikan ruang bagi ide, tulisan, dan kreativitas yang dapat
+                  memberikan manfaat bagi pembaca.
                 </p>
               </article>
 
               <article
                 className="x-ben"
-                style={{ transitionDelay: '140ms' }}
+                style={{
+                  transitionDelay: "140ms",
+                }}
               >
                 <div className="x-ben-icon">
                   <svg
@@ -345,13 +615,16 @@ const About = () => {
                 <h3>Konten Berkualitas</h3>
 
                 <p>
-                  Informatif, edukatif, inspiratif.
+                  Mengutamakan konten yang informatif, edukatif, relevan, dan
+                  memberikan nilai bagi pembaca.
                 </p>
               </article>
 
               <article
                 className="x-ben x-ben-full"
-                style={{ transitionDelay: '210ms' }}
+                style={{
+                  transitionDelay: "210ms",
+                }}
               >
                 <div className="x-ben-icon">
                   <svg
@@ -372,89 +645,55 @@ const About = () => {
                   </svg>
                 </div>
 
-                <h3>
-                  Komunitas yang Saling Mendukung
-                </h3>
+                <h3>Komunitas yang Saling Mendukung</h3>
 
                 <p>
-                  Membangun ekosistem digital di mana
-                  setiap anggota saling menghargai,
-                  menginspirasi, dan bertumbuh bersama
-                  tanpa toxic culture.
+                  Membangun ruang digital yang mendorong interaksi positif,
+                  saling menghargai, berbagi wawasan, dan berkembang bersama.
                 </p>
               </article>
             </div>
           </section>
 
-          {/* KATEGORI */}
+          {/* ===================================================
+              KATEGORI
+              =================================================== */}
+
           <section
-            className={`x-sec ${
-              on('kat') ? 'x-on' : ''
-            }`}
+            className={`x-sec ${isVisible("kat") ? "x-on" : ""}`}
             id="kat"
-            ref={(e) => reg(e, 'kat')}
+            ref={(element) => registerRef(element, "kat")}
             aria-labelledby="label-kat"
           >
-            <div
-              className="x-label-row"
-              id="label-kat"
-            >
+            <div className="x-label-row" id="label-kat">
               <span className="x-label">03</span>
 
-              <span className="x-label-text">
-                Kategori
-              </span>
+              <span className="x-label-text">Kategori</span>
             </div>
 
             <div className="x-kat-grid">
-              {[
-                {
-                  n: 'Edukasi',
-                  d: 'Pengetahuan yang bermanfaat',
-                  c: '#4f46e5',
-                },
-                {
-                  n: 'Teknologi',
-                  d: 'Tren & inovasi terkini',
-                  c: '#0891b2',
-                },
-                {
-                  n: 'Fashion & Kecantikan',
-                  d: 'Gaya hidup masa kini',
-                  c: '#db2777',
-                },
-                {
-                  n: 'Opini',
-                  d: 'Pemikiran kritis & sudut pandang',
-                  c: '#ca8a04',
-                },
-                {
-                  n: 'Inspirasi',
-                  d: 'Cerita yang memotivasi',
-                  c: '#059669',
-                },
-                {
-                  n: 'Gaya Hidup',
-                  d: 'Tips hidup lebih baik',
-                  c: '#7c3aed',
-                },
-              ].map((k, i) => (
-                <article
+              {ABOUT_CATEGORIES.map((category, index) => (
+                <Link
                   className="x-kat"
-                  key={i}
+                  key={category.slug}
+                  to={`/category/${encodeURIComponent(category.slug)}`}
                   style={{
-                    '--kc': k.c,
-                    transitionDelay: `${i * 55}ms`,
+                    "--kc": category.color,
+                    transitionDelay: `${index * 55}ms`,
                   }}
+                  aria-label={`Lihat kategori ${category.name}`}
                 >
                   <div
                     className="x-kat-bar"
-                    style={{ background: k.c }}
+                    style={{
+                      background: category.color,
+                    }}
                     aria-hidden="true"
                   />
 
-                  <h3>{k.n}</h3>
-                  <p>{k.d}</p>
+                  <h3>{category.name}</h3>
+
+                  <p>{category.description}</p>
 
                   <svg
                     className="x-kat-arr"
@@ -462,28 +701,21 @@ const About = () => {
                     height="14"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke={k.c}
+                    stroke={category.color}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    <line
-                      x1="7"
-                      y1="17"
-                      x2="17"
-                      y2="7"
-                    />
+                    <line x1="7" y1="17" x2="17" y2="7" />
+
                     <polyline points="7 7 17 7 17 17" />
                   </svg>
-                </article>
+                </Link>
               ))}
             </div>
 
-            <div
-              className="x-alert"
-              role="status"
-            >
+            <div className="x-alert" role="note">
               <svg
                 width="16"
                 height="16"
@@ -496,53 +728,40 @@ const About = () => {
                 aria-hidden="true"
               >
                 <circle cx="12" cy="12" r="10" />
-                <line
-                  x1="12"
-                  y1="16"
-                  x2="12"
-                  y2="12"
-                />
-                <line
-                  x1="12"
-                  y1="8"
-                  x2="12.01"
-                  y2="8"
-                />
+
+                <line x1="12" y1="16" x2="12" y2="12" />
+
+                <line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
 
               <p>
-                Semua artikel melewati proses kurasi
-                editorial sebelum tayang — kami menjaga
-                kualitas di atas segalanya.
+                SukaMuda mengutamakan kualitas, relevansi, dan tanggung jawab
+                dalam penyajian informasi.
               </p>
             </div>
           </section>
 
-          {/* CARA KERJA */}
+          {/* ===================================================
+              CARA KERJA
+              =================================================== */}
+
           <section
-            className={`x-sec ${
-              on('how') ? 'x-on' : ''
-            }`}
+            className={`x-sec ${isVisible("how") ? "x-on" : ""}`}
             id="how"
-            ref={(e) => reg(e, 'how')}
+            ref={(element) => registerRef(element, "how")}
             aria-labelledby="label-how"
           >
-            <div
-              className="x-label-row"
-              id="label-how"
-            >
+            <div className="x-label-row" id="label-how">
               <span className="x-label">04</span>
 
-              <span className="x-label-text">
-                Cara Kerja
-              </span>
+              <span className="x-label-text">Cara Kerja</span>
             </div>
 
             <div className="x-steps">
               {[
                 {
-                  t: 'Daftar Akun',
-                  d: 'Buat akun gratis — cuma butuh email dan username.',
+                  t: "Daftar Akun",
+                  d: "Buat akun untuk menggunakan fitur yang tersedia di SukaMuda.",
                   ic: (
                     <svg
                       width="20"
@@ -556,17 +775,14 @@ const About = () => {
                       aria-hidden="true"
                     >
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle
-                        cx="12"
-                        cy="7"
-                        r="4"
-                      />
+                      <circle cx="12" cy="7" r="4" />
                     </svg>
                   ),
                 },
+
                 {
-                  t: 'Tulis Artikel',
-                  d: 'Tuangkan ide, opini, atau pengalamanmu dalam format artikel.',
+                  t: "Tulis Artikel",
+                  d: "Tuangkan ide, opini, pengalaman, atau pengetahuan dalam bentuk artikel.",
                   ic: (
                     <svg
                       width="20"
@@ -584,9 +800,10 @@ const About = () => {
                     </svg>
                   ),
                 },
+
                 {
-                  t: 'Verifikasi',
-                  d: 'Tim editorial meninjau kontenmu dalam kurun waktu 1x24 jam.',
+                  t: "Verifikasi",
+                  d: "Konten diperiksa sesuai proses dan kebijakan editorial yang berlaku.",
                   ic: (
                     <svg
                       width="20"
@@ -599,23 +816,16 @@ const About = () => {
                       strokeLinejoin="round"
                       aria-hidden="true"
                     >
-                      <circle
-                        cx="11"
-                        cy="11"
-                        r="8"
-                      />
-                      <line
-                        x1="21"
-                        y1="21"
-                        x2="16.65"
-                        y2="16.65"
-                      />
+                      <circle cx="11" cy="11" r="8" />
+
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
                     </svg>
                   ),
                 },
+
                 {
-                  t: 'Tayang',
-                  d: 'Artikelmu live dan bisa dibaca oleh ribuan pembaca.',
+                  t: "Tayang",
+                  d: "Artikel yang memenuhi ketentuan dapat diterbitkan dan dibaca oleh pengunjung.",
                   ic: (
                     <svg
                       width="20"
@@ -632,68 +842,57 @@ const About = () => {
                     </svg>
                   ),
                 },
-              ].map((s, i) => (
+              ].map((step, index) => (
                 <div
                   className="x-step"
-                  key={i}
+                  key={step.t}
                   style={{
-                    transitionDelay: `${i * 90}ms`,
+                    transitionDelay: `${index * 90}ms`,
                   }}
                 >
                   <div className="x-step-track">
-                    <div className="x-step-circle">
-                      {s.ic}
-                    </div>
+                    <div className="x-step-circle">{step.ic}</div>
 
-                    {i < 3 && (
-                      <div
-                        className="x-step-line"
-                        aria-hidden="true"
-                      />
+                    {index < 3 && (
+                      <div className="x-step-line" aria-hidden="true" />
                     )}
                   </div>
 
                   <div className="x-step-body">
-                    <span
-                      className="x-step-n"
-                      aria-hidden="true"
-                    >
-                      {String(i + 1).padStart(2, '0')}
+                    <span className="x-step-n" aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
                     </span>
 
-                    <h3>{s.t}</h3>
-                    <p>{s.d}</p>
+                    <h3>{step.t}</h3>
+
+                    <p>{step.d}</p>
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* KOMITMEN */}
+          {/* ===================================================
+              KOMITMEN
+              =================================================== */}
+
           <section
-            className={`x-sec ${
-              on('com') ? 'x-on' : ''
-            }`}
+            className={`x-sec ${isVisible("com") ? "x-on" : ""}`}
             id="com"
-            ref={(e) => reg(e, 'com')}
+            ref={(element) => registerRef(element, "com")}
             aria-labelledby="label-com"
           >
-            <div
-              className="x-label-row"
-              id="label-com"
-            >
+            <div className="x-label-row" id="label-com">
               <span className="x-label">05</span>
 
-              <span className="x-label-text">
-                Komitmen
-              </span>
+              <span className="x-label-text">Komitmen</span>
             </div>
 
             <div className="x-com-grid">
               {[
                 {
-                  t: 'Kualitas Konten',
-                  d: 'Zero plagiarisme, 100% orisinal.',
+                  t: "Kualitas Konten",
+                  d: "Mengutamakan konten yang orisinal, relevan, informatif, dan bertanggung jawab.",
                   ic: (
                     <svg
                       width="20"
@@ -711,9 +910,10 @@ const About = () => {
                     </svg>
                   ),
                 },
+
                 {
-                  t: 'Privasi Pengguna',
-                  d: 'Data kamu prioritas utama kami.',
+                  t: "Privasi Pengguna",
+                  d: "Menghargai privasi dan keamanan data pengguna sesuai kebijakan yang berlaku.",
                   ic: (
                     <svg
                       width="20"
@@ -726,21 +926,16 @@ const About = () => {
                       strokeLinejoin="round"
                       aria-hidden="true"
                     >
-                      <rect
-                        x="3"
-                        y="11"
-                        width="18"
-                        height="11"
-                        rx="2"
-                        ry="2"
-                      />
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+
                       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
                   ),
                 },
+
                 {
-                  t: 'Pengalaman Membaca',
-                  d: 'Interface bersih, loading cepat.',
+                  t: "Pengalaman Membaca",
+                  d: "Mengembangkan pengalaman membaca yang bersih, mudah digunakan, dan nyaman.",
                   ic: (
                     <svg
                       width="20"
@@ -757,9 +952,10 @@ const About = () => {
                     </svg>
                   ),
                 },
+
                 {
-                  t: 'Berkelanjutan',
-                  d: 'Platform terus berkembang dan membaik.',
+                  t: "Berkelanjutan",
+                  d: "Terus mengembangkan platform, kualitas informasi, dan layanan untuk pembaca.",
                   ic: (
                     <svg
                       width="20"
@@ -777,61 +973,112 @@ const About = () => {
                     </svg>
                   ),
                 },
-              ].map((c, i) => (
+              ].map((commitment, index) => (
                 <article
                   className="x-com"
-                  key={i}
+                  key={commitment.t}
                   style={{
-                    transitionDelay: `${i * 70}ms`,
+                    transitionDelay: `${index * 70}ms`,
                   }}
                 >
-                  <div className="x-com-ic">
-                    {c.ic}
-                  </div>
+                  <div className="x-com-ic">{commitment.ic}</div>
 
                   <div>
-                    <h4>{c.t}</h4>
-                    <p>{c.d}</p>
+                    <h3>{commitment.t}</h3>
+
+                    <p>{commitment.d}</p>
                   </div>
                 </article>
               ))}
             </div>
           </section>
 
-          {/* CTA */}
+          {/* ===================================================
+              REDAKSI
+              =================================================== */}
+
           <section
-            className={`x-sec ${
-              on('cta') ? 'x-on' : ''
-            }`}
+            className={`x-sec ${isVisible("alamat") ? "x-on" : ""}`}
+            id="alamat"
+            ref={(element) => registerRef(element, "alamat")}
+            aria-labelledby="label-alamat"
+          >
+            <div className="x-label-row" id="label-alamat">
+              <span className="x-label">06</span>
+
+              <span className="x-label-text">Redaksi</span>
+            </div>
+
+            <div className="x-adr">
+              <div className="x-adr-head">
+                <span className="x-adr-label">SukaMuda</span>
+
+                <span className="x-adr-line" aria-hidden="true" />
+              </div>
+
+              <div className="x-adr-body">
+                <h2 className="x-adr-title">Alamat &amp; Kontak Redaksi</h2>
+
+                <p className="x-adr-desc">
+                  SukaMuda adalah portal berita dan informasi anak muda
+                  Indonesia. Untuk pertanyaan, koreksi informasi, kerja sama,
+                  maupun keperluan editorial, silakan menghubungi kontak resmi
+                  SukaMuda.
+                </p>
+
+                <div className="x-adr-grid">
+                  <div className="x-adr-card">
+                    <span className="x-adr-key">Alamat Redaksi</span>
+
+                    <address className="x-adr-val">
+                      {REDACTION_ADDRESS_TEXT}
+                    </address>
+                  </div>
+
+                  <div className="x-adr-card">
+                    <span className="x-adr-key">Email Redaksi</span>
+
+                    <span className="x-adr-val">
+                      <a
+                        className="x-adr-link"
+                        href="mailto:sukamuda50@gmail.com"
+                      >
+                        sukamuda50@gmail.com
+                      </a>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ===================================================
+              CTA
+              =================================================== */}
+
+          <section
+            className={`x-sec ${isVisible("cta") ? "x-on" : ""}`}
             id="cta"
-            ref={(e) => reg(e, 'cta')}
-            aria-label="Call to Action"
+            ref={(element) => registerRef(element, "cta")}
+            aria-labelledby="cta-title"
           >
             <div className="x-cta">
-              <div
-                className="x-cta-accent"
-                aria-hidden="true"
-              />
+              <div className="x-cta-accent" aria-hidden="true" />
 
-              <h2>
-                Mulai Berkarya
+              <h2 id="cta-title">
+                Temukan
                 <br />
-                Bersama Kami
+                SukaMuda
               </h2>
 
               <p>
-                Gabung bareng ribuan anak muda
-                yang sudah mulai menulis di Sukamuda.
+                Jelajahi berita, informasi, edukasi, teknologi, lifestyle,
+                hiburan, olahraga, dan berbagai konten lainnya di SukaMuda.
               </p>
 
               <div className="x-cta-btns">
-                <button
-                  className="x-btn-p"
-                  type="button"
-                  onClick={() => navigate('/write')}
-                >
-                  Mulai Menulis
-
+                <Link className="x-btn-p" to="/">
+                  Jelajahi SukaMuda
                   <svg
                     width="15"
                     height="15"
@@ -843,31 +1090,20 @@ const About = () => {
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    <line
-                      x1="5"
-                      y1="12"
-                      x2="19"
-                      y2="12"
-                    />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+
                     <polyline points="12 5 19 12 12 19" />
                   </svg>
-                </button>
+                </Link>
 
-                <button
-                  className="x-btn-s"
-                  type="button"
-                  onClick={() => navigate('/faq')}
-                >
-                  Pelajari Dulu
-                </button>
+                <Link className="x-btn-s" to="/faq">
+                  FAQ
+                </Link>
               </div>
 
               <span className="x-cta-note">
-                <span
-                  className="x-cta-dot"
-                  aria-hidden="true"
-                />
-                Gratis — Tanpa Komitmen
+                <span className="x-cta-dot" aria-hidden="true" />
+                Portal berita &amp; informasi anak muda Indonesia
               </span>
             </div>
           </section>

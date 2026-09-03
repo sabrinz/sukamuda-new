@@ -4,7 +4,8 @@ import { Helmet } from "react-helmet-async";
 
 const NotFound = () => {
   return (
-    <div
+    <main
+      aria-labelledby="not-found-title"
       style={{
         minHeight: "60vh",
         display: "flex",
@@ -19,10 +20,16 @@ const NotFound = () => {
     >
       <Helmet>
         <title>Halaman Tidak Ditemukan - SukaMuda</title>
-        <meta name="robots" content="noindex" />
+        <meta name="robots" content="noindex,follow" />
+        <meta name="googlebot" content="noindex,follow" />
       </Helmet>
 
-      <h1 style={{ margin: 0, fontSize: "48px", color: "#111" }}>404</h1>
+      <h1
+        id="not-found-title"
+        style={{ margin: 0, fontSize: "48px", color: "#111" }}
+      >
+        404
+      </h1>
       <p style={{ margin: 0, color: "#595959", fontSize: "15px" }}>
         Halaman yang kamu cari tidak ditemukan atau sudah dipindahkan.
       </p>
@@ -38,7 +45,7 @@ const NotFound = () => {
       >
         ← Kembali ke Beranda
       </Link>
-    </div>
+    </main>
   );
 };
 

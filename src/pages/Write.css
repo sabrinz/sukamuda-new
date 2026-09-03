@@ -10,7 +10,7 @@
   padding: 50px 20px 80px;
 }
 
-.write-form {
+.menulis-form-page .write-form {
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -18,14 +18,14 @@
 }
 
 /* ================= HEADER ================= */
-.write-header {
+.menulis-form-page .write-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
 
-.back-link-btn {
+.menulis-form-page .back-link-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -37,11 +37,11 @@
   transition: color 0.2s;
 }
 
-.back-link-btn:hover {
+.menulis-form-page .back-link-btn:hover {
   color: #1e76d0;
 }
 
-.write-heading {
+.menulis-form-page .write-heading {
   margin: 0;
   text-align: center;
   font-size: 26px;
@@ -51,21 +51,21 @@
 }
 
 /* ================= FORM INPUT GRID ================= */
-.form-row {
+.menulis-form-page .form-row {
   display: grid;
   grid-template-columns: 120px 1fr;
   align-items: center;
   gap: 20px;
 }
 
-.form-label {
+.menulis-form-page .form-label {
   font-size: 15px;
   font-weight: 700;
   color: #444;
   text-align: left;
 }
 
-.form-input {
+.menulis-form-page .form-input {
   height: 46px;
   background: #f8f9fa;
   color: #222;
@@ -79,7 +79,7 @@
   text-align: left !important;
 }
 
-.form-input:focus {
+.menulis-form-page .form-input:focus {
   outline: none;
   border-color: #1e76d0;
   background: #ffffff;
@@ -87,7 +87,7 @@
 }
 
 /* ================= DROPDOWN CATEGORY ================= */
-.form-select {
+.menulis-form-page .form-select {
   max-width: 240px;
   height: 46px;
   background-color: #111111;
@@ -103,26 +103,26 @@
   color-scheme: light;
 }
 
-.form-select:focus {
+.menulis-form-page .form-select:focus {
   background-color: #111111 !important;
   color: white !important;
   outline: none;
 }
 
-.form-select option {
+.menulis-form-page .form-select option {
   background-color: #ffffff !important;
   color: #111111 !important;
 }
 
 /* ================= THUMBNAIL ================= */
-.thumbnail-input {
+.menulis-form-page .thumbnail-input {
   display: flex;
   align-items: center;
   gap: 24px;
   width: 100%;
 }
 
-input[type="file"].form-input {
+.menulis-form-page input[type="file"].form-input {
   height: auto;
   padding: 0;
   border: none;
@@ -132,12 +132,12 @@ input[type="file"].form-input {
   color: #555;
 }
 
-input[type="file"].form-input:focus {
+.menulis-form-page input[type="file"].form-input:focus {
   box-shadow: none;
   border: none;
 }
 
-.thumbnail-preview {
+.menulis-form-page .thumbnail-preview {
   width: 130px;
   height: 85px;
   border-radius: 10px;
@@ -146,14 +146,14 @@ input[type="file"].form-input:focus {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.thumbnail-caption-hint {
+.menulis-form-page .thumbnail-caption-hint {
   margin-top: 8px;
   font-size: 12px;
   color: #6b7280;
 }
 
 /* ================= QUILL EDITOR ================= */
-.editor-wrapper {
+.menulis-form-page .editor-wrapper {
   margin: 8px 0;
   border: 1px solid #e1e4e8;
   border-radius: 12px;
@@ -162,11 +162,11 @@ input[type="file"].form-input:focus {
   transition: border-color 0.2s;
 }
 
-.editor-wrapper:focus-within {
+.menulis-form-page .editor-wrapper:focus-within {
   border-color: #1e76d0;
 }
 
-.editor-toolbar {
+.menulis-form-page .editor-toolbar {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -176,7 +176,7 @@ input[type="file"].form-input:focus {
   flex-wrap: wrap;
 }
 
-.editor-body {
+.menulis-form-page .editor-body {
   background: white;
   min-height: 280px;
 }
@@ -284,22 +284,31 @@ input[type="file"].form-input:focus {
   font-family: inherit;
   font-size: 13px;
   font-style: italic;
-  color: #6B7280;
+  color: #6b7280;
   margin-top: 4px;
   line-height: 1.5;
   display: block;
 }
 
 /* Penyelaras alignment */
-.menulis-form-page .ql-editor .ql-image-caption[style*="align-items: flex-start"] figcaption {
+.menulis-form-page
+  .ql-editor
+  .ql-image-caption[style*="align-items: flex-start"]
+  figcaption {
   text-align: left !important;
 }
 
-.menulis-form-page .ql-editor .ql-image-caption[style*="align-items: flex-end"] figcaption {
+.menulis-form-page
+  .ql-editor
+  .ql-image-caption[style*="align-items: flex-end"]
+  figcaption {
   text-align: right !important;
 }
 
-.menulis-form-page .ql-editor .ql-image-caption[style*="align-items: center"] figcaption {
+.menulis-form-page
+  .ql-editor
+  .ql-image-caption[style*="align-items: center"]
+  figcaption {
   text-align: center !important;
 }
 
@@ -308,7 +317,7 @@ input[type="file"].form-input:focus {
 }
 
 /* ================= ACTION BUTTONS ================= */
-.form-actions {
+.menulis-form-page .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 14px;
@@ -317,7 +326,7 @@ input[type="file"].form-input:focus {
   border-top: 1px solid #f0f0f0;
 }
 
-.btn-draft {
+.menulis-form-page .btn-draft {
   background: #ffffff;
   color: #555;
   border: 1px solid #d1d5db;
@@ -329,12 +338,12 @@ input[type="file"].form-input:focus {
   transition: all 0.2s;
 }
 
-.btn-draft:hover {
+.menulis-form-page .btn-draft:hover {
   background: #f3f4f6;
   border-color: #9ca3af;
 }
 
-.btn-submit-write {
+.menulis-form-page .btn-submit-write {
   background: #000000;
   color: #ffffff;
   border: none;
@@ -347,19 +356,19 @@ input[type="file"].form-input:focus {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-.btn-submit-write:hover {
+.menulis-form-page .btn-submit-write:hover {
   background: #111111;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.22);
 }
 
-.btn-submit-write:disabled {
+.menulis-form-page .btn-submit-write:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 /* ================= MODAL POPUP ================= */
-.modal-overlay {
+.menulis-form-page .modal-overlay {
   position: fixed;
   inset: 0;
   width: 100%;
@@ -374,7 +383,7 @@ input[type="file"].form-input:focus {
   padding: 16px;
 }
 
-.modal-container {
+.menulis-form-page .modal-container {
   background: #ffffff;
   padding: 32px 34px 30px;
   border-radius: 18px;
@@ -400,7 +409,7 @@ input[type="file"].form-input:focus {
   }
 }
 
-.modal-title {
+.menulis-form-page .modal-title {
   font-size: 19px;
   font-weight: 800;
   color: #111111;
@@ -408,7 +417,7 @@ input[type="file"].form-input:focus {
   line-height: 1.35;
 }
 
-.modal-subtitle {
+.menulis-form-page .modal-subtitle {
   font-size: 13px;
   color: #6b7280;
   margin: 0 auto 26px;
@@ -416,13 +425,13 @@ input[type="file"].form-input:focus {
   max-width: 340px;
 }
 
-.modal-buttons {
+.menulis-form-page .modal-buttons {
   display: flex;
   justify-content: center;
   gap: 10px;
 }
 
-.btn-batal {
+.menulis-form-page .btn-batal {
   background: #f3f4f6;
   color: #444444;
   border: 1px solid #e5e7eb;
@@ -434,12 +443,12 @@ input[type="file"].form-input:focus {
   transition: all 0.2s ease;
 }
 
-.btn-batal:hover {
+.menulis-form-page .btn-batal:hover {
   background: #e5e7eb;
   border-color: #d1d5db;
 }
 
-.btn-konfirmasi-hapus {
+.menulis-form-page .btn-konfirmasi-hapus {
   background: #000000 !important;
   color: #ffffff !important;
   border: none;
@@ -452,19 +461,19 @@ input[type="file"].form-input:focus {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.14);
 }
 
-.btn-konfirmasi-hapus:hover {
+.menulis-form-page .btn-konfirmasi-hapus:hover {
   background: #1a1a1a !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
-.btn-konfirmasi-hapus:disabled {
+.menulis-form-page .btn-konfirmasi-hapus:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 /* ================= RELATED MODAL (BACA JUGA) ================= */
-.related-modal-container {
+.menulis-form-page .related-modal-container {
   background: #ffffff;
   border-radius: 18px;
   padding: 28px 28px 20px;
@@ -473,7 +482,7 @@ input[type="file"].form-input:focus {
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.16);
 }
 
-.modal-header-row {
+.menulis-form-page .modal-header-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -481,7 +490,7 @@ input[type="file"].form-input:focus {
   margin-bottom: 22px;
 }
 
-.related-article-list {
+.menulis-form-page .related-article-list {
   display: grid;
   gap: 12px;
   max-height: 360px;
@@ -489,7 +498,7 @@ input[type="file"].form-input:focus {
   padding-right: 4px;
 }
 
-.related-article-item {
+.menulis-form-page .related-article-item {
   width: 100%;
   background: #f8fbff;
   border: 1px solid #e5ecf6;
@@ -501,28 +510,30 @@ input[type="file"].form-input:focus {
   gap: 16px;
   color: #111;
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
 }
 
-.related-article-item:hover {
+.menulis-form-page .related-article-item:hover {
   transform: translateY(-1px);
   border-color: #c8d7ee;
 }
 
-.related-article-item strong {
+.menulis-form-page .related-article-item strong {
   color: #1e76d0;
   font-size: 14px;
 }
 
 /* ================= THUMBNAIL UPLOAD ================= */
-.hidden-file-input {
+.menulis-form-page .hidden-file-input {
   display: none !important;
   position: absolute;
   opacity: 0;
   z-index: -1;
 }
 
-.thumbnail-upload-row {
+.menulis-form-page .thumbnail-upload-row {
   display: flex;
   align-items: center;
   gap: 18px;
@@ -530,7 +541,7 @@ input[type="file"].form-input:focus {
   min-height: 85px;
 }
 
-.thumbnail-drop-mini {
+.menulis-form-page .thumbnail-drop-mini {
   width: 130px;
   height: 85px;
   border: 2px dashed #cfcfcf;
@@ -544,7 +555,7 @@ input[type="file"].form-input:focus {
   box-sizing: border-box;
 }
 
-.thumbnail-preview-box {
+.menulis-form-page .thumbnail-preview-box {
   position: absolute;
   top: 0;
   left: 0;
@@ -556,14 +567,14 @@ input[type="file"].form-input:focus {
   z-index: 2;
 }
 
-.thumbnail-preview-mini {
+.menulis-form-page .thumbnail-preview-mini {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.remove-thumbnail-btn {
+.menulis-form-page .remove-thumbnail-btn {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -589,7 +600,7 @@ input[type="file"].form-input:focus {
   transform: none;
 }
 
-.remove-thumbnail-btn:hover {
+.menulis-form-page .remove-thumbnail-btn:hover {
   background: rgba(255, 0, 0, 0.8);
 }
 
@@ -602,51 +613,51 @@ input[type="file"].form-input:focus {
     padding: 28px 16px 60px;
   }
 
-  .write-form {
+  .menulis-form-page .write-form {
     gap: 20px;
   }
 
-  .write-heading {
+  .menulis-form-page .write-heading {
     font-size: 24px;
   }
 
-  .form-row {
+  .menulis-form-page .form-row {
     grid-template-columns: 100px minmax(0, 1fr);
     gap: 14px;
   }
 
-  .form-label {
+  .menulis-form-page .form-label {
     font-size: 13px;
   }
 
-  .form-input,
-  .form-select {
+  .menulis-form-page .form-input,
+  .menulis-form-page .form-select {
     height: 42px;
     font-size: 14px;
     padding-left: 12px;
     padding-right: 12px;
   }
 
-  .form-select {
+  .menulis-form-page .form-select {
     max-width: 100%;
   }
 
-  .thumbnail-upload-row {
+  .menulis-form-page .thumbnail-upload-row {
     min-height: 78px;
     gap: 12px;
   }
 
-  .thumbnail-drop-mini {
+  .menulis-form-page .thumbnail-drop-mini {
     width: 118px;
     height: 78px;
   }
 
-  .thumbnail-preview-box {
+  .menulis-form-page .thumbnail-preview-box {
     width: 118px;
     height: 78px;
   }
 
-  .remove-thumbnail-btn {
+  .menulis-form-page .remove-thumbnail-btn {
     width: 25px;
     height: 25px;
     font-size: 18px;
@@ -654,11 +665,11 @@ input[type="file"].form-input:focus {
     right: 5px;
   }
 
-  .editor-wrapper {
+  .menulis-form-page .editor-wrapper {
     margin: 4px 0;
   }
 
-  .editor-toolbar {
+  .menulis-form-page .editor-toolbar {
     padding: 8px;
   }
 
@@ -678,45 +689,45 @@ input[type="file"].form-input:focus {
     font-size: 15px;
   }
 
-  .form-actions {
+  .menulis-form-page .form-actions {
     gap: 10px;
     margin-top: 4px;
     padding-top: 16px;
   }
 
-  .btn-draft,
-  .btn-submit-write {
+  .menulis-form-page .btn-draft,
+  .menulis-form-page .btn-submit-write {
     padding: 9px 20px;
     font-size: 14px;
   }
 
-  .modal-container {
+  .menulis-form-page .modal-container {
     padding: 28px 22px 24px;
     border-radius: 16px;
   }
 
-  .modal-title {
+  .menulis-form-page .modal-title {
     font-size: 18px;
   }
 
-  .modal-subtitle {
+  .menulis-form-page .modal-subtitle {
     font-size: 13px;
     margin-bottom: 22px;
   }
 
-  .modal-buttons {
+  .menulis-form-page .modal-buttons {
     gap: 8px;
   }
 
-  .btn-batal,
-  .btn-konfirmasi-hapus {
+  .menulis-form-page .btn-batal,
+  .menulis-form-page .btn-konfirmasi-hapus {
     flex: 1;
     min-width: 0;
     padding: 10px 14px;
     font-size: 13px;
   }
 
-  .related-modal-container {
+  .menulis-form-page .related-modal-container {
     width: calc(100% - 4px);
     max-height: calc(100vh - 32px);
     overflow-y: auto;
@@ -733,33 +744,33 @@ input[type="file"].form-input:focus {
     padding-right: 14px;
   }
 
-  .write-form {
+  .menulis-form-page .write-form {
     gap: 18px;
   }
 
-  .form-row {
+  .menulis-form-page .form-row {
     grid-template-columns: 88px minmax(0, 1fr);
     gap: 10px;
   }
 
-  .form-label {
+  .menulis-form-page .form-label {
     font-size: 12px;
   }
 
-  .form-input,
-  .form-select {
+  .menulis-form-page .form-input,
+  .menulis-form-page .form-select {
     height: 40px;
     font-size: 13px;
     padding-left: 11px;
     padding-right: 11px;
   }
 
-  .thumbnail-drop-mini {
+  .menulis-form-page .thumbnail-drop-mini {
     width: 110px;
     height: 74px;
   }
 
-  .thumbnail-preview-box {
+  .menulis-form-page .thumbnail-preview-box {
     width: 110px;
     height: 74px;
   }
@@ -770,50 +781,50 @@ input[type="file"].form-input:focus {
     font-size: 14px;
   }
 
-  .btn-draft,
-  .btn-submit-write {
+  .menulis-form-page .btn-draft,
+  .menulis-form-page .btn-submit-write {
     padding: 9px 16px;
     font-size: 13px;
   }
 
-  .modal-overlay {
+  .menulis-form-page .modal-overlay {
     padding: 12px;
   }
 
-  .modal-container {
+  .menulis-form-page .modal-container {
     padding: 24px 18px 20px;
   }
 
-  .modal-title {
+  .menulis-form-page .modal-title {
     font-size: 17px;
   }
 
-  .modal-subtitle {
+  .menulis-form-page .modal-subtitle {
     font-size: 12.5px;
   }
 
-  .btn-batal,
-  .btn-konfirmasi-hapus {
+  .menulis-form-page .btn-batal,
+  .menulis-form-page .btn-konfirmasi-hapus {
     font-size: 12.5px;
     padding: 9px 10px;
   }
 
-  .related-modal-container {
+  .menulis-form-page .related-modal-container {
     padding: 20px 14px 16px;
   }
 
-  .modal-header-row {
+  .menulis-form-page .modal-header-row {
     gap: 10px;
   }
 
-  .related-article-item {
+  .menulis-form-page .related-article-item {
     padding: 12px;
     gap: 10px;
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .related-article-item strong {
+  .menulis-form-page .related-article-item strong {
     font-size: 12px;
   }
 }
@@ -827,29 +838,29 @@ input[type="file"].form-input:focus {
     padding-right: 12px;
   }
 
-  .form-row {
+  .menulis-form-page .form-row {
     grid-template-columns: 78px minmax(0, 1fr);
     gap: 8px;
   }
 
-  .form-label {
+  .menulis-form-page .form-label {
     font-size: 11px;
   }
 
-  .form-input,
-  .form-select {
+  .menulis-form-page .form-input,
+  .menulis-form-page .form-select {
     height: 38px;
     font-size: 12px;
     padding-left: 10px;
     padding-right: 10px;
   }
 
-  .thumbnail-drop-mini {
+  .menulis-form-page .thumbnail-drop-mini {
     width: 100px;
     height: 70px;
   }
 
-  .thumbnail-preview-box {
+  .menulis-form-page .thumbnail-preview-box {
     width: 100px;
     height: 70px;
   }
@@ -860,32 +871,32 @@ input[type="file"].form-input:focus {
     font-size: 14px;
   }
 
-  .btn-draft,
-  .btn-submit-write {
+  .menulis-form-page .btn-draft,
+  .menulis-form-page .btn-submit-write {
     padding: 8px 13px;
     font-size: 12px;
   }
 
-  .modal-overlay {
+  .menulis-form-page .modal-overlay {
     padding: 10px;
   }
 
-  .modal-container {
+  .menulis-form-page .modal-container {
     padding: 22px 14px 18px;
     border-radius: 14px;
   }
 
-  .modal-title {
+  .menulis-form-page .modal-title {
     font-size: 16px;
   }
 
-  .modal-subtitle {
+  .menulis-form-page .modal-subtitle {
     font-size: 12px;
     line-height: 1.5;
   }
 
-  .btn-batal,
-  .btn-konfirmasi-hapus {
+  .menulis-form-page .btn-batal,
+  .menulis-form-page .btn-konfirmasi-hapus {
     padding: 8px 8px;
     font-size: 12px;
   }

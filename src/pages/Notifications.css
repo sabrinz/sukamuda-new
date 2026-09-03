@@ -108,22 +108,22 @@
   flex-shrink: 0;
 }
 
-.notif-avatar-circle.article_approved {
+.notif-avatar-circle.notif-approved {
   background-color: #d4edda;
   color: #27ae60;
 }
 
-.notif-avatar-circle.article_rejected {
+.notif-avatar-circle.notif-rejected {
   background-color: #f8d7da;
   color: #e74c3c;
 }
 
-.notif-avatar-circle.article_liked {
+.notif-avatar-circle.notif-liked {
   background-color: #f8d7da;
   color: #e91e63;
 }
 
-.notif-avatar-circle.article_pending {
+.notif-avatar-circle.notif-pending {
   background-color: #fff3cd;
   color: #f39c12;
 }
@@ -271,4 +271,12 @@
   .notif-page-wrapper .notif-row-item:hover {
     transform: none;
   }
+}
+.notif-content-button:disabled {
+  cursor: wait;
+}
+
+.notif-delete-btn:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }

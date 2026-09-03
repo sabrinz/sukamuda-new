@@ -1,26 +1,15 @@
-  /* ═══════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
    SUKAMUDA TERMS — ABOUT STYLE
    CLEAN EDITORIAL / BENTO / RESPONSIVE ALL DEVICE
    DESKTOP & MOBILE CONSISTENT
    ═══════════════════════════════════════════════════ */
 
-@import url(
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
-);
-
-*,
-*::before,
-*::after {
+.tr-root *,
+.tr-root *::before,
+.tr-root *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-html,
-body {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
 }
 
 /* ═══════════════════════════════════════
@@ -33,11 +22,11 @@ body {
   background: #fefefe;
 
   font-family:
-    'Inter',
+    "Inter",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
 
   color: #0a0a0a;
@@ -57,12 +46,7 @@ body {
   pointer-events: none;
   z-index: 0;
 
-  background-image:
-    radial-gradient(
-      circle,
-      #d4d4d4 0.6px,
-      transparent 0.6px
-    );
+  background-image: radial-gradient(circle, #d4d4d4 0.6px, transparent 0.6px);
 
   background-size: 28px 28px;
   opacity: 0.3;
@@ -221,11 +205,7 @@ body {
 
   flex-shrink: 0;
 
-  animation:
-    tr-pulse
-    2.5s
-    ease-in-out
-    infinite;
+  animation: tr-pulse 2.5s ease-in-out infinite;
 }
 
 @keyframes tr-pulse {
@@ -283,13 +263,7 @@ body {
 }
 
 .tr-h1-accent {
-  background:
-    linear-gradient(
-      135deg,
-      #4f46e5 0%,
-      #7c3aed 50%,
-      #db2777 100%
-    );
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
 
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -316,7 +290,7 @@ body {
   font-size: 11px;
   font-weight: 600;
 
-  color: #999999;
+  color: #595959; /* ✅ Dipergelap untuk memenuhi rasio kontras A11Y */
 
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -418,9 +392,7 @@ body {
 .tr-feature:hover {
   border-color: #d0d0d0;
 
-  box-shadow:
-    0 8px 28px
-    rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.05);
 
   transform: translateY(-1px);
 }
@@ -535,9 +507,7 @@ body {
 .tr-card:hover {
   border-color: #cccccc;
 
-  box-shadow:
-    0 8px 24px
-    rgba(0, 0, 0, 0.045);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.045);
 
   transform: translateY(-2px) !important;
 }
@@ -618,9 +588,7 @@ body {
 .tr-content-card:hover {
   border-color: #d0d0d0;
 
-  box-shadow:
-    0 8px 28px
-    rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.04);
 }
 
 .tr-content-heading {
@@ -646,8 +614,7 @@ body {
 
   border-radius: 10px;
 
-  background:
-    rgba(79, 70, 229, 0.07);
+  background: rgba(79, 70, 229, 0.07);
 
   color: #4f46e5;
 
@@ -681,11 +648,7 @@ body {
 .tr-list-grid {
   display: grid;
 
-  grid-template-columns:
-    repeat(
-      3,
-      minmax(0, 1fr)
-    );
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 
   gap: 12px;
 
@@ -724,7 +687,7 @@ body {
   background: #ffffff;
   border: 1px solid #e8e8e8;
 
-  color: #777777;
+  color: #333333; /* ✅ Dipergelap untuk memenuhi rasio kontras A11Y */
 
   font-size: 8px;
   font-weight: 900;
@@ -748,8 +711,7 @@ body {
 .tr-rights-grid {
   display: grid;
 
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   gap: 10px;
 
@@ -780,9 +742,7 @@ body {
 .tr-right-card:hover {
   border-color: #cccccc;
 
-  box-shadow:
-    0 8px 24px
-    rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 
   transform: translateY(-2px);
 }
@@ -853,7 +813,7 @@ body {
 }
 
 .tr-right-card li::before {
-  content: '';
+  content: "";
 
   position: absolute;
 
@@ -884,8 +844,7 @@ body {
 .tr-ban-grid {
   display: grid;
 
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   gap: 10px;
 
@@ -916,7 +875,7 @@ body {
 }
 
 .tr-ban-card::before {
-  content: '';
+  content: "";
 
   position: absolute;
 
@@ -932,31 +891,13 @@ body {
 
   transform-origin: left;
 
-  transition:
-    transform 0.35s
-    cubic-bezier(
-      0.16,
-      1,
-      0.3,
-      1
-    );
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tr-ban-card:hover {
-  border-color:
-    color-mix(
-      in srgb,
-      var(--ban-color) 30%,
-      #e8e8e8
-    );
+  border-color: color-mix(in srgb, var(--ban-color) 30%, #e8e8e8);
 
-  box-shadow:
-    0 8px 26px
-    color-mix(
-      in srgb,
-      var(--ban-color) 8%,
-      transparent
-    );
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--ban-color) 8%, transparent);
 
   transform: translateY(-2px);
 }
@@ -1022,14 +963,7 @@ body {
 
   background: #ffffff;
 
-  border:
-    1px solid
-    rgba(
-      79,
-      70,
-      229,
-      0.18
-    );
+  border: 1px solid rgba(79, 70, 229, 0.18);
 
   border-radius: 20px;
 
@@ -1044,22 +978,9 @@ body {
 }
 
 .tr-closing:hover {
-  border-color:
-    rgba(
-      79,
-      70,
-      229,
-      0.32
-    );
+  border-color: rgba(79, 70, 229, 0.32);
 
-  box-shadow:
-    0 10px 40px
-    rgba(
-      79,
-      70,
-      229,
-      0.06
-    );
+  box-shadow: 0 10px 40px rgba(79, 70, 229, 0.06);
 
   transform: translateY(-1px);
 }
@@ -1073,13 +994,7 @@ body {
 
   height: 2.5px;
 
-  background:
-    linear-gradient(
-      90deg,
-      #4f46e5,
-      #7c3aed,
-      #db2777
-    );
+  background: linear-gradient(90deg, #4f46e5, #7c3aed, #db2777);
 }
 
 .tr-closing-icon {
@@ -1344,10 +1259,7 @@ body {
     width: 100%;
     max-width: 640px;
 
-    padding:
-      16px
-      14px
-      0;
+    padding: 16px 14px 0;
 
     gap: 44px;
   }
@@ -1357,13 +1269,9 @@ body {
   }
 
   .tr-nav {
-    margin:
-      0
-      -14px;
+    margin: 0 -14px;
 
-    padding:
-      14px
-      14px;
+    padding: 14px 14px;
   }
 
   .tr-logo {
@@ -1385,11 +1293,7 @@ body {
   }
 
   .tr-h1-line {
-    font-size: clamp(
-      30px,
-      8.3vw,
-      42px
-    );
+    font-size: clamp(30px, 8.3vw, 42px);
 
     line-height: 1.08;
   }
@@ -1400,9 +1304,7 @@ body {
 
     max-width: 100%;
 
-    padding:
-      0
-      4px;
+    padding: 0 4px;
   }
 
   .tr-hero-date {
@@ -1427,9 +1329,7 @@ body {
 
     gap: 14px;
 
-    padding:
-      20px
-      16px;
+    padding: 20px 16px;
   }
 
   .tr-feature-icon {
@@ -1450,22 +1350,13 @@ body {
   /* bento:
      tetap 2 kolom agar struktur desktop terasa sama */
   .tr-bento {
-    grid-template-columns:
-      repeat(
-        2,
-        minmax(
-          0,
-          1fr
-        )
-      );
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
     gap: 8px;
   }
 
   .tr-card {
-    padding:
-      18px
-      13px;
+    padding: 18px 13px;
   }
 
   .tr-card-wide {
@@ -1490,9 +1381,7 @@ body {
 
   /* content */
   .tr-content-card {
-    padding:
-      18px
-      14px;
+    padding: 18px 14px;
   }
 
   .tr-content-heading {
@@ -1515,14 +1404,7 @@ body {
 
   /* tetap 2 kolom di tablet/mobile besar */
   .tr-list-grid {
-    grid-template-columns:
-      repeat(
-        2,
-        minmax(
-          0,
-          1fr
-        )
-      );
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
     gap: 8px;
 
@@ -1546,22 +1428,13 @@ body {
 
   /* rights tetap 2 kolom */
   .tr-rights-grid {
-    grid-template-columns:
-      repeat(
-        2,
-        minmax(
-          0,
-          1fr
-        )
-      );
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
     gap: 8px;
   }
 
   .tr-right-card {
-    padding:
-      17px
-      13px;
+    padding: 17px 13px;
   }
 
   .tr-right-top {
@@ -1585,14 +1458,7 @@ body {
 
   /* ban tetap 2 kolom */
   .tr-ban-grid {
-    grid-template-columns:
-      repeat(
-        2,
-        minmax(
-          0,
-          1fr
-        )
-      );
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
     gap: 8px;
   }
@@ -1602,9 +1468,7 @@ body {
   }
 
   .tr-ban-card {
-    padding:
-      17px
-      13px;
+    padding: 17px 13px;
   }
 
   .tr-ban-number {
@@ -1624,10 +1488,7 @@ body {
 
   /* closing */
   .tr-closing {
-    padding:
-      34px
-      16px
-      26px;
+    padding: 34px 16px 26px;
   }
 
   .tr-closing-icon {
@@ -1678,11 +1539,7 @@ body {
   }
 
   .tr-h1-line {
-    font-size: clamp(
-      28px,
-      8.4vw,
-      34px
-    );
+    font-size: clamp(28px, 8.4vw, 34px);
   }
 
   .tr-hero-desc {
@@ -1691,9 +1548,7 @@ body {
 
   .tr-feature {
     gap: 12px;
-    padding:
-      18px
-      14px;
+    padding: 18px 14px;
   }
 
   .tr-feature-icon {
@@ -1714,9 +1569,7 @@ body {
   }
 
   .tr-card {
-    padding:
-      16px
-      12px;
+    padding: 16px 12px;
   }
 
   .tr-card-icon {
@@ -1745,9 +1598,7 @@ body {
   }
 
   .tr-right-card {
-    padding:
-      15px
-      11px;
+    padding: 15px 11px;
   }
 
   .tr-right-card h3 {
@@ -1759,9 +1610,7 @@ body {
   }
 
   .tr-ban-card {
-    padding:
-      15px
-      11px;
+    padding: 15px 11px;
   }
 
   .tr-ban-card h3 {
@@ -1773,10 +1622,7 @@ body {
   }
 
   .tr-closing {
-    padding:
-      30px
-      13px
-      24px;
+    padding: 30px 13px 24px;
   }
 
   .tr-closing-body h2 {
@@ -1821,9 +1667,7 @@ body {
   }
 
   .tr-feature {
-    padding:
-      16px
-      12px;
+    padding: 16px 12px;
   }
 
   .tr-feature-icon {
@@ -1840,9 +1684,7 @@ body {
   }
 
   .tr-card {
-    padding:
-      14px
-      10px;
+    padding: 14px 10px;
   }
 
   .tr-card h3 {
@@ -1854,9 +1696,7 @@ body {
   }
 
   .tr-content-card {
-    padding:
-      14px
-      11px;
+    padding: 14px 11px;
   }
 
   .tr-content-heading h2 {
@@ -1876,9 +1716,7 @@ body {
   }
 
   .tr-right-card {
-    padding:
-      13px
-      10px;
+    padding: 13px 10px;
   }
 
   .tr-right-card h3 {
@@ -1890,9 +1728,7 @@ body {
   }
 
   .tr-ban-card {
-    padding:
-      13px
-      10px;
+    padding: 13px 10px;
   }
 
   .tr-ban-card h3 {
@@ -1909,17 +1745,14 @@ body {
    ═══════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration:
-      0.01ms !important;
+  .tr-root *,
+  .tr-root *::before,
+  .tr-root *::after {
+    animation-duration: 0.01ms !important;
 
-    animation-iteration-count:
-      1 !important;
+    animation-iteration-count: 1 !important;
 
-    transition-duration:
-      0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 
   .tr-nav,
@@ -1937,9 +1770,7 @@ body {
 
 .tr-root button:focus-visible,
 .tr-root a:focus-visible {
-  outline:
-    3px solid
-    #111111;
+  outline: 3px solid #111111;
 
   outline-offset: 3px;
 }
@@ -1957,6 +1788,5 @@ body {
 
 .tr-root button,
 .tr-root a {
-  -webkit-tap-highlight-color:
-    transparent;
+  -webkit-tap-highlight-color: transparent;
 }

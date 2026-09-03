@@ -3,13 +3,9 @@
    STANDALONE / RESPONSIVE ALL DEVICE
    ═══════════════════════════════════════════════════ */
 
-@import url(
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
-);
-
-*,
-*::before,
-*::after {
+.rules-root *,
+.rules-root *::before,
+.rules-root *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -26,11 +22,11 @@
   background: #fefefe;
 
   font-family:
-    'Inter',
+    "Inter",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
 
   color: #0a0a0a;
@@ -52,11 +48,7 @@
   pointer-events: none;
   z-index: 0;
 
-  background-image: radial-gradient(
-    circle,
-    #d4d4d4 0.6px,
-    transparent 0.6px
-  );
+  background-image: radial-gradient(circle, #d4d4d4 0.6px, transparent 0.6px);
 
   background-size: 28px 28px;
 
@@ -231,8 +223,7 @@
 
   flex-shrink: 0;
 
-  animation:
-    rules-pulse 2.5s ease-in-out infinite;
+  animation: rules-pulse 2.5s ease-in-out infinite;
 }
 
 @keyframes rules-pulse {
@@ -293,13 +284,7 @@
 }
 
 .rules-h1-accent {
-  background:
-    linear-gradient(
-      135deg,
-      #4f46e5 0%,
-      #7c3aed 50%,
-      #db2777 100%
-    );
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
 
   -webkit-background-clip: text;
 
@@ -442,8 +427,7 @@
 .rules-feature:hover {
   border-color: #d0d0d0;
 
-  box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.05);
 
   transform: translateY(-1px);
 }
@@ -558,8 +542,7 @@
 .rules-card:hover {
   border-color: #cccccc;
 
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.045);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.045);
 
   transform: translateY(-2px) !important;
 }
@@ -649,8 +632,7 @@
 .rules-right-card:hover {
   border-color: #cccccc;
 
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 
   transform: translateY(-2px);
 }
@@ -727,7 +709,7 @@
 }
 
 .rules-right-card li::before {
-  content: '';
+  content: "";
 
   position: absolute;
 
@@ -811,13 +793,7 @@
 
   height: 1px;
 
-  background:
-    linear-gradient(
-      90deg,
-      transparent,
-      #e0e0e0,
-      transparent
-    );
+  background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
 }
 
 .rules-divider-dot {
@@ -867,7 +843,7 @@
 }
 
 .rules-ban-card::before {
-  content: '';
+  content: "";
 
   position: absolute;
 
@@ -883,9 +859,7 @@
 
   transform-origin: left;
 
-  transition:
-    transform 0.4s
-    cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .rules-ban-card:hover::before {
@@ -893,17 +867,9 @@
 }
 
 .rules-ban-card:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--rules-color) 30%,
-    #e8e8e8
-  );
+  border-color: color-mix(in srgb, var(--rules-color) 30%, #e8e8e8);
 
-  box-shadow: 0 8px 26px color-mix(
-    in srgb,
-    var(--rules-color) 8%,
-    transparent
-  );
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--rules-color) 8%, transparent);
 
   transform: translateY(-2px);
 }
@@ -960,9 +926,7 @@
 
   background: #ffffff;
 
-  border:
-    1px solid
-    rgba(79, 70, 229, 0.18);
+  border: 1px solid rgba(79, 70, 229, 0.18);
 
   border-radius: 20px;
 
@@ -977,12 +941,9 @@
 }
 
 .rules-closing:hover {
-  border-color:
-    rgba(79, 70, 229, 0.32);
+  border-color: rgba(79, 70, 229, 0.32);
 
-  box-shadow:
-    0 10px 40px
-    rgba(79, 70, 229, 0.06);
+  box-shadow: 0 10px 40px rgba(79, 70, 229, 0.06);
 
   transform: translateY(-1px);
 }
@@ -996,13 +957,7 @@
 
   height: 2.5px;
 
-  background:
-    linear-gradient(
-      90deg,
-      #4f46e5,
-      #7c3aed,
-      #db2777
-    );
+  background: linear-gradient(90deg, #4f46e5, #7c3aed, #db2777);
 }
 
 .rules-closing-icon {
@@ -1644,9 +1599,9 @@
    ═══════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .rules-root *,
+  .rules-root *::before,
+  .rules-root *::after {
     animation-duration: 0.01ms !important;
 
     animation-iteration-count: 1 !important;

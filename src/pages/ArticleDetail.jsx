@@ -1,172 +1,389 @@
-import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import { Link, useParams } from "react-router-dom";
+
 import { Helmet } from "react-helmet-async";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import axios from "../utils/axiosConfig";
+
 import { useAuth } from "../context/AuthContext";
-import { categories } from "../data/articles";
-import AdSlot from '../components/AdSlot';
+
+import AdSlot from "../components/AdSlot";
+
 import DOMPurify from "dompurify";
+
 import "./ArticleDetail.css";
 
-const baseUrl = import.meta.env.VITE_API_URL || 'https://sukamuda.co.id';
+/* =========================================================
+   SITE CONFIG
+   ========================================================= */
 
-const normalizeCategory = (value) => (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '');
+const SITE_URL = "https://sukamuda.co.id";
 
-const getInstitutionName = (user) => {
-  if (!user) return '';
-  const raw =
-    user.schoolName || user.school_name ||
-    user.campusName || user.campus_name || user.campus ||
-    user.asalKampus || user.asal_kampus ||
-    user.asalSekolah || user.asal_sekolah ||
-    user.university || user.universitas ||
-    user.institution || user.instansi || '';
-  return raw.toString().trim();
+const SITE_NAME = "SukaMuda";
+
+const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+
+const WEBSITE_ID = `${SITE_URL}/#website`;
+
+const LOGO_ID = `${SITE_URL}/#logo`;
+
+const SHARE_IMAGE = `${SITE_URL}/sukamuda-share.jpg`;
+
+/* =========================================================
+   ROBOTS
+   ========================================================= */
+
+const ARTICLE_ROBOTS =
+  "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
+
+const NOINDEX_ROBOTS = "noindex,follow";
+
+/* =========================================================
+   ADSENSE
+   ========================================================= */
+
+const ADSENSE_CLIENT = "ca-pub-7608424206122269";
+
+const ADSENSE_VERTICAL_SLOT = "9190843316";
+
+const ADSENSE_HORIZONTAL_SLOT = "9097520145";
+
+/* =========================================================
+   CATEGORY
+   ========================================================= */
+
+const CATEGORY_LABELS = {
+  news: "News",
+  school: "School",
+  college: "College",
+  general: "General",
+  lifestyle: "Lifestyle",
+  style: "Style",
+  culinary: "Culinary",
+  traveling: "Traveling",
+  sport: "Sport & E-Sport",
+  "sport-e-sport": "Sport & E-Sport",
+  music: "Music & Film",
+  "music-film": "Music & Film",
+  otomotif: "Otomotif",
+  science: "Science",
+  health: "Health",
+  tech: "Tech",
+  technology: "Tech",
+  podcast: "Podcast",
 };
 
-const getAuthorProfession = (user) => (user?.profession || user?.profesi || '').toString().trim();
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+const normalizeCategory = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+
+const normalizeCategorySlug = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const getCategoryLabel = (value) => {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "Artikel";
+  }
+
+  const normalized = normalizeCategorySlug(raw);
+
+  if (CATEGORY_LABELS[normalized]) {
+    return CATEGORY_LABELS[normalized];
+  }
+
+  const clean = raw.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+
+  if (!clean) {
+    return "Artikel";
+  }
+
+  return clean
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
+const cleanSlugFromTimestamp = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const slug = String(value).trim();
+
+  const match = slug.match(/^(.+)-\d{9,13}$/);
+
+  return match ? match[1] : slug;
+};
+
+const isAbsoluteHttpUrl = (value) => {
+  if (typeof value !== "string" || !value.trim()) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(value.trim());
+
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+/* =========================================================
+   PLACEHOLDER
+   ========================================================= */
+
+const escapeSvgText = (value) =>
+  String(value || SITE_NAME)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const createPlaceholder = (text = SITE_NAME) => {
+  const safeText = escapeSvgText(text);
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+      <rect width="1200" height="630" fill="#111111" />
+      <rect x="40" y="40" width="1120" height="550" rx="24" fill="#181818" stroke="#333333" stroke-width="2" />
+      <text x="600" y="295" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700">
+        ${safeText}
+      </text>
+      <text x="600" y="365" text-anchor="middle" dominant-baseline="middle" fill="#888888" font-family="Arial, Helvetica, sans-serif" font-size="24">
+        ${SITE_NAME}
+      </text>
+    </svg>
+  `;
+
+  return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+};
+
+/* =========================================================
+   IMAGE
+   ========================================================= */
+
+const baseUrl = (import.meta.env.VITE_API_URL || SITE_URL).replace(/\/+$/, "");
+
+const getStorageUrl = (value) => {
+  if (!value) return "";
+  const normalized = String(value).trim();
+  if (!normalized) return "";
+
+  if (
+    isAbsoluteHttpUrl(normalized) ||
+    normalized.startsWith("data:") ||
+    normalized.startsWith("blob:")
+  ) {
+    return normalized;
+  }
+
+  if (normalized.startsWith("/storage/")) return baseUrl + normalized;
+  if (normalized.startsWith("/")) return baseUrl + normalized;
+
+  return baseUrl + "/storage/" + normalized.replace(/^\/+/, "");
+};
+
+const getImageUrl = (image, fallbackText = "Artikel") =>
+  getStorageUrl(image) || createPlaceholder(fallbackText);
+
+/* =========================================================
+   AUTHOR
+   ========================================================= */
+
+const getInstitutionName = (user) => {
+  if (!user) return "";
+  const value =
+    user.schoolName || user.school_name || user.campusName || user.campus_name ||
+    user.campus || user.asalKampus || user.asal_kampus || user.asalSekolah ||
+    user.asal_sekolah || user.university || user.universitas || user.institution || user.instansi || "";
+  return String(value).trim();
+};
+
+const getAuthorProfession = (user) =>
+  String(user?.profession || user?.profesi || "").trim();
 
 const getAuthorMeta = (user) => {
   const profession = getAuthorProfession(user);
   const institution = getInstitutionName(user);
-  if (!profession && !institution) return '';
+  if (!profession && !institution) return "";
   if (!institution) return profession;
   if (!profession) return institution;
-  return `${profession} \u00b7 ${institution}`;
+  return `${profession} · ${institution}`;
 };
 
-const PARAGRAPHS_PER_LOAD = 20;
+const getAuthorImage = (user) =>
+  user?.avatar || user?.profile_photo_url || user?.photo || user?.image || user?.picture || "";
 
-const cleanSlugFromTimestamp = (slug) => {
-  if (!slug) return '';
-  const match = slug.match(/^(.+)-\d{10}$/);
-  if (match) {
-    return match[1];
-  }
-  return slug;
-};
+/* =========================================================
+   HTML
+   ========================================================= */
 
-const splitHtmlByParagraph = (html) => {
-  if (!html) return [];
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  return Array.from(doc.body.children);
-};
-
-const getVisibleHtml = (html, count) => {
-  const elements = splitHtmlByParagraph(html);
-  return elements.slice(0, count).map((el) => el.outerHTML).join('');
-};
-
-const getTotalParagraphs = (html) => splitHtmlByParagraph(html).length;
+const stripRelatedShortcodes = (html) =>
+  String(html || "").replace(/\[related:\d+\]/gi, "");
 
 const extractRelatedIdsFromContent = (html) => {
   const ids = [];
-  const regex = /\[related:(\d+)\]/g;
+  const regex = /\[related:(\d+)\]/gi;
   let match;
-  while ((match = regex.exec(html)) !== null) {
+  while ((match = regex.exec(String(html || ""))) !== null) {
     ids.push(match[1]);
   }
   return [...new Set(ids)];
 };
 
-const getSpotifyEmbedUrl = (url) => {
-  if (!url) return '';
+const stripHtml = (html) =>
+  String(html || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getReadingTime = (text) => {
+  const plainText = stripHtml(text);
+  if (!plainText) return "< 1 menit baca";
+  const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+  const minutes = Math.ceil(wordCount / 200);
+  return `${Math.max(minutes, 1)} menit baca`;
+};
+
+/* =========================================================
+   YOUTUBE & SPOTIFY
+   ========================================================= */
+
+const extractYoutubeVideoId = (value) => {
+  if (!value || typeof value !== "string") return "";
   try {
-    const normalized = url.trim();
-    if (normalized.startsWith('spotify:')) {
-      const parts = normalized.split(':').filter(Boolean);
+    const parsed = new URL(value.trim());
+    const host = parsed.hostname.toLowerCase();
+    let videoId = "";
+
+    if (host === "youtu.be" || host.endsWith(".youtu.be")) {
+      videoId = parsed.pathname.replace(/^\/+/, "").split("/")[0];
+    } else if (
+      host === "youtube.com" || host === "www.youtube.com" ||
+      host === "m.youtube.com" || host === "youtube-nocookie.com" ||
+      host === "www.youtube-nocookie.com"
+    ) {
+      if (parsed.pathname === "/watch") videoId = parsed.searchParams.get("v") || "";
+      else if (parsed.pathname.startsWith("/embed/")) videoId = parsed.pathname.slice("/embed/".length).split("/")[0];
+      else if (parsed.pathname.startsWith("/shorts/")) videoId = parsed.pathname.slice("/shorts/".length).split("/")[0];
+      else if (parsed.pathname.startsWith("/live/")) videoId = parsed.pathname.slice("/live/".length).split("/")[0];
+    }
+    return String(videoId || "").split("?")[0].split("&")[0].split("#")[0].trim();
+  } catch {
+    return "";
+  }
+};
+
+const getYoutubeEmbedUrl = (value) => {
+  const videoId = extractYoutubeVideoId(value);
+  return videoId ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}` : "";
+};
+
+const getYoutubeThumbnailUrl = (value) => {
+  const videoId = extractYoutubeVideoId(value);
+  return videoId ? `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : "";
+};
+
+const getSpotifyEmbedUrl = (value) => {
+  if (!value) return "";
+  try {
+    const normalized = String(value).trim();
+    if (!normalized) return "";
+
+    const allowedTypes = ["track", "episode", "album", "playlist", "show", "artist"];
+
+    if (normalized.startsWith("spotify:")) {
+      const parts = normalized.split(":").filter(Boolean);
       if (parts.length >= 3) {
-        return `https://open.spotify.com/embed/${parts[1]}/${parts[2]}`;
+        const type = parts[1];
+        const id = parts[2];
+        if (!allowedTypes.includes(type) || !id) return "";
+        return `https://open.spotify.com/embed/${encodeURIComponent(type)}/${encodeURIComponent(id)}`;
       }
-      return '';
+      return "";
     }
+
     const parsed = new URL(normalized);
-    if (!parsed.hostname.includes('spotify.com')) return '';
-    const parts = parsed.pathname.split('/').filter(Boolean);
-    if (parts[0] === 'embed') {
-      parts.shift();
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname !== "open.spotify.com" && !hostname.endsWith(".spotify.com")) return "";
+
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts[0] === "embed") parts.shift();
+
+    if (parts.length >= 2 && allowedTypes.includes(parts[0])) {
+      return `https://open.spotify.com/embed/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`;
     }
-    if (parts.length >= 2) {
-      return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
-    }
-    return '';
+    return "";
   } catch {
-    return '';
+    return "";
   }
 };
 
-const getYoutubeEmbedUrl = (url) => {
-  if (!url) return '';
-  try {
-    const normalized = url.trim();
-    const parsed = new URL(normalized);
-    const host = parsed.hostname.toLowerCase();
-    let videoId = '';
-    if (host.includes('youtu.be')) {
-      videoId = parsed.pathname.slice(1);
-    } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
-      if (parsed.pathname.startsWith('/watch')) {
-        videoId = parsed.searchParams.get('v');
-      } else if (parsed.pathname.startsWith('/embed/')) {
-        videoId = parsed.pathname.split('/embed/')[1];
-      } else if (parsed.pathname.startsWith('/shorts/')) {
-        videoId = parsed.pathname.split('/shorts/')[1];
-      } else if (parsed.pathname.startsWith('/live')) {
-        videoId = parsed.searchParams.get('v');
-      } else {
-        const parts = parsed.pathname.split('/').filter(Boolean);
-        videoId = parts[parts.length - 1] || '';
-      }
-    }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
-  } catch {
-    return '';
-  }
-};
+/* =========================================================
+   SANITIZER
+   ========================================================= */
 
-const getYoutubeThumbnailUrl = (url) => {
-  if (!url) return '';
-  try {
-    const normalized = url.trim();
-    const parsed = new URL(normalized);
-    const host = parsed.hostname.toLowerCase();
-    let videoId = '';
-    if (host.includes('youtu.be')) {
-      videoId = parsed.pathname.slice(1);
-    } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
-      if (parsed.pathname.startsWith('/watch')) {
-        videoId = parsed.searchParams.get('v');
-      } else if (parsed.pathname.startsWith('/embed/')) {
-        videoId = parsed.pathname.split('/embed/')[1];
-      } else if (parsed.pathname.startsWith('/shorts/')) {
-        videoId = parsed.pathname.split('/shorts/')[1];
-      } else if (parsed.pathname.startsWith('/live')) {
-        videoId = parsed.searchParams.get('v');
-      } else {
-        const parts = parsed.pathname.split('/').filter(Boolean);
-        videoId = parts[parts.length - 1] || '';
-      }
-    }
-    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
-  } catch {
-    return '';
-  }
-};
-
-const StableHtmlRenderer = React.memo(({ html, className }) => {
+const StableHtmlRenderer = memo(function StableHtmlRenderer({ html, className }) {
   const ref = useRef(null);
+
   useEffect(() => {
-    // Tambahkan 'style' dan 'target' agar tidak dibuang oleh DOMPurify
-    const clean = DOMPurify.sanitize(html || "", { ADD_ATTR: ["style", "target"] });
-    if (ref.current && ref.current.innerHTML !== clean) {
+    if (!ref.current) return;
+    const clean = DOMPurify.sanitize(html || "", {
+      ADD_ATTR: ["style", "target", "rel"],
+      FORBID_TAGS: ["style", "script", "iframe", "object", "embed"],
+    });
+
+    if (ref.current.innerHTML !== clean) {
       ref.current.innerHTML = clean;
     }
   }, [html]);
-  return <div className={className} ref={ref} />;
+
+  return <div ref={ref} className={className} />;
 });
+
 StableHtmlRenderer.displayName = "StableHtmlRenderer";
+
+/* =========================================================
+   FETCH ARTICLE
+   ========================================================= */
+
+const fetchArticleBySlug = async (slug, signal) => {
+  if (!slug) throw new Error("Slug artikel tidak tersedia.");
+  const response = await axios.get(`/api/articles/${encodeURIComponent(slug)}`, { signal });
+  const payload = response?.data;
+  if (payload && payload.data) return payload.data;
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) return payload;
+  return null;
+};
+
+/* =========================================================
+   ARTICLE DETAIL
+   ========================================================= */
 
 const ArticleDetail = () => {
   const { slug: rawSlug } = useParams();
@@ -174,12 +391,18 @@ const ArticleDetail = () => {
   const queryClient = useQueryClient();
   const slug = cleanSlugFromTimestamp(rawSlug);
 
-  const [article, setArticle] = useState(null);
+  /* =======================================================
+     STATE
+     ======================================================= */
+
+  const [isCompactLayout, setIsCompactLayout] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth <= 1100;
+  });
+
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [isBookmarked, setIsBookmarked] = useState(false);
   const [copyText, setCopyText] = useState("Salin");
-  const [showShareFloat, setShowShareFloat] = useState(false);
   const [showBackTop, setShowBackTop] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
   const [viewCount, setViewCount] = useState(0);
@@ -189,537 +412,568 @@ const ArticleDetail = () => {
   const [isReporting, setIsReporting] = useState(false);
   const [hasAwardedRead, setHasAwardedRead] = useState(false);
   const hasAwardedReadRef = useRef(false);
-  const [visibleParagraphs, setVisibleParagraphs] = useState(PARAGRAPHS_PER_LOAD);
-  const contentRef = useRef(null);
 
-  const shareUrl = useMemo(() => {
-    const articleSlug = article?.slug || slug;
-    if (!articleSlug) {
-      return typeof window !== "undefined" ? window.location.href : "";
-    }
-    try {
-      const apiOrigin = new URL(baseUrl).origin;
-      return `${apiOrigin}/article/${articleSlug}`;
-    } catch {
-      return typeof window !== "undefined" ? window.location.origin + `/article/${articleSlug}` : `/${articleSlug}`;
-    }
-  }, [article?.slug, slug]);
-
-  const { data: allArticles = [], isLoading: articleLoading } = useQuery({
-    queryKey: ['publicArticles'],
-    queryFn: async () => {
-      const res = await axios.get('/api/public-articles');
-      return res.data;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  // Cari artikel dari list dulu
-  const articleFromList = useMemo(() => {
-    if (!slug || !allArticles.length) return null;
-    const safeSlug = String(slug).toLowerCase();
-    return allArticles.find((item) => {
-      if (!item || !item.slug) return false;
-      const itemSlugClean = cleanSlugFromTimestamp(String(item.slug)).toLowerCase();
-      return itemSlugClean === safeSlug || String(item.slug).toLowerCase() === safeSlug || String(item.id) === String(slug);
-    }) || null;
-  }, [slug, allArticles]);
-
-  // Ambil detail artikel langsung berdasarkan slug
-  const { data: articleDetail } = useQuery({
-    queryKey: ['article', slug],
-    queryFn: async () => {
-      const res = await axios.get(`/api/articles/${slug}`);
-      return res.data.data;
-    },
-    enabled: !!slug,
-  });
+  /* =======================================================
+     RESPONSIVE OBSERVER (ADSENSE SAFETY)
+     ======================================================= */
 
   useEffect(() => {
-    // Gabungkan data list + detail. Data detail lebih lengkap (views, tags,
-    // status, profesi penulis) sehingga menimpa data ringkas dari list.
-    const source = (articleFromList || articleDetail)
-      ? { ...(articleFromList || {}), ...(articleDetail || {}) }
-      : null;
-    setArticle(source);
-    if (source) {
-      setLikeCount(source.likes_count || 0);
-      setIsLiked(source.is_liked_by_user || false);
-      setIsBookmarked(source.is_bookmarked_by_user || false);
-      setViewCount(source.views_count || source.views || 0);
+    if (typeof window === "undefined") return undefined;
+    const mediaQuery = window.matchMedia("(max-width: 1100px)");
+    const updateLayout = (event) => setIsCompactLayout(Boolean(event?.matches ?? mediaQuery.matches));
+    updateLayout(mediaQuery);
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", updateLayout);
+      return () => mediaQuery.removeEventListener("change", updateLayout);
     }
-    setVisibleParagraphs(PARAGRAPHS_PER_LOAD);
-    setHasAwardedRead(false);
-    hasAwardedReadRef.current = false;
-    window.scrollTo(0, 0);
-  }, [slug, articleFromList, articleDetail]);
+    mediaQuery.addListener(updateLayout);
+    return () => mediaQuery.removeListener(updateLayout);
+  }, []);
 
-  // Fallback: kalau data profesi/asal kampus tidak ikut di payload artikel,
-  // ambil langsung dari profil penulis.
-  const authorId = article?.user?.id;
-  const authorMetaMissing =
-    !!authorId && !getAuthorProfession(article?.user) && !getInstitutionName(article?.user);
+  /* =======================================================
+     ARTICLE QUERY
+     ======================================================= */
 
-  const { data: authorDetail } = useQuery({
-    queryKey: ['authorProfile', authorId],
-    queryFn: async () => {
-      const endpoints = [
-        `/api/users/${authorId}`,
-        `/api/user/${authorId}`,
-        `/api/profile/${authorId}`,
-        `/api/users/${authorId}/profile`,
-      ];
-      for (const endpoint of endpoints) {
-        try {
-          const res = await axios.get(endpoint);
-          const payload = res?.data?.data || res?.data?.user || res?.data;
-          if (payload && (getAuthorProfession(payload) || getInstitutionName(payload))) {
-            return payload;
-          }
-        } catch {
-          // coba endpoint berikutnya
-        }
-      }
-      return null;
-    },
-    enabled: authorMetaMissing,
-    staleTime: 1000 * 60 * 10,
-    retry: false,
+  const {
+    data: article = null,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["article", slug],
+    queryFn: ({ signal }) => fetchArticleBySlug(slug, signal),
+    enabled: Boolean(slug),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
-  const authorUser = useMemo(
-    () => ({ ...(article?.user || {}), ...(authorDetail || {}) }),
-    [article?.user, authorDetail]
-  );
+  /* =======================================================
+     RESET
+     ======================================================= */
 
+  useEffect(() => {
+    setLikeCount(Number(article?.likes_count ?? article?.like_count ?? article?.likes ?? 0));
+    setIsLiked(Boolean(article?.is_liked_by_user ?? article?.is_liked ?? false));
+    setViewCount(Number(article?.views_count ?? article?.views ?? article?.view_count ?? 0));
+    setHasAwardedRead(false);
+    hasAwardedReadRef.current = false;
+    setReadProgress(0);
+    setShowBackTop(false);
+    setShowReportForm(false);
+    setReportReason("");
+    setReportStatus(null);
+    setIsReporting(false);
+  }, [article, slug]);
+
+  /* =======================================================
+     SCROLL TOP
+     ======================================================= */
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [slug]);
+
+  /* =======================================================
+     AUTHOR & CONTENT
+     ======================================================= */
+
+  const authorId = article?.user?.id;
+  const authorUser = useMemo(() => ({ ...(article?.user || {}) }), [article?.user]);
+  const authorName = article?.user?.name || article?.author_name || "Redaksi SukaMuda";
   const authorMetaText = getAuthorMeta(authorUser);
+  const authorImage = getStorageUrl(getAuthorImage(authorUser));
+  const authorProfileUrl = authorId ? `/user/${encodeURIComponent(String(authorId))}` : "/";
 
-  const awardReadPoint = async () => {
+  const cleanContent = useMemo(() => stripRelatedShortcodes(article?.content || ""), [article?.content]);
+  const plainArticleText = useMemo(() => stripHtml(article?.content || ""), [article?.content]);
+
+  const actualArticleSlug = article?.slug || rawSlug || slug;
+  const shareUrl = actualArticleSlug ? `${SITE_URL}/article/${encodeURIComponent(String(actualArticleSlug))}` : `${SITE_URL}/`;
+
+  /* =======================================================
+     VIEW
+     ======================================================= */
+
+  const awardReadPoint = useCallback(async () => {
     if (hasAwardedReadRef.current || !article?.id) return;
     hasAwardedReadRef.current = true;
     try {
-      const res = await axios.get(`/api/articles/${article.id}/view`);
-      if (res?.data?.views !== undefined) {
-        setViewCount(res.data.views);
+      const response = await axios.get(`/api/articles/${encodeURIComponent(String(article.id))}/view`);
+      const serverViews = response?.data?.views ?? response?.data?.views_count ?? response?.data?.data?.views ?? response?.data?.data?.views_count;
+      if (serverViews !== undefined) {
+        setViewCount(Number(serverViews));
       } else {
-        setViewCount((prev) => prev + 1);
+        setViewCount((previous) => previous + 1);
       }
       setHasAwardedRead(true);
-    } catch (error) {
-      console.error('Gagal meningkatkan mata/read count:', error);
+    } catch {
       hasAwardedReadRef.current = false;
     }
-  };
+  }, [article?.id]);
 
-  const totalParagraphs = getTotalParagraphs(article?.content || "");
-  const hasMore = visibleParagraphs < totalParagraphs;
-
-  const visibleHtml = useMemo(
-    () => getVisibleHtml(article?.content || "", visibleParagraphs),
-    [article?.content, visibleParagraphs]
-  );
+  /* =======================================================
+     SCROLL
+     ======================================================= */
 
   const handleScroll = useCallback(() => {
-    const scrollTop = window.scrollY;
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-    setReadProgress(Math.min(progress, 100));
+    if (typeof window === "undefined") return;
+    const scrollTop = window.scrollY || 0;
+    const viewportHeight = window.innerHeight || 0;
+    const pageHeight = document.documentElement.scrollHeight || 0;
+    const maxScroll = Math.max(pageHeight - viewportHeight, 0);
+    const progress = maxScroll > 0 ? (scrollTop / maxScroll) * 100 : 0;
+    setReadProgress(Math.min(Math.max(progress, 0), 100));
     setShowBackTop(scrollTop > 600);
-    setShowShareFloat(scrollTop > 400);
 
-    if (!hasMore && !hasAwardedRead) {
-      const scrollBottom = scrollTop + window.innerHeight;
-      const pageHeight = document.documentElement.scrollHeight;
-      if (scrollBottom >= pageHeight - 24) {
+    if (!hasAwardedRead && article?.id) {
+      const atBottom = scrollTop + viewportHeight >= pageHeight - 24;
+      if (atBottom) {
         awardReadPoint();
       }
     }
-  }, [hasMore, hasAwardedRead, article?.id]);
+  }, [hasAwardedRead, article?.id, awardReadPoint]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
-  const getReadingTime = (text) => {
-    if (!text) return "< 1 menit baca";
-    const wordCount = text.replace(/<[^>]*>/g, "").split(/\s+/).length;
-    return `${Math.ceil(wordCount / 200)} menit baca`;
-  };
+  /* =======================================================
+     ACTIONS
+     ======================================================= */
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopyText("Tersalin!");
-    setTimeout(() => setCopyText("Salin"), 2000);
-  };
-
-  const handleLike = async () => {
-    if (!isLoggedIn) return alert("Kamu harus login dulu untuk menyukai artikel ini.");
-    if (!article?.id) return;
-    const prevLiked = isLiked;
-    const prevCount = likeCount;
+  const handleCopyLink = useCallback(async () => {
     try {
-      setIsLiked(!prevLiked);
-      setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1);
-      const res = await axios.post(`/api/articles/${article.id}/like`);
-      setLikeCount(res.data.likes_count);
-      setIsLiked(res.data.status === 'liked');
-      queryClient.invalidateQueries(['publicArticles']);
-    } catch (error) {
-      setIsLiked(prevLiked);
-      setLikeCount(prevCount);
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = shareUrl;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      setCopyText("Tersalin!");
+      window.setTimeout(() => setCopyText("Salin"), 2000);
+    } catch {
+      setCopyText("Gagal");
+      window.setTimeout(() => setCopyText("Salin"), 2000);
     }
-  };
+  }, [shareUrl]);
 
-  const handleBookmark = async () => {
-    if (!isLoggedIn) return alert("Kamu harus login dulu untuk menyimpan artikel ini.");
-    if (!article?.id) return;
-    const prev = isBookmarked;
-    setIsBookmarked(!prev);
-    try {
-      await axios.post(`/api/articles/${article.id}/bookmark`);
-      queryClient.invalidateQueries(['publicArticles']);
-    } catch (error) {
-      setIsBookmarked(prev);
-    }
-  };
-
-  const handleReportSubmit = async () => {
+  const handleLike = useCallback(async () => {
     if (!isLoggedIn) {
-      return alert("Kamu harus login dulu untuk melaporkan artikel ini.");
+      window.alert("Kamu harus login dulu untuk menyukai artikel ini.");
+      return;
     }
-    if (!reportReason.trim()) {
-      return alert("Silakan isi alasan laporan terlebih dahulu.");
+    if (!article?.id) return;
+    const previousLiked = isLiked;
+    const previousCount = likeCount;
+    const nextLiked = !previousLiked;
+    const nextCount = nextLiked ? previousCount + 1 : Math.max(previousCount - 1, 0);
+    setIsLiked(nextLiked);
+    setLikeCount(nextCount);
+    try {
+      const response = await axios.post(`/api/articles/${encodeURIComponent(String(article.id))}/like`);
+      const serverCount = response?.data?.likes_count ?? response?.data?.like_count ?? response?.data?.data?.likes_count;
+      const serverStatus = response?.data?.status ?? response?.data?.liked ?? response?.data?.data?.status ?? response?.data?.data?.liked;
+      if (serverCount !== undefined) setLikeCount(Number(serverCount));
+      if (typeof serverStatus === "boolean") setIsLiked(serverStatus);
+      else if (serverStatus === "liked" || serverStatus === "unliked") setIsLiked(serverStatus === "liked");
+      queryClient.invalidateQueries({ queryKey: ["article", slug] });
+    } catch {
+      setIsLiked(previousLiked);
+      setLikeCount(previousCount);
+    }
+  }, [isLoggedIn, article?.id, isLiked, likeCount, queryClient, slug]);
+
+  const handleReportSubmit = useCallback(async () => {
+    if (!isLoggedIn) {
+      window.alert("Kamu harus login dulu untuk melaporkan artikel ini.");
+      return;
+    }
+    if (!article?.id) return;
+    const cleanReason = reportReason.trim();
+    if (!cleanReason) {
+      window.alert("Silakan isi alasan laporan terlebih dahulu.");
+      return;
     }
     setIsReporting(true);
     setReportStatus(null);
     try {
-      await axios.post('/api/reports', {
-        article_id: article?.id,
-        reason: reportReason.trim(),
-      });
-      setReportStatus({ success: true, message: 'Laporan berhasil dikirim.' });
-      setReportReason('');
+      await axios.post("/api/reports", { article_id: article.id, reason: cleanReason });
+      setReportStatus({ success: true, message: "Laporan berhasil dikirim." });
+      setReportReason("");
       setShowReportForm(false);
     } catch (error) {
       setReportStatus({
         success: false,
-        message: error.response?.data?.message || 'Gagal mengirim laporan. Coba lagi nanti.',
+        message: error?.response?.data?.message || "Gagal mengirim laporan. Coba lagi nanti.",
       });
     } finally {
       setIsReporting(false);
     }
-  };
+  }, [isLoggedIn, article?.id, reportReason]);
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
-  const isPageLoading = articleLoading && !articleFromList;
+  /* =======================================================
+     INVALID
+     ======================================================= */
 
-  if (isPageLoading) {
+  if (!slug || slug.length < 2) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
+      <>
+        <Helmet>
+          <html lang="id-ID" />
+          <title>Tautan Tidak Valid | {SITE_NAME}</title>
+          <meta name="robots" content={NOINDEX_ROBOTS} />
+          <link rel="canonical" href={`${SITE_URL}/`} />
+        </Helmet>
+        <div className="error-container" role="alert">
+          <h1>Tautan Tidak Valid</h1>
+          <p>Link artikel yang kamu buka tidak valid.</p>
+          <Link to="/">Balik ke Home</Link>
+        </div>
+      </>
+    );
+  }
+
+  /* =======================================================
+     LOADING
+     ======================================================= */
+
+  if (isLoading) {
+    return (
+      <div className="loading-container" role="status" aria-live="polite" aria-busy="true">
+        <div className="spinner" />
         <p>Menyelami berita...</p>
       </div>
     );
   }
 
-  // Cegah error jika slug kosong/invalid setelah dibersihkan
-  if (!slug || slug.length < 2) {
-    return (
-      <>
-        <Helmet>
-          <title>Tautan Tidak Valid - SukaMuda</title>
-          <meta name="robots" content="noindex,follow" />
-        </Helmet>
-        <div className="error-container">
-          <h2>Waduh!</h2>
-          <p>Link yang kamu buka tidak valid.</p>
-          <Link to="/">Balik ke Home</Link>
-        </div>
-      </>
-    );
-  }
+  /* =======================================================
+     NOT FOUND
+     ======================================================= */
 
   if (!article) {
     return (
       <>
         <Helmet>
-          <title>Artikel Tidak Ditemukan - SukaMuda</title>
-          <meta name="robots" content="noindex,follow" />
+          <html lang="id-ID" />
+          <title>Artikel Tidak Ditemukan | {SITE_NAME}</title>
+          <meta name="robots" content={NOINDEX_ROBOTS} />
+          <meta name="googlebot" content={NOINDEX_ROBOTS} />
+          <link rel="canonical" href={`${SITE_URL}/article/${encodeURIComponent(slug)}`} />
         </Helmet>
-        <div className="error-container">
-          <h2>Waduh!</h2>
-          <p>Artikelnya nggak ketemu.</p>
-          <Link to="/">Balik ke Home</Link>
+        <div className="error-container" role="alert">
+          <h1>Artikel Tidak Ditemukan</h1>
+          <p>Artikel yang kamu cari belum tersedia atau sudah tidak dapat diakses.</p>
+          {isError && <p>Terjadi masalah saat mengambil data artikel.</p>}
+          <div className="error-actions">
+            <button type="button" onClick={() => refetch()}>Coba Lagi</button>
+            <Link to="/">Balik ke Home</Link>
+          </div>
         </div>
       </>
     );
   }
 
-  const isPodcast = normalizeCategory(article.category) === 'podcast';
-  const categoryLabel = categories.find((item) => item.slug === normalizeCategory(article.category))?.label || article.category;
+  /* =======================================================
+     ARTICLE DATA
+     ======================================================= */
+
+  const articleCategoryRaw = article.category || article.category_slug || "general";
+  const categorySlug = normalizeCategorySlug(articleCategoryRaw) || "general";
+  const categoryLabel = getCategoryLabel(articleCategoryRaw);
+  const isPodcast = normalizeCategory(articleCategoryRaw) === "podcast";
+  const articleStatus = String(article.status || "").toLowerCase();
+  const isDraft = articleStatus === "draft";
+  const shouldNoIndex = Boolean(articleStatus) && articleStatus !== "approved";
+
+  /* =======================================================
+     RELATED
+     ======================================================= */
 
   const relatedShortcodeIds = extractRelatedIdsFromContent(article.content || "");
-  const relatedShortcodeArticles = relatedShortcodeIds
-    .map((articleId) => allArticles.find((item) => String(item.id) === String(articleId)))
-    .filter(Boolean);
-
-  const relatedArticles = allArticles
-    .filter((item) => normalizeCategory(item.category) === normalizeCategory(article.category) && String(item.id) !== String(article.id))
-    .slice(0, 3);
-
-  const spotifyEmbedUrl = article.audio_link ? getSpotifyEmbedUrl(article.audio_link) : '';
-  const youtubeEmbedUrl = article.video_link ? getYoutubeEmbedUrl(article.video_link) : '';
-  const showPodcastEmbed = isPodcast && (spotifyEmbedUrl || youtubeEmbedUrl);
-  const youtubeThumbnail = isPodcast && article.video_link ? getYoutubeThumbnailUrl(article.video_link) : '';
-
-  const imageUrl = article.image
-    ? (article.image.startsWith("http") ? article.image : `${baseUrl}/storage/${article.image}`)
-    : (youtubeThumbnail || `https://placehold.co/1200x600/1a1a1a/ffffff?text=${encodeURIComponent(categoryLabel || 'Artikel')}`);
-
-  // Gambar untuk schema & berbagi: jangan pakai placeholder eksternal
-  const schemaImage = (article.image || youtubeThumbnail) ? imageUrl : `${baseUrl}/sukamuda-share.jpg`;
-
-  const fallbackPlaceholder = `https://placehold.co/1200x600/1a1a1a/ffffff?text=${encodeURIComponent(categoryLabel || 'Artikel')}`;
-
-  const tagsArray = article.tags
-    ? typeof article.tags === "string"
-      ? article.tags.split(/[ ,#]+/).filter((t) => t.trim() !== "").map((t) => t.trim())
-      : article.tags
+  const relatedShortcodeArticles = Array.isArray(article.related_articles)
+    ? article.related_articles.filter((item) => item && String(item.id) !== String(article.id)).filter((item) => relatedShortcodeIds.includes(String(item.id)))
     : [];
 
-  const authorProfileUrl = article.user?.id ? `/user/${article.user.id}` : '/';
-  const isDraft = article.status === "draft";
+  const relatedArticles = Array.isArray(article.related_articles)
+    ? article.related_articles.filter((item) => {
+      if (!item || String(item.id) === String(article.id)) return false;
+      return Boolean(item.slug);
+    }).slice(0, 3)
+    : [];
 
-  const encodedTitle = encodeURIComponent(article.title || '');
+  /* =======================================================
+     MEDIA
+     ======================================================= */
+
+  const spotifyEmbedUrl = getSpotifyEmbedUrl(article.audio_link);
+  const youtubeEmbedUrl = getYoutubeEmbedUrl(article.video_link);
+  const youtubeThumbnail = isPodcast ? getYoutubeThumbnailUrl(article.video_link) : "";
+  const showPodcastEmbed = isPodcast && Boolean(spotifyEmbedUrl || youtubeEmbedUrl);
+
+  /* =======================================================
+     HERO
+     ======================================================= */
+
+  const rawArticleImage = article.image || article.featured_image || article.thumbnail || "";
+  const safeImageUrl = rawArticleImage ? getStorageUrl(rawArticleImage) : youtubeThumbnail || createPlaceholder(article.title || categoryLabel);
+  const fallbackPlaceholder = createPlaceholder(article.title || categoryLabel);
+  const schemaImage = isAbsoluteHttpUrl(safeImageUrl) ? safeImageUrl : SHARE_IMAGE;
+
+  /* =======================================================
+     TAGS
+     ======================================================= */
+
+  const tagsArray = Array.isArray(article.tags)
+    ? article.tags.map((tag) => String(tag || "").trim()).filter(Boolean)
+    : article.tags
+      ? String(article.tags).split(/[,\s#]+/).map((tag) => tag.trim()).filter(Boolean)
+      : [];
+
+  /* =======================================================
+     DATES
+     ======================================================= */
+
+  const datePublished = article.published_at || article.created_at || null;
+  const dateModified = article.updated_at || datePublished || null;
+  const parsedPublishedDate = datePublished ? new Date(datePublished) : null;
+  const formattedDate = parsedPublishedDate && !Number.isNaN(parsedPublishedDate.getTime())
+    ? parsedPublishedDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+    : "-";
+
+  /* =======================================================
+     DESCRIPTION & WORD COUNT
+     ======================================================= */
+
+  const metaDescription = String(article.summary || article.excerpt || plainArticleText.slice(0, 160) || article.title || "").trim().slice(0, 300);
+  const wordCount = plainArticleText ? plainArticleText.split(/\s+/).filter(Boolean).length : undefined;
+
+  /* =======================================================
+     SOCIAL
+     ======================================================= */
+
+  const encodedTitle = encodeURIComponent(article.title || "");
   const encodedUrl = encodeURIComponent(shareUrl);
 
-  const handleLoadMore = () => {
-    setVisibleParagraphs((prev) => {
-      const next = Math.min(prev + PARAGRAPHS_PER_LOAD, totalParagraphs);
-      if (next >= totalParagraphs && !hasAwardedRead) {
-        awardReadPoint();
-      }
-      return next;
-    });
-  };
+  /* =======================================================
+     SCHEMA
+     ======================================================= */
 
-  /* ------------------------------------------------------------------
-   * JSON-LD
-   * Disiapkan sebagai STRING, lalu dikirim lewat prop `script` milik
-   * Helmet. Cara ini memaksa tag masuk ke <head>, bukan ke <body>.
-   * ------------------------------------------------------------------ */
-  const newsArticleLd = JSON.stringify({
-    "@context": "https://schema.org",
+  const newsArticleSchema = {
     "@type": "NewsArticle",
-    mainEntityOfPage: { "@type": "WebPage", "@id": shareUrl },
-    headline: article.title,
-    description: article.summary || article.title,
+    "@id": `${shareUrl}#article`,
+    url: shareUrl,
+    mainEntityOfPage: { "@type": "WebPage", "@id": `${shareUrl}#webpage` },
+    headline: String(article.title || "").trim().slice(0, 110),
+    description: metaDescription,
     image: [schemaImage],
-    datePublished: article.created_at,
-    dateModified: article.updated_at || article.created_at,
+    ...(datePublished ? { datePublished } : {}),
+    ...(dateModified ? { dateModified } : {}),
     articleSection: categoryLabel,
-    keywords: tagsArray.join(", "),
+    ...(tagsArray.length ? { keywords: tagsArray.join(", ") } : {}),
     inLanguage: "id-ID",
     isAccessibleForFree: true,
+    ...(wordCount ? { wordCount } : {}),
     author: {
       "@type": "Person",
-      name: article.user?.name || "Redaksi SukaMuda",
-      url: article.user?.id ? `${baseUrl}/user/${article.user.id}` : baseUrl,
-      ...(getAuthorProfession(authorUser) ? { jobTitle: getAuthorProfession(authorUser) } : {}),
-      ...(getInstitutionName(authorUser)
-        ? { affiliation: { "@type": "Organization", name: getInstitutionName(authorUser) } }
-        : {}),
+      name: authorName,
+      ...(authorId ? { url: `${SITE_URL}${authorProfileUrl}` } : {}),
     },
     publisher: {
       "@type": "NewsMediaOrganization",
-      name: "SukaMuda",
-      url: baseUrl,
+      "@id": ORGANIZATION_ID,
+      name: SITE_NAME,
+      url: `${SITE_URL}/`,
       logo: {
         "@type": "ImageObject",
-        url: `${baseUrl}/logo.png`,
+        "@id": LOGO_ID,
+        url: `${SITE_URL}/logo.png`,
+        contentUrl: `${SITE_URL}/logo.png`,
         width: 512,
         height: 512,
       },
     },
-    ...(isPodcast && article.video_link
-      ? {
-          video: {
-            "@type": "VideoObject",
-            name: article.title,
-            description: article.summary || article.title,
-            thumbnailUrl: schemaImage,
-            uploadDate: article.created_at,
-            embedUrl: youtubeEmbedUrl || article.video_link,
-          },
-        }
-      : {}),
-  });
+    ...(isPodcast && youtubeEmbedUrl ? {
+      video: {
+        "@type": "VideoObject",
+        "@id": `${shareUrl}#video`,
+        name: article.title || "Video SukaMuda",
+        description: metaDescription,
+        thumbnailUrl: [youtubeThumbnail || schemaImage],
+        ...(datePublished ? { uploadDate: datePublished } : {}),
+        embedUrl: youtubeEmbedUrl,
+        ...(article.video_link ? { contentUrl: article.video_link } : {}),
+      },
+    } : {}),
+  };
 
-  const breadcrumbLd = JSON.stringify({
-    "@context": "https://schema.org",
+  const webPageSchema = {
+    "@type": "WebPage",
+    "@id": `${shareUrl}#webpage`,
+    url: shareUrl,
+    name: article.title || SITE_NAME,
+    description: metaDescription,
+    isPartOf: { "@id": WEBSITE_ID },
+    about: { "@id": ORGANIZATION_ID },
+    publisher: { "@id": ORGANIZATION_ID },
+    mainEntity: { "@id": `${shareUrl}#article` },
+    primaryImageOfPage: { "@type": "ImageObject", url: schemaImage },
+    inLanguage: "id-ID",
+  };
+
+  const breadcrumbCategoryUrl = `${SITE_URL}/category/${encodeURIComponent(categorySlug)}`;
+  const breadcrumbSchema = {
     "@type": "BreadcrumbList",
+    "@id": `${shareUrl}#breadcrumb`,
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Beranda", item: baseUrl },
-      { "@type": "ListItem", position: 2, name: categoryLabel, item: `${baseUrl}/category/${article.category}` },
-      { "@type": "ListItem", position: 3, name: article.title, item: shareUrl },
+      { "@type": "ListItem", position: 1, name: "Beranda", item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: categoryLabel, item: breadcrumbCategoryUrl },
+      { "@type": "ListItem", position: 3, name: article.title || "Artikel", item: shareUrl },
+    ],
+  };
+
+  const structuredData = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": ["Organization", "NewsMediaOrganization"], "@id": ORGANIZATION_ID, name: SITE_NAME, url: `${SITE_URL}/` },
+      { "@type": "WebSite", "@id": WEBSITE_ID, url: `${SITE_URL}/`, name: SITE_NAME, inLanguage: "id-ID", publisher: { "@id": ORGANIZATION_ID } },
+      newsArticleSchema,
+      webPageSchema,
+      breadcrumbSchema,
     ],
   });
 
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
   return (
     <>
-      <Helmet
-        script={[
-          { type: "application/ld+json", innerHTML: newsArticleLd },
-          { type: "application/ld+json", innerHTML: breadcrumbLd },
-        ]}
-      >
-        {/* Script Google AdSense */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7608424206122269"
-          crossOrigin="anonymous"
-        ></script>
-
-        <title>{`${article.title} - SukaMuda`}</title>
-        <meta
-          name="robots"
-          content={isDraft ? "noindex,follow" : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"}
-        />
-        <meta name="description" content={article.summary || article.title} />
+      <Helmet>
+        <html lang="id-ID" />
+        <title>{article.title ? `${article.title} | ${SITE_NAME}` : SITE_NAME}</title>
+        <meta name="description" content={metaDescription} />
+        <meta name="robots" content={shouldNoIndex ? NOINDEX_ROBOTS : ARTICLE_ROBOTS} />
+        <meta name="googlebot" content={shouldNoIndex ? NOINDEX_ROBOTS : ARTICLE_ROBOTS} />
         <link rel="canonical" href={shareUrl} />
-
-        {/* Open Graph */}
-        <meta property="og:site_name" content="SukaMuda" />
+        <link rel="alternate" hrefLang="id-ID" href={shareUrl} />
+        <link rel="alternate" hrefLang="x-default" href={shareUrl} />
+        <meta property="og:site_name" content={SITE_NAME} />
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={article.title} />
-        <meta property="og:description" content={article.summary || article.title} />
+        <meta property="og:locale" content="id_ID" />
+        <meta property="og:title" content={article.title || SITE_NAME} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={shareUrl} />
         <meta property="og:image" content={schemaImage} />
         <meta property="og:image:secure_url" content={schemaImage} />
-        <meta property="og:image:type" content="image/jpeg" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content={article.title} />
-        <meta property="og:url" content={shareUrl} />
-        <meta property="og:locale" content="id_ID" />
-        <meta property="article:published_time" content={article.created_at} />
-        <meta property="article:modified_time" content={article.updated_at || article.created_at} />
+        <meta property="og:image:alt" content={article.title || SITE_NAME} />
+        {datePublished && <meta property="article:published_time" content={datePublished} />}
+        {dateModified && <meta property="article:modified_time" content={dateModified} />}
         <meta property="article:section" content={categoryLabel} />
-        {tagsArray.map((tag) => (
-          <meta key={tag} property="article:tag" content={tag} />
+        {tagsArray.map((tag, index) => (
+          <meta key={`${tag}-${index}`} property="article:tag" content={tag} />
         ))}
-
-        {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={article.title} />
-        <meta name="twitter:description" content={article.summary || article.title} />
+        <meta name="twitter:title" content={article.title || SITE_NAME} />
+        <meta name="twitter:description" content={metaDescription} />
         <meta name="twitter:image" content={schemaImage} />
-        <meta name="twitter:image:alt" content={article.title} />
+        <meta name="twitter:image:alt" content={article.title || SITE_NAME} />
+        <script type="application/ld+json">{structuredData}</script>
       </Helmet>
 
-      <div className="reading-progress-bar" style={{ width: `${readProgress}%` }} />
+      <div className="reading-progress-bar" style={{ width: `${readProgress}%` }} aria-hidden="true" />
 
-      <button
-        className={`back-to-top ${showBackTop ? "visible" : ""}`}
-        onClick={scrollToTop}
-        aria-label="Kembali ke atas"
-      >
-        <svg className="back-top-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <button type="button" className={`back-to-top ${showBackTop ? "visible" : ""}`} onClick={scrollToTop} aria-label="Kembali ke atas">
+        <svg className="back-top-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <polyline points="18 15 12 9 6 15" />
         </svg>
       </button>
 
-      <div className="article-layout-wrapper">
-        <div className="ad-sidebar ad-sidebar-left">
-          <div className="ad-sidebar-sticky">
-            <AdSlot
-              type="vertical"
-              mode="adsense"
-              adClient="ca-pub-7608424206122269"
-              adSlot="9190843316"
-            />
-          </div>
-        </div>
+      <div className="article-layout-wrapper article-detail-page">
+        {/* LEFT AD - HIDDEN ON MOBILE */}
+        {!isCompactLayout && (
+          <aside className="ad-sidebar ad-sidebar-left" aria-label="Iklan">
+            <div className="ad-sidebar-sticky">
+              <AdSlot type="vertical" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_VERTICAL_SLOT} />
+            </div>
+          </aside>
+        )}
 
+        {/* MAIN */}
         <div className="article-main-content">
-          <div className="ad-center">
-            <AdSlot
-              type="horizontal"
-              mode="adsense"
-              adClient="ca-pub-7608424206122269"
-              adSlot="9097520145"
-            />
+          {/* TOP AD */}
+          <div className="ad-center" aria-label="Iklan">
+            <AdSlot type="horizontal" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_HORIZONTAL_SLOT} />
           </div>
 
           <div className="article-container">
-            <nav className="breadcrumb">
+            {/* BREADCRUMB */}
+            <nav className="breadcrumb" aria-label="Breadcrumb">
               <Link to="/">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                   <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
                 Home
               </Link>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2" aria-hidden="true">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-              <Link to={`/category/${article.category}`}>{categoryLabel}</Link>
+              <Link to={`/category/${encodeURIComponent(categorySlug)}`}>{categoryLabel}</Link>
             </nav>
 
+            {/* ARTICLE HEADER */}
             <header className="article-header">
               <div className="header-top-row">
                 <span className="badge-category">{categoryLabel}</span>
-                {isDraft && (
-                  <span className="badge-draft">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    Draf
-                  </span>
-                )}
+                {isDraft && <span className="badge-draft">Draf</span>}
                 <div className="view-count">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
                   {viewCount.toLocaleString("id-ID")}
                 </div>
               </div>
-
               <h1 className="article-title">{article.title}</h1>
-
-              {article.summary && <p className="article-summary">"{article.summary}"</p>}
-
+              {article.summary && <p className="article-summary">{article.summary}</p>}
               <div className="author-meta">
-                <Link to={authorProfileUrl} className="author-link">
+                <Link to={authorProfileUrl} className="author-link" aria-label={`Lihat profil ${authorName}`}>
                   <div className="author-avatar">
-                    {article.user?.avatar ? (
-                      <img
-                        src={article.user.avatar.startsWith("http") ? article.user.avatar : `${baseUrl}/storage/${article.user.avatar}`}
-                        alt={article.user?.name}
-                        onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100/1a1a1a/ffffff?text=U"; }}
-                      />
+                    {authorImage ? (
+                      <img src={authorImage} alt={`Foto profil ${authorName}`} loading="lazy" decoding="async" width="64" height="64" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = createPlaceholder("U"); }} />
                     ) : (
-                      article.user?.name?.charAt(0) || "A"
+                      <span aria-hidden="true">{authorName.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
                 </Link>
                 <div className="author-info">
                   <Link to={authorProfileUrl} className="author-name-link">
-                    <span className="author-name">{article.user?.name || "Anonim"}</span>
+                    <span className="author-name">{authorName}</span>
                   </Link>
-                  {authorMetaText && (
-                    <span className="author-profession">{authorMetaText}</span>
-                  )}
+                  {authorMetaText && <span className="author-profession">{authorMetaText}</span>}
                   <div className="meta-bottom">
-                    <span className="publish-date">
-                      {new Date(article.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                    </span>
-                    <span className="meta-dot">·</span>
+                    <span className="publish-date">{formattedDate}</span>
+                    <span className="meta-dot" aria-hidden="true">·</span>
                     <span className="read-time">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="10" />
                         <polyline points="12 6 12 12 16 14" />
                       </svg>
@@ -730,104 +984,62 @@ const ArticleDetail = () => {
               </div>
             </header>
 
+            {/* HERO */}
             <div className="hero-wrapper">
-              {imageUrl && !isPodcast && (
+              {!isPodcast && (
                 <>
-                  <img
-                    src={imageUrl}
-                    alt={article.title}
-                    className="hero-img"
-                    loading="lazy"
-                    onError={(e) => { e.currentTarget.src = fallbackPlaceholder; }}
-                  />
-                  {article.image_caption && (
-                    <p className="image-caption-text">{article.image_caption}</p>
-                  )}
+                  <img src={safeImageUrl} alt={article.title || "Artikel SukaMuda"} className="hero-img" width="1200" height="630" fetchPriority="high" decoding="async" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = fallbackPlaceholder; }} />
+                  {article.image_caption && <p className="image-caption-text">{article.image_caption}</p>}
                 </>
               )}
 
               {showPodcastEmbed && (
-                <div className="podcast-embed-section" style={{ marginBottom: '24px' }}>
+                <div className="podcast-embed-section">
                   {spotifyEmbedUrl && (
-                    <div className="podcast-embed podcast-audio" style={{ marginBottom: '24px' }}>
-                      <iframe
-                        key={spotifyEmbedUrl}
-                        src={spotifyEmbedUrl}
-                        width="100%"
-                        height="232"
-                        frameBorder="0"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        title="Spotify podcast"
-                      ></iframe>
+                    <div className="podcast-embed podcast-audio">
+                      <iframe src={spotifyEmbedUrl} width="100%" height="232" loading="lazy" title={`Spotify podcast ${article.title || ""}`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" />
                     </div>
                   )}
                   {youtubeEmbedUrl && (
                     <div className="podcast-embed podcast-video">
-                      <iframe
-                        key={youtubeEmbedUrl}
-                        src={youtubeEmbedUrl}
-                        width="100%"
-                        height="360"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        title="YouTube video"
-                      ></iframe>
+                      <iframe src={youtubeEmbedUrl} width="100%" height="360" loading="lazy" title={`YouTube podcast ${article.title || ""}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                     </div>
                   )}
                 </div>
               )}
 
-              <article className="content-body" ref={contentRef}>
+              {/* BODY */}
+              <article className="content-body">
                 {isDraft && (
                   <div className="draft-banner">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>
-                      <strong>Artikel ini masih berstatus draf</strong>
-                      <p>Konten belum dipublikasikan secara resmi dan dapat berubah sewaktu-waktu.</p>
-                    </div>
+                    <strong>Artikel ini masih berstatus draf</strong>
+                    <p>Konten belum dipublikasikan secara resmi dan dapat berubah sewaktu-waktu.</p>
                   </div>
                 )}
 
-                <StableHtmlRenderer
-                  className="text-render"
-                  html={visibleHtml}
-                />
+                <div className="text-render-full">
+                  <StableHtmlRenderer className="text-render" html={cleanContent} />
+                </div>
 
-                {hasMore && (
-                  <div className="load-more-wrapper">
-                    <button className="load-more-btn" onClick={handleLoadMore}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                      Muat Lebih Banyak
-                    </button>
-                  </div>
-                )}
-
+                {/* RELATED SHORTCODE */}
                 {relatedShortcodeArticles.length > 0 && (
-                  <section className="related-section-new" style={{ marginTop: '32px' }}>
+                  <section className="related-section-new" aria-labelledby="baca-juga-shortcode">
                     <div className="section-header">
-                      <h2 className="section-title">Baca Juga</h2>
+                      <h2 className="section-title" id="baca-juga-shortcode">Baca Juga</h2>
                     </div>
                     <div className="related-grid-new">
                       {relatedShortcodeArticles.map((item) => {
-                        const shortcodeCategoryLabel = categories.find((c) => c.slug === normalizeCategory(item.category))?.label || item.category;
-                        const itemImage = item.image
-                          ? (item.image.startsWith('http') ? item.image : `${baseUrl}/storage/${item.image}`)
-                          : `https://placehold.co/400x220/1a1a1a/ffffff?text=${encodeURIComponent(shortcodeCategoryLabel || 'Berita')}`;
+                        const label = getCategoryLabel(item.category);
+                        const itemSlug = String(item.slug || "").trim();
+                        if (!itemSlug) return null;
                         return (
-                          <Link className="related-card" key={item.id} to={`/article/${item.slug}`}>
+                          <Link className="related-card" key={item.id} to={`/article/${encodeURIComponent(itemSlug)}`}>
                             <div className="related-img-wrap">
-                              <img src={itemImage} alt={item.title} loading="lazy" onError={(e) => { e.currentTarget.src = `https://placehold.co/400x220/1a1a1a/ffffff?text=${encodeURIComponent(shortcodeCategoryLabel || 'Berita')}`; }} />
-                              <span className="related-cat">{shortcodeCategoryLabel}</span>
+                              <img src={getImageUrl(item.image, label)} alt={item.title || "Artikel"} loading="lazy" decoding="async" width="600" height="400" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = createPlaceholder(label); }} />
+                              <span className="related-cat">{label}</span>
                             </div>
                             <div className="related-text">
-                              <h4>{item.title}</h4>
+                              <h3>{item.title}</h3>
                               <span className="related-date">Baca Juga</span>
                             </div>
                           </Link>
@@ -837,170 +1049,132 @@ const ArticleDetail = () => {
                   </section>
                 )}
 
-                {!hasMore && tagsArray.length > 0 && (
+                {/* TAGS */}
+                {tagsArray.length > 0 && (
                   <div className="tags-container">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                       <line x1="7" y1="7" x2="7.01" y2="7" />
                     </svg>
-                    {tagsArray.map((tag, i) => (
-                      <span key={i} className="tag-chip">#{tag}</span>
+                    {tagsArray.map((tag, index) => (
+                      <span key={`${tag}-${index}`} className="tag-chip">#{tag}</span>
                     ))}
                   </div>
                 )}
 
-                {!hasMore && (
-                  <div className="interactions-section">
-                    <div className="interactions-left">
-                      <button className={`like-btn ${isLiked ? "active" : ""}`} onClick={handleLike}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill={isLiked ? "#d83a34" : "none"} stroke="#d83a34" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                        <span>{likeCount > 0 ? likeCount : "Suka"}</span>
-                      </button>
-                      <button className="report-btn" onClick={() => setShowReportForm((prev) => !prev)}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 9v4" />
-                          <path d="M12 17h.01" />
-                          <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
-                        </svg>
-                        <span>{showReportForm ? 'Tutup Laporan' : 'Laporkan'}</span>
-                      </button>
-                    </div>
-
-                    <div className="share-row">
-                      <span className="share-label">Bagikan:</span>
-                      <button onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`, "_blank")} className="soc-btn wa" title="WhatsApp">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-                      </button>
-                      <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, "_blank")} className="soc-btn fb" title="Facebook">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
-                      </button>
-                      <button onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`, "_blank")} className="soc-btn x" title="X (Twitter)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-                      </button>
-                      <button onClick={() => window.open(`https://www.threads.net/intent/post?text=${encodedTitle}%20${encodedUrl}`, "_blank")} className="soc-btn threads" title="Threads">
-                        <svg width="16" height="16" viewBox="2 2 20 20" fill="#fff" stroke="none" fillRule="nonzero">
-                          <path d="M14.017 12.392c.033-1.614-.85-2.888-2.28-2.888-1.39 0-2.26 1.24-2.26 2.888 0 1.637.86 2.87 2.26 2.87 1.44 0 2.247-1.233 2.28-2.87zm4.184-1.18c0 4.607-3.342 7.74-7.85 7.74-4.516 0-7.848-3.133-7.848-7.74 0-4.6 3.332-7.73 7.848-7.73 3.63 0 6.45 2.06 7.42 5.16h-2.14c-.81-1.9-2.86-3.15-5.28-3.15-3.23 0-5.63 2.14-5.63 5.72 0 3.57 2.4 5.73 5.63 5.73 3.24 0 5.64-2.16 5.64-5.73V11c0-1.85-1.28-3.25-3.1-3.25-1.23 0-2.29.62-2.81 1.66h-.06v-1.52h-2v5.71c0 2.2 1.48 3.82 3.56 3.82 1.68 0 2.92-.93 3.32-2.42h.06v1.17h2v-4.96z" />
-                        </svg>
-                      </button>
-                      <button onClick={() => window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`, "_blank")} className="soc-btn tg" title="Telegram">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
-                      </button>
-                      <button onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, "_blank")} className="soc-btn li" title="LinkedIn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
-                      </button>
-                      <button onClick={() => window.open(`mailto:?subject=${encodedTitle}&body=${encodedUrl}`, "_blank")} className="soc-btn email" title="Email">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                          <polyline points="22,6 12,13 2,6" />
-                        </svg>
-                      </button>
-                      <button onClick={handleCopyLink} className="soc-btn copy" title="Salin tautan">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                        </svg>
-                        <span>{copyText}</span>
-                      </button>
-                    </div>
+                {/* INTERACTIONS */}
+                <div className="interactions-section">
+                  <div className="interactions-left">
+                    <button type="button" className={`like-btn ${isLiked ? "active" : ""}`} onClick={handleLike} aria-pressed={isLiked} aria-label={isLiked ? "Batalkan suka" : "Sukai artikel"}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill={isLiked ? "#d83a34" : "none"} stroke="#d83a34" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                      <span>{likeCount > 0 ? likeCount : "Suka"}</span>
+                    </button>
+                    <button type="button" className="report-btn" onClick={() => setShowReportForm((previous) => !previous)} aria-expanded={showReportForm}>
+                      Laporkan
+                    </button>
                   </div>
-                )}
 
-                {showReportForm && !hasMore && (
+                  <div className="share-row">
+                    <span className="share-label">Bagikan:</span>
+                    <button type="button" onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${article.title || ""} ${shareUrl}`)}`, "_blank", "noopener,noreferrer")} className="soc-btn wa" title="Bagikan ke WhatsApp" aria-label="Bagikan ke WhatsApp">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.52-.075-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.67-.51-.173-.008-.372-.01-.57-.01-.198 0-.52.075-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.412.248-.694.248-1.289.173-1.412-.074-.124-.272-.198-.57-.347z" /><path d="M20.52 3.449A11.816 11.816 0 0012.05 0C5.495 0 .16 5.333.157 11.89c0 2.096.547 4.142 1.588 5.946L.057 24l6.348-1.664a11.933 11.933 0 005.64 1.43h.005c6.557 0 11.894-5.333 11.897-11.89a11.8 11.8 0 00-3.427-8.427zm-8.47 18.317h-.004a9.91 9.91 0 01-5.054-1.384l-.363-.215-3.766.987 1.005-3.67-.236-.376a9.885 9.885 0 01-1.514-5.218c.003-5.42 4.416-9.83 9.84-9.83a9.77 9.77 0 016.956 2.884 9.783 9.783 0 012.879 6.963c-.003 5.422-4.417 9.829-9.743 9.859z" /></svg>
+                    </button>
+                    <button type="button" onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, "_blank", "noopener,noreferrer")} className="soc-btn fb" title="Bagikan ke Facebook" aria-label="Bagikan ke Facebook">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.09 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.026 1.79-4.7 4.533-4.7 1.313 0 2.686.236 2.686.236v2.973h-1.514c-1.491 0-1.956.931-1.956 1.887v2.264h3.328l-.532 3.49h-2.796V24C19.612 23.09 24 18.1 24 12.073z" /></svg>
+                    </button>
+                    <button type="button" onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`, "_blank", "noopener,noreferrer")} className="soc-btn x" title="Bagikan ke X" aria-label="Bagikan ke X">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M18.244 2H21.5l-7.11 8.126L22.75 22h-6.57l-5.147-6.73L5.14 22H1.88l7.604-8.683L1.5 2h6.737l4.652 6.14L18.244 2zm-1.146 17.57h1.805L7.27 4.34H5.333L17.098 19.57z" /></svg>
+                    </button>
+                    <button type="button" onClick={() => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(`${article.title || ""} ${shareUrl}`)}`, "_blank", "noopener,noreferrer")} className="soc-btn threads" title="Bagikan ke Threads" aria-label="Bagikan ke Threads">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12.1 2.5c5.6 0 9.4 3.7 9.4 9.4 0 6.1-3.7 9.6-9.5 9.6-5.7 0-9.5-3.3-9.5-9.1 0-5.9 3.7-9.3 9.1-9.3 4.5 0 7.7 2.2 8.7 5.9" /><path d="M13.3 8.1c1.9.2 3.5 1.4 3.5 3.7 0 2.7-1.8 4.3-4.4 4.3-2.2 0-3.8-1.3-3.8-3.2 0-1.7 1.2-2.9 3-2.9 2.2 0 4.2 1.3 5.6 3.8" /></svg>
+                    </button>
+                    <button type="button" onClick={() => window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`, "_blank", "noopener,noreferrer")} className="soc-btn tg" title="Bagikan ke Telegram" aria-label="Bagikan ke Telegram">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M21.5 3.5L2.9 10.68c-1.27.5-1.26 1.2-.23 1.51l4.78 1.49 1.83 5.58c.22.63.11.88.76.88.5 0 .72-.23.99-.5l2.33-2.27 4.84 3.57c.89.49 1.53.24 1.76-.82l3.14-14.8c.35-1.31-.5-1.9-1.61-1.42zM8.18 13.32l9.35-5.9c.47-.28.9-.13.55.18l-7.56 6.83-.29 3.11-2.05-4.22z" /></svg>
+                    </button>
+                    <button type="button" onClick={() => { const subject = encodeURIComponent(article.title || "Artikel SukaMuda"); const body = encodeURIComponent(shareUrl); window.location.href = `mailto:?subject=${subject}&body=${body}`; }} className="soc-btn email" title="Kirim lewat Email" aria-label="Kirim artikel lewat Email">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><polyline points="3,7 12,13 21,7" /></svg>
+                    </button>
+                    <button type="button" onClick={handleCopyLink} className="soc-btn copy" title="Salin tautan" aria-label="Salin tautan artikel">
+                      {copyText === "Tersalin!" ? (
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* REPORT FORM */}
+                {showReportForm && (
                   <div className="report-form-card">
                     <label htmlFor="reportReason">Alasan laporan</label>
-                    <textarea
-                      id="reportReason"
-                      value={reportReason}
-                      onChange={(e) => setReportReason(e.target.value)}
-                      placeholder="Jelaskan alasan kamu melaporkan artikel ini..."
-                      rows={4}
-                    />
+                    <textarea id="reportReason" value={reportReason} onChange={(event) => setReportReason(event.target.value)} placeholder="Jelaskan alasan kamu melaporkan artikel ini..." rows={4} maxLength={1000} />
                     <div className="report-form-actions">
-                      <button type="button" className="submit-report-btn" onClick={handleReportSubmit} disabled={isReporting}>
-                        {isReporting ? 'Mengirim...' : 'Kirim Laporan'}
-                      </button>
-                      <button type="button" className="cancel-report-btn" onClick={() => setShowReportForm(false)}>
-                        Batal
-                      </button>
+                      <button type="button" className="submit-report-btn" onClick={handleReportSubmit} disabled={isReporting}>{isReporting ? "Mengirim..." : "Kirim Laporan"}</button>
+                      <button type="button" className="cancel-report-btn" onClick={() => { setShowReportForm(false); setReportStatus(null); }}>Batal</button>
                     </div>
                     {reportStatus && (
-                      <div className={`report-feedback ${reportStatus.success ? 'success' : 'error'}`}>
+                      <div className={`report-feedback ${reportStatus.success ? "success" : "error"}`} role={reportStatus.success ? "status" : "alert"}>
                         {reportStatus.message}
                       </div>
                     )}
                   </div>
                 )}
 
-                {!hasMore && article.user && (
+                {/* AUTHOR BOTTOM */}
+                {article.user && (
                   <div className="author-bio-card">
                     <div className="author-bio-avatar">
-                      {article.user.avatar ? (
-                        <img
-                          src={article.user.avatar.startsWith("http") ? article.user.avatar : `${baseUrl}/storage/${article.user.avatar}`}
-                          alt={article.user.name}
-                          onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100/1a1a1a/ffffff?text=U"; }}
-                        />
+                      {authorImage ? (
+                        <img src={authorImage} alt={`Foto profil ${authorName}`} loading="lazy" decoding="async" width="72" height="72" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = createPlaceholder("U"); }} />
                       ) : (
-                        article.user.name?.charAt(0) || "A"
+                        <span aria-hidden="true">{authorName.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
                     <div className="author-bio-info">
-                      <h4>
-                        <Link to={authorProfileUrl} className="author-name-link">
-                          {article.user.name}
-                        </Link>
-                      </h4>
-                      {authorMetaText && (
-                        <span className="author-bio-profession">{authorMetaText}</span>
-                      )}
-                      {article.user.bio && <p>{article.user.bio}</p>}
+                      <h2><Link to={authorProfileUrl} className="author-name-link">{authorName}</Link></h2>
                     </div>
                   </div>
                 )}
               </article>
             </div>
 
-            {!hasMore && (
-              <div className="ad-center" style={{ margin: '32px 0' }}>
-                <AdSlot
-                  type="horizontal"
-                  mode="adsense"
-                  adClient="ca-pub-7608424206122269"
-                  adSlot="9097520145"
-                />
-              </div>
-            )}
+            {/* AFTER ARTICLE AD */}
+            <div className="ad-center ad-after-article" aria-label="Iklan">
+              <AdSlot type="horizontal" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_HORIZONTAL_SLOT} />
+            </div>
 
-            {!hasMore && relatedArticles.length > 0 && (
-              <section className="related-section-new">
+            {/* RELATED */}
+            {relatedArticles.length > 0 && (
+              <section className="related-section-new" aria-labelledby="related-heading">
                 <div className="section-header">
-                  <h2 className="section-title">Baca Juga</h2>
-                  <Link to={`/category/${article.category}`} className="see-all-link">
-                    Lihat Semua
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                  </Link>
+                  <h2 className="section-title" id="related-heading">Baca Juga</h2>
+                  <Link to={`/category/${encodeURIComponent(categorySlug)}`} className="see-all-link">Lihat Semua</Link>
                 </div>
                 <div className="related-grid-new">
                   {relatedArticles.map((item) => {
-                    const relatedCategoryLabel = categories.find((c) => c.slug === normalizeCategory(item.category))?.label || item.category;
+                    const itemSlug = String(item?.slug || "").trim();
+                    if (!itemSlug) return null;
+                    const label = getCategoryLabel(item.category);
+                    const itemDate = item.published_at || item.created_at;
+                    let formattedRelatedDate = "Baca Juga";
+                    if (itemDate) {
+                      const relatedDate = new Date(itemDate);
+                      if (!Number.isNaN(relatedDate.getTime())) {
+                        formattedRelatedDate = relatedDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+                      }
+                    }
                     return (
-                      <Link className="related-card" key={item.id} to={`/article/${item.slug}`}>
+                      <Link className="related-card" key={item.id ?? itemSlug} to={`/article/${encodeURIComponent(itemSlug)}`}>
                         <div className="related-img-wrap">
-                          <img
-                            src={item.image?.startsWith("http") ? item.image : `${baseUrl}/storage/${item.image}`}
-                            alt={item.title}
-                            loading="lazy"
-                            onError={(e) => {
-                              e.currentTarget.src = `https://placehold.co/400x220/1a1a1a/ffffff?text=${encodeURIComponent(relatedCategoryLabel || 'Berita')}`;
-                            }}
-                          />
-                          <span className="related-cat">{relatedCategoryLabel}</span>
+                          <img src={getImageUrl(item.image || item.featured_image || item.thumbnail, label)} alt={item.title || "Artikel"} loading="lazy" decoding="async" width="600" height="400" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = createPlaceholder(label); }} />
+                          <span className="related-cat">{label}</span>
                         </div>
                         <div className="related-grid-text">
-                          <h4>{item.title}</h4>
-                          <span className="related-date">{new Date(item.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+                          <h3>{item.title}</h3>
+                          <span className="related-date">{formattedRelatedDate}</span>
                         </div>
                       </Link>
                     );
@@ -1011,25 +1185,19 @@ const ArticleDetail = () => {
           </div>
         </div>
 
-        <div className="ad-sidebar ad-sidebar-right">
-          <div className="ad-sidebar-sticky">
-            <AdSlot
-              type="vertical"
-              mode="adsense"
-              adClient="ca-pub-7608424206122269"
-              adSlot="9190843316"
-            />
-          </div>
-        </div>
+        {/* RIGHT AD - HIDDEN ON MOBILE */}
+        {!isCompactLayout && (
+          <aside className="ad-sidebar ad-sidebar-right" aria-label="Iklan">
+            <div className="ad-sidebar-sticky">
+              <AdSlot type="vertical" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_VERTICAL_SLOT} />
+            </div>
+          </aside>
+        )}
       </div>
 
-      <div className="ad-before-footer">
-        <AdSlot
-          type="horizontal"
-          mode="adsense"
-          adClient="ca-pub-7608424206122269"
-          adSlot="9097520145"
-        />
+      {/* FOOTER AD */}
+      <div className="ad-before-footer" aria-label="Iklan">
+        <AdSlot type="horizontal" mode="adsense" adClient={ADSENSE_CLIENT} adSlot={ADSENSE_HORIZONTAL_SLOT} />
       </div>
     </>
   );
