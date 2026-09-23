@@ -1,7 +1,24 @@
-import React, { useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
-import { FaInstagram, FaTiktok, FaFacebook, FaYoutube } from "react-icons/fa";
+import {
+  FaInstagram,
+  FaTiktok,
+  FaFacebook,
+  FaYoutube,
+  FaSyncAlt,
+  FaArrowRight,
+  FaChevronUp,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa";
 
 import axios from "../utils/axiosConfig";
 import VideoReels from "../components/VideoReels";
@@ -25,6 +42,13 @@ const PAGE_DESCRIPTION =
 
 const OG_IMAGE =
   import.meta.env.VITE_DEFAULT_OG_IMAGE || `${SITE_URL}/sukamuda-share.jpg`;
+
+/* Jumlah kartu skeleton saat loading.
+   Kartu aslinya TIDAK dibatasi — semua video tampil & bisa digeser. */
+
+const SKELETON_COUNT_DESKTOP = 6;
+const SKELETON_COUNT_MOBILE = 4;
+const MOBILE_BREAKPOINT = "(max-width: 768px)";
 
 /* =========================================================
    API
@@ -102,12 +126,63 @@ const normalizeReelsResponse = (response) => {
   return [];
 };
 
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* =========================================================
+   HOOKS
+   ========================================================= */
+
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
+      return undefined;
+    }
+
+    const mq = window.matchMedia(query);
+
+    const handler = (event) => setMatches(event.matches);
+
+    setMatches(mq.matches);
+
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    }
+
+    mq.addListener(handler);
+    return () => mq.removeListener(handler);
+  }, [query]);
+
+  return matches;
+};
+
 /* =========================================================
    COMPONENT
    ========================================================= */
 
 function VideoReelsPage() {
   const [selectedPlatform, setSelectedPlatform] = useState("all");
+  const [showTop, setShowTop] = useState(false);
+
+  /* State carousel (buat panah) */
+  const [carouselOverflow, setCarouselOverflow] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const tabsRef = useRef(null);
+  const indicatorRef = useRef(null);
+  const reelsScrollRef = useRef(null);
+  const suppressClickRef = useRef(false);
+
+  const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
 
   const {
     data: reelsResponse,
@@ -120,38 +195,261 @@ function VideoReelsPage() {
     queryKey: ["videoReels", selectedPlatform],
     queryFn: ({ signal }) => fetchAllReels(selectedPlatform, signal),
 
-    /*
-     * Data reels tidak perlu di-request ulang
-     * terlalu sering.
-     */
     staleTime: 1000 * 60 * 5,
-
-    /*
-     * Simpan cache lebih lama daripada staleTime.
-     */
     gcTime: 1000 * 60 * 30,
-
-    /*
-     * Jangan request ulang hanya karena user
-     * pindah tab/window.
-     */
     refetchOnWindowFocus: false,
-
-    /*
-     * Tidak melakukan retry berkali-kali
-     * jika API sedang bermasalah.
-     */
     retry: 1,
   });
 
   /* =======================================================
-     NORMALIZE DATA
+     NORMALIZE DATA — SEMUA video dipakai, tanpa dibatasi
      ======================================================= */
 
   const currentData = useMemo(
     () => normalizeReelsResponse(reelsResponse),
     [reelsResponse],
   );
+
+  const skeletonCount = isMobile
+    ? SKELETON_COUNT_MOBILE
+    : SKELETON_COUNT_DESKTOP;
+
+  /* =======================================================
+     CAROUSEL — panah, drag, snap
+     ======================================================= */
+
+  const syncCarousel = useCallback(() => {
+    const el = reelsScrollRef.current;
+
+    if (!el) {
+      return;
+    }
+
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const overflow = maxScroll > 4;
+
+    el.classList.toggle("has-overflow", overflow);
+
+    setCarouselOverflow(overflow);
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(overflow && el.scrollLeft < maxScroll - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = reelsScrollRef.current;
+
+    if (!el) {
+      return undefined;
+    }
+
+    let observer;
+
+    el.addEventListener("scroll", syncCarousel, { passive: true });
+
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(syncCarousel);
+      observer.observe(el);
+    } else {
+      window.addEventListener("resize", syncCarousel);
+    }
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(syncCarousel).catch(() => {});
+    }
+
+    const raf = requestAnimationFrame(syncCarousel);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", syncCarousel);
+      observer?.disconnect?.();
+      window.removeEventListener("resize", syncCarousel);
+    };
+  }, [syncCarousel, selectedPlatform, currentData]);
+
+  /* Geser 1 kartu per klik, mendarat rapi di posisi kartu */
+
+  const scrollCarousel = useCallback((direction) => {
+    const el = reelsScrollRef.current;
+
+    if (!el) {
+      return;
+    }
+
+    const card = el.firstElementChild?.firstElementChild?.firstElementChild;
+
+    const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+    const step = card
+      ? card.getBoundingClientRect().width + gap
+      : el.clientWidth * 0.8;
+
+    const maxScroll = el.scrollWidth - el.clientWidth;
+
+    const target = Math.min(
+      Math.max(Math.round((el.scrollLeft + direction * step) / step) * step, 0),
+      maxScroll,
+    );
+
+    el.scrollTo({
+      left: target,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  }, []);
+
+  /* Drag pakai mouse — seperti swipe di HP */
+
+  const handleCarouselPointerDown = useCallback((event) => {
+    if (event.pointerType !== "mouse" || event.button !== 0) {
+      return;
+    }
+
+    const el = reelsScrollRef.current;
+
+    if (!el) {
+      return;
+    }
+
+    if (event.target.closest?.("iframe, video, embed, object")) {
+      return;
+    }
+
+    suppressClickRef.current = false;
+
+    const startX = event.clientX;
+    const startScroll = el.scrollLeft;
+    let moved = false;
+
+    const onMove = (moveEvent) => {
+      const dx = moveEvent.clientX - startX;
+
+      if (!moved && Math.abs(dx) < 5) {
+        return;
+      }
+
+      if (!moved) {
+        moved = true;
+        el.classList.add("is-dragging");
+      }
+
+      el.scrollLeft = startScroll - dx;
+    };
+
+    const cleanUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", cleanUp);
+      window.removeEventListener("pointercancel", cleanUp);
+
+      if (moved) {
+        el.classList.remove("is-dragging");
+        /* Cegah klik "nyasar" tepat setelah drag */
+        suppressClickRef.current = true;
+      }
+    };
+
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerup", cleanUp);
+    window.addEventListener("pointercancel", cleanUp);
+  }, []);
+
+  const handleCarouselClickCapture = useCallback((event) => {
+    if (suppressClickRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      suppressClickRef.current = false;
+    }
+  }, []);
+
+  /* =======================================================
+     TAB INDICATOR — meluncur mengikuti tab aktif
+     ======================================================= */
+
+  const syncIndicator = useCallback(() => {
+    const container = tabsRef.current;
+    const indicator = indicatorRef.current;
+
+    if (!container || !indicator) {
+      return;
+    }
+
+    const active = container.querySelector(".platform-filter-btn.active");
+
+    container.classList.toggle(
+      "has-overflow",
+      container.scrollWidth - container.clientWidth > 2,
+    );
+
+    if (!active) {
+      indicator.style.opacity = "0";
+      return;
+    }
+
+    indicator.style.opacity = "1";
+    indicator.style.width = `${active.offsetWidth}px`;
+    indicator.style.transform = `translateX(${active.offsetLeft}px)`;
+  }, []);
+
+  useLayoutEffect(() => {
+    const container = tabsRef.current;
+
+    syncIndicator();
+
+    const active = container?.querySelector(".platform-filter-btn.active");
+
+    active?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [selectedPlatform, syncIndicator]);
+
+  useEffect(() => {
+    const container = tabsRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    let observer;
+
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(syncIndicator);
+      observer.observe(container);
+    } else {
+      window.addEventListener("resize", syncIndicator);
+    }
+
+    container.addEventListener("scroll", syncIndicator, { passive: true });
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(syncIndicator).catch(() => {});
+    }
+
+    return () => {
+      observer?.disconnect?.();
+      window.removeEventListener("resize", syncIndicator);
+      container.removeEventListener("scroll", syncIndicator);
+    };
+  }, [syncIndicator]);
+
+  /* =======================================================
+     BACK TO TOP
+     ======================================================= */
+
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 480);
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const handleScrollTop = useCallback(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  }, []);
 
   /* =======================================================
      SCHEMA
@@ -259,26 +557,17 @@ function VideoReelsPage() {
 
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-
         <meta property="og:site_name" content="SukaMuda" />
-
         <meta property="og:title" content={PAGE_TITLE} />
-
         <meta property="og:description" content={PAGE_DESCRIPTION} />
-
         <meta property="og:url" content={PAGE_URL} />
-
         <meta property="og:locale" content="id_ID" />
-
         <meta property="og:image" content={OG_IMAGE} />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-
         <meta name="twitter:title" content={PAGE_TITLE} />
-
         <meta name="twitter:description" content={PAGE_DESCRIPTION} />
-
         <meta name="twitter:image" content={OG_IMAGE} />
 
         {/* Schema.org */}
@@ -292,19 +581,35 @@ function VideoReelsPage() {
       </Helmet>
 
       {/* ===================================================
+          BREADCRUMB
+          =================================================== */}
+
+      <nav className="vr-breadcrumb" aria-label="Breadcrumb">
+        <ol className="vr-breadcrumb-list">
+          <li className="vr-breadcrumb-item">
+            <a href="/">Beranda</a>
+          </li>
+
+          <li className="vr-breadcrumb-item" aria-current="page">
+            <span>Video Reels</span>
+          </li>
+        </ol>
+      </nav>
+
+      {/* ===================================================
           HEADER
           =================================================== */}
 
       <header className="video-reels-header">
-        <div className="video-reels-header-content">
-          <p className="video-reels-eyebrow">VIDEO</p>
+        <div className="vr-kicker-row">
+          <span className="vr-kicker-line" aria-hidden="true" />
 
-          <h1 className="video-reels-title">Video Reels</h1>
+          <span className="vr-kicker">Video</span>
 
-          <p className="video-reels-description">
-            Temukan video terbaru dan menarik dari berbagai platform.
-          </p>
+          <span className="vr-kicker-line" aria-hidden="true" />
         </div>
+
+        <h1 className="video-reels-title">Video Reels</h1>
       </header>
 
       {/* ===================================================
@@ -314,6 +619,7 @@ function VideoReelsPage() {
       <nav className="platform-filters" aria-label="Filter platform video">
         <div
           className="platform-filters-inner"
+          ref={tabsRef}
           role="group"
           aria-label="Pilih platform video"
         >
@@ -349,8 +655,25 @@ function VideoReelsPage() {
               </button>
             );
           })}
+
+          <span
+            className="vr-tab-indicator"
+            ref={indicatorRef}
+            aria-hidden="true"
+          />
         </div>
       </nav>
+
+      {/* ===================================================
+          FETCH PROGRESS BAR
+          =================================================== */}
+
+      <div
+        className={`vr-fetch-bar ${isFetching && !isLoading ? "is-active" : ""}`}
+        aria-hidden="true"
+      >
+        <span className="vr-fetch-bar-fill" />
+      </div>
 
       {/* ===================================================
           CONTENT
@@ -365,7 +688,7 @@ function VideoReelsPage() {
         </h2>
 
         {/* ================================================
-            INITIAL LOADING
+            INITIAL LOADING — skeleton
             ================================================ */}
 
         {isLoading && (
@@ -375,9 +698,19 @@ function VideoReelsPage() {
             aria-live="polite"
             aria-label="Memuat video reels"
           >
-            <div className="spinner" aria-hidden="true" />
+            <p className="sr-only">Memuat video reels...</p>
 
-            <p>Memuat video reels...</p>
+            <div className="vr-skeleton" aria-hidden="true">
+              {Array.from({ length: skeletonCount }, (_, item) => (
+                <div className="vr-skel-card" key={item}>
+                  <div className="vr-skel-thumb" />
+
+                  <div className="vr-skel-line vr-skel-line--lg" />
+
+                  <div className="vr-skel-line vr-skel-line--sm" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -400,7 +733,9 @@ function VideoReelsPage() {
               className="retry-button"
               onClick={() => refetch()}
             >
-              Coba Lagi
+              <FaSyncAlt aria-hidden="true" focusable="false" />
+
+              <span>Coba Lagi</span>
             </button>
           </div>
         )}
@@ -411,38 +746,22 @@ function VideoReelsPage() {
 
         {!isLoading && !isError && (
           <div className="reels-section">
-            {/* Data information */}
-
-            <div className="reels-toolbar" aria-live="polite">
-              <p className="reels-count">
-                {currentData.length > 0 ? (
-                  <>
-                    Menampilkan <strong>{currentData.length}</strong> video
-                  </>
-                ) : (
-                  <>Belum ada video</>
-                )}
-              </p>
-
-              {isFetching && (
-                <span className="reels-refreshing" role="status">
-                  Memperbarui...
-                </span>
-              )}
-
-              <span className="reels-platform-label">
-                {currentPlatform?.label || "Semua Platform"}
-              </span>
-            </div>
-
             {/* ==========================================
                 EMPTY
                 ========================================== */}
 
             {currentData.length === 0 ? (
-              <div className="empty-reels">
+              <div className="empty-reels" key={selectedPlatform}>
                 <div className="empty-reels-icon" aria-hidden="true">
-                  ▶
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="20"
+                    height="20"
+                    fill="currentColor"
+                    focusable="false"
+                  >
+                    <path d="M8 5.5v13l11-6.5-11-6.5Z" />
+                  </svg>
                 </div>
 
                 <h2>Belum ada video reels</h2>
@@ -458,22 +777,70 @@ function VideoReelsPage() {
                     className="empty-reels-button"
                     onClick={() => setSelectedPlatform("all")}
                   >
-                    Lihat Semua Video
+                    <span>Lihat Semua Video</span>
+
+                    <FaArrowRight aria-hidden="true" focusable="false" />
                   </button>
                 )}
               </div>
             ) : (
               /* ==========================================
-                 REELS
+                 CAROUSEL — semua video, bisa digeser.
+                 Desktop: 5 kartu terlihat + intipan kartu
+                 berikutnya. HP: 3 kartu, tinggal swipe.
                  ========================================== */
 
-              <div className="reels-display">
-                <VideoReels reels={currentData} />
+              <div className="reels-carousel" key={selectedPlatform}>
+                <div
+                  className="reels-display"
+                  ref={reelsScrollRef}
+                  role="region"
+                  aria-label="Daftar video reels, dapat digeser ke kiri dan ke kanan"
+                  tabIndex={carouselOverflow ? 0 : -1}
+                  onPointerDown={handleCarouselPointerDown}
+                  onClickCapture={handleCarouselClickCapture}
+                >
+                  <VideoReels reels={currentData} />
+                </div>
+
+                <button
+                  type="button"
+                  className="vr-carousel-nav vr-carousel-nav--prev"
+                  onClick={() => scrollCarousel(-1)}
+                  disabled={!canScrollLeft}
+                  aria-label="Geser video ke kiri"
+                >
+                  <FaChevronLeft aria-hidden="true" focusable="false" />
+                </button>
+
+                <button
+                  type="button"
+                  className="vr-carousel-nav vr-carousel-nav--next"
+                  onClick={() => scrollCarousel(1)}
+                  disabled={!canScrollRight}
+                  aria-label="Geser video ke kanan"
+                >
+                  <FaChevronRight aria-hidden="true" focusable="false" />
+                </button>
               </div>
             )}
           </div>
         )}
       </section>
+
+      {/* ===================================================
+          BACK TO TOP
+          =================================================== */}
+
+      <button
+        type="button"
+        className={`vr-to-top ${showTop ? "is-visible" : ""}`}
+        onClick={handleScrollTop}
+        tabIndex={showTop ? 0 : -1}
+        aria-label="Kembali ke atas"
+      >
+        <FaChevronUp aria-hidden="true" focusable="false" />
+      </button>
     </main>
   );
 }

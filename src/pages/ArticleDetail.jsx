@@ -354,7 +354,14 @@ const StableHtmlRenderer = memo(function StableHtmlRenderer({ html, className })
   useEffect(() => {
     if (!ref.current) return;
     const clean = DOMPurify.sanitize(html || "", {
-      ADD_ATTR: ["style", "target", "rel"],
+      ADD_ATTR: [
+        "style",
+        "target",
+        "rel",
+        "start",
+        "data-list",
+        "data-continuous-number",
+      ],
       FORBID_TAGS: ["style", "script", "iframe", "object", "embed"],
     });
 

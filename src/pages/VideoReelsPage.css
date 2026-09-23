@@ -1,213 +1,360 @@
 /* =========================================================
    SUKAMUDA — VIDEO REELS PAGE
-   =========================================================
-
-   Fokus:
-   - Responsive
-   - SEO friendly layout
-   - Accessibility
-   - Keyboard navigation
-   - CLS prevention
-   - Reduced motion
-   - Mobile first
-   - Tidak bergantung pada inline color
+   Design simpel: portal berita, FULL HITAM-PUTIH (monokrom)
+   - Carousel horizontal: SEMUA video tampil & bisa digeser
+   - Desktop: TEPAT 5 kartu penuh (tanpa kartu terpotong)
+   - HP: 3 kartu pas, tinggal swipe
+   - Pemutar TikTok/YouTube + tombol play DIPAKSA monokrom
    ========================================================= */
 
 /* =========================================================
-   PAGE
+   TOKENS + PAGE BASE
    ========================================================= */
 
 .video-reels-page {
+  --vr-ink: #111111;
+  --vr-text-2: #3f3f46;
+  --vr-text-3: #75757f;
+
+  --vr-border: #e7e7ea;
+  --vr-border-strong: #d6d6db;
+
+  --vr-bg-soft: #f7f7f8;
+  --vr-bg-skeleton: #ececef;
+
+  --vr-serif: Georgia, "Times New Roman", "Noto Serif", serif;
+
+  --vr-ease: cubic-bezier(0.25, 0.9, 0.35, 1);
+  --vr-ease-slide: cubic-bezier(0.65, 0.05, 0.36, 1);
+
+  /* ===== CAROUSEL — atur di sini =====
+     --vr-cols : jumlah kartu yang terlihat (desktop 5)
+     --vr-gap  : jarak antar kartu
+     --vr-max  : lebar maksimum baris kartu → kartunya
+                 tetap ukuran pas, barisnya rata tengah
+     --vr-peek : 0 = TANPA kartu terpotong di tepi kanan */
+  --vr-gap: 16px;
+  --vr-cols: 5;
+  --vr-peek: 0px;
+  --vr-max: 1064px; /* 5 kartu x 200px + 4 gap = pas */
+  --vr-card-w: calc(
+    (100% - (var(--vr-cols) - 1) * var(--vr-gap) - var(--vr-peek)) /
+      var(--vr-cols)
+  );
+
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 48px 20px 64px;
+  padding: 24px clamp(16px, 3.5vw, 32px) 88px;
   box-sizing: border-box;
+
+  background: #ffffff;
+  color: var(--vr-ink);
+}
+
+.video-reels-page ::selection {
+  background: var(--vr-ink);
+  color: #ffffff;
 }
 
 /* =========================================================
-   HEADER
+   BREADCRUMB
+   ========================================================= */
+
+.video-reels-page .vr-breadcrumb {
+  margin: 0 0 20px;
+
+  animation: vrFadeUp 0.45s var(--vr-ease) both;
+}
+
+.video-reels-page .vr-breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--vr-text-3);
+}
+
+.video-reels-page .vr-breadcrumb-item + .vr-breadcrumb-item::before {
+  content: "\203A";
+  margin: 0 8px;
+  color: var(--vr-border-strong);
+  font-weight: 700;
+}
+
+.video-reels-page .vr-breadcrumb-item a {
+  color: var(--vr-text-2);
+  text-decoration: none;
+  transition: color 0.2s var(--vr-ease);
+}
+
+.video-reels-page .vr-breadcrumb-item a:hover,
+.video-reels-page .vr-breadcrumb-item a:focus-visible {
+  color: var(--vr-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.video-reels-page .vr-breadcrumb-item[aria-current="page"] {
+  color: var(--vr-ink);
+  font-weight: 600;
+}
+
+/* =========================================================
+   HEADER — simpel: — VIDEO — + judul + garis hitam
    ========================================================= */
 
 .video-reels-page .video-reels-header {
-  width: 100%;
-  margin: 0 0 36px;
+  margin: 0 0 30px;
   text-align: center;
 }
 
-.video-reels-page .video-reels-header-content {
-  max-width: 720px;
-  margin: 0 auto;
+.video-reels-page .vr-kicker-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+
+  margin-bottom: 18px;
+
+  animation: vrFadeUp 0.5s 0.05s var(--vr-ease) both;
 }
 
-.video-reels-page .video-reels-eyebrow {
-  margin: 0 0 8px;
-  font-size: 12px;
+.video-reels-page .vr-kicker {
+  display: inline-block;
+  padding: 5px 12px;
+
+  background: var(--vr-ink);
+  color: #ffffff;
+
+  font-size: 10.5px;
   line-height: 1.4;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 800;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #667eea;
+
+  white-space: nowrap;
+}
+
+.video-reels-page .vr-kicker-line {
+  width: clamp(24px, 7vw, 64px);
+  height: 1px;
+  background: var(--vr-border-strong);
 }
 
 .video-reels-page .video-reels-title {
   margin: 0;
-  font-size: clamp(28px, 4vw, 40px);
-  line-height: 1.15;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #111827;
+  font-family: var(--vr-serif);
+  font-size: clamp(34px, 6vw, 56px);
+  line-height: 1.08;
+  font-weight: 700;
+  color: var(--vr-ink);
+  text-wrap: balance;
+
+  animation: vrTitleIn 0.65s 0.12s var(--vr-ease) both;
 }
 
-.video-reels-page .video-reels-description {
-  max-width: 600px;
-  margin: 12px auto 0;
-  font-size: 16px;
-  line-height: 1.65;
-  color: #667085;
+@keyframes vrTitleIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+    letter-spacing: 0.02em;
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    letter-spacing: -0.02em;
+  }
+}
+
+.video-reels-page .video-reels-header::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 3px;
+  margin: 22px auto 0;
+  border-radius: 2px;
+  background: var(--vr-ink);
+
+  animation: vrGrow 0.55s 0.28s var(--vr-ease) both;
+}
+
+@keyframes vrGrow {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* =========================================================
-   PLATFORM FILTER
+   PLATFORM FILTER — tab bar + sliding indicator
    ========================================================= */
 
 .video-reels-page .platform-filters {
-  width: 100%;
-  margin: 0 0 36px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+
+  display: flex;
+  justify-content: center;
+
+  background: #ffffff;
+  border-bottom: 1px solid var(--vr-border-strong);
+
+  animation: vrFadeUp 0.5s 0.4s var(--vr-ease) both;
 }
 
 .video-reels-page .platform-filters-inner {
+  position: relative;
+
   display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  align-items: stretch;
 
-  width: 100%;
-  padding: 14px;
+  max-width: 100%;
 
-  box-sizing: border-box;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 
-  background: #f8fafc;
-  border: 1px solid #eaecf0;
-  border-radius: 14px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.video-reels-page .platform-filters-inner::-webkit-scrollbar {
+  display: none;
 }
 
 /* =========================================================
-   FILTER BUTTON
+   TAB BUTTON
    ========================================================= */
 
 .video-reels-page .platform-filter-btn {
   appearance: none;
   -webkit-appearance: none;
 
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
 
-  min-height: 42px;
-  padding: 9px 15px;
+  height: 52px;
+  padding: 0 18px;
 
-  border: 1px solid #d0d5dd;
-  border-radius: 9px;
+  background: transparent;
+  border: 0;
 
-  background: #ffffff;
-  color: #344054;
+  color: var(--vr-text-2);
 
   font: inherit;
   font-size: 14px;
-  line-height: 1.2;
+  line-height: 1;
   font-weight: 600;
+  white-space: nowrap;
 
   cursor: pointer;
 
-  box-sizing: border-box;
-
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+  transition: color 0.2s var(--vr-ease);
 }
-
-/* Hover */
 
 .video-reels-page .platform-filter-btn:hover {
-  transform: translateY(-1px);
-  border-color: #98a2b3;
-  box-shadow: 0 3px 10px rgba(16, 24, 40, 0.08);
+  color: var(--vr-ink);
 }
-
-/* Active */
 
 .video-reels-page .platform-filter-btn.active {
-  color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.16);
+  color: var(--vr-ink);
+  font-weight: 800;
 }
-
-/* =========================================================
-   PLATFORM COLORS
-   ========================================================= */
-
-/* Semua */
-
-.video-reels-page .platform-filter-btn.platform-all.active {
-  background: #667eea;
-  border-color: #667eea;
-}
-
-/* Instagram */
-
-.video-reels-page .platform-filter-btn.platform-instagram.active {
-  background: #e4405f;
-  border-color: #e4405f;
-}
-
-/* TikTok */
-
-.video-reels-page .platform-filter-btn.platform-tiktok.active {
-  background: #111111;
-  border-color: #111111;
-}
-
-/* Facebook */
-
-.video-reels-page .platform-filter-btn.platform-facebook.active {
-  background: #1877f2;
-  border-color: #1877f2;
-}
-
-/* YouTube */
-
-.video-reels-page .platform-filter-btn.platform-youtube.active {
-  background: #ff0000;
-  border-color: #ff0000;
-}
-
-/* =========================================================
-   ICON
-   ========================================================= */
 
 .video-reels-page .platform-icon-filter {
   flex: 0 0 auto;
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
 }
-
-/* =========================================================
-   KEYBOARD FOCUS
-   ========================================================= */
 
 .video-reels-page .platform-filter-btn:focus {
   outline: none;
 }
 
 .video-reels-page .platform-filter-btn:focus-visible {
-  outline: 3px solid #111827;
-  outline-offset: 3px;
+  outline: 2px solid var(--vr-ink);
+  outline-offset: -3px;
+}
+
+/* =========================================================
+   TAB INDICATOR
+   ========================================================= */
+
+.video-reels-page .vr-tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+
+  width: 0;
+  height: 3px;
+
+  background: var(--vr-ink);
+  border-radius: 3px 3px 0 0;
+
+  opacity: 0;
+  will-change: transform, width;
+
+  transition:
+    transform 0.38s var(--vr-ease-slide),
+    width 0.38s var(--vr-ease-slide),
+    opacity 0.25s ease;
+}
+
+/* =========================================================
+   FETCH PROGRESS BAR
+   ========================================================= */
+
+.video-reels-page .vr-fetch-bar {
+  position: relative;
+  height: 3px;
+  margin: 6px 0 2px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.video-reels-page .vr-fetch-bar.is-active {
+  background: #f1f1f3;
+}
+
+.video-reels-page .vr-fetch-bar-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 35%;
+  background: var(--vr-ink);
+
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.video-reels-page .vr-fetch-bar.is-active .vr-fetch-bar-fill {
+  opacity: 1;
+  animation: vrFetchSlide 1.1s ease-in-out infinite;
+}
+
+@keyframes vrFetchSlide {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(340%);
+  }
 }
 
 /* =========================================================
@@ -219,139 +366,181 @@
   min-width: 0;
 }
 
-/* =========================================================
-   SCREEN READER ONLY
-   ========================================================= */
-
 .video-reels-page .sr-only {
   position: absolute !important;
-
   width: 1px !important;
   height: 1px !important;
-
   padding: 0 !important;
   margin: -1px !important;
-
   overflow: hidden !important;
-
   clip: rect(0, 0, 0, 0) !important;
   white-space: nowrap !important;
-
   border: 0 !important;
 }
 
 /* =========================================================
-   LOADING
+   LOADING — skeleton (ukurannya match ukuran kartu asli)
    ========================================================= */
 
 .video-reels-page .loading-state {
-  min-height: 320px;
+  padding-top: 26px;
+}
 
+.video-reels-page .vr-skeleton {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  flex-wrap: nowrap;
+  gap: var(--vr-gap);
 
-  padding: 48px 20px;
+  width: 100%;
+  max-width: var(--vr-max);
+  overflow: hidden;
 
+  padding-block: 10px;
+  margin-block: -10px;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.video-reels-page .vr-skel-card {
+  flex: 0 0 var(--vr-card-w);
+  width: var(--vr-card-w);
+  max-width: var(--vr-card-w);
+  min-width: 0;
   box-sizing: border-box;
 
-  text-align: center;
+  border: 1px solid var(--vr-border);
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+
+  animation: vrFadeUp 0.4s var(--vr-ease) both;
 }
 
-.video-reels-page .loading-state p {
-  margin: 18px 0 0;
+.video-reels-page .vr-skel-card:nth-child(1) { animation-delay: 0.05s; }
+.video-reels-page .vr-skel-card:nth-child(2) { animation-delay: 0.1s; }
+.video-reels-page .vr-skel-card:nth-child(3) { animation-delay: 0.15s; }
+.video-reels-page .vr-skel-card:nth-child(4) { animation-delay: 0.2s; }
+.video-reels-page .vr-skel-card:nth-child(5) { animation-delay: 0.25s; }
+.video-reels-page .vr-skel-card:nth-child(6) { animation-delay: 0.3s; }
 
-  font-size: 15px;
-  line-height: 1.5;
-  color: #667085;
+.video-reels-page .vr-skel-thumb {
+  aspect-ratio: 4 / 5;
+
+  background: linear-gradient(
+    90deg,
+    var(--vr-bg-skeleton) 25%,
+    #f6f6f7 37%,
+    var(--vr-bg-skeleton) 63%
+  );
+  background-size: 400% 100%;
+
+  animation: vrShimmer 1.3s ease infinite;
 }
 
-/* =========================================================
-   SPINNER
-   ========================================================= */
+.video-reels-page .vr-skel-line {
+  height: 12px;
+  margin: 12px 14px 0;
+  border-radius: 4px;
 
-.video-reels-page .spinner {
-  width: 42px;
-  height: 42px;
+  background: linear-gradient(
+    90deg,
+    var(--vr-bg-skeleton) 25%,
+    #f6f6f7 37%,
+    var(--vr-bg-skeleton) 63%
+  );
+  background-size: 400% 100%;
 
-  border: 4px solid #eaecf0;
-  border-top-color: #667eea;
-
-  border-radius: 50%;
-
-  animation: videoReelsSpin 0.8s linear infinite;
+  animation: vrShimmer 1.3s ease infinite;
 }
 
-@keyframes videoReelsSpin {
+.video-reels-page .vr-skel-line--lg {
+  width: 72%;
+}
+
+.video-reels-page .vr-skel-line--sm {
+  width: 45%;
+  margin-bottom: 16px;
+}
+
+@keyframes vrShimmer {
+  from {
+    background-position: 200% 0;
+  }
+
   to {
-    transform: rotate(360deg);
+    background-position: -200% 0;
   }
 }
 
 /* =========================================================
-   ERROR
+   ERROR & EMPTY
    ========================================================= */
 
-.video-reels-page .error-state {
-  width: 100%;
-  max-width: 620px;
-
-  margin: 0 auto;
-  padding: 40px 24px;
-
+.video-reels-page .error-state,
+.video-reels-page .empty-reels {
+  max-width: 520px;
+  margin: 16px auto 0;
+  padding: 40px 28px;
   box-sizing: border-box;
-
   text-align: center;
 
-  background: #fff7f7;
-
-  border: 1px solid #fecaca;
+  background: #ffffff;
+  border: 1px solid var(--vr-border);
+  border-top: 4px solid var(--vr-ink);
   border-radius: 14px;
+
+  animation: vrFadeUp 0.5s var(--vr-ease) both;
 }
 
-.video-reels-page .error-state-icon {
-  width: 42px;
-  height: 42px;
+.video-reels-page .empty-reels {
+  background: var(--vr-bg-soft);
+}
+
+.video-reels-page .error-state-icon,
+.video-reels-page .empty-reels-icon {
+  width: 48px;
+  height: 48px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  margin: 0 auto 14px;
+  margin: 0 auto 18px;
+  border-radius: 12px;
 
-  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid var(--vr-border);
 
-  background: #fee2e2;
-  color: #991b1b;
-
-  font-size: 20px;
-  font-weight: 800;
+  color: var(--vr-ink);
+  font-size: 22px;
+  font-weight: 900;
 }
 
-.video-reels-page .error-state h2 {
-  margin: 0;
+.video-reels-page .empty-reels-icon svg {
+  margin-left: 3px;
+}
 
-  font-size: 20px;
-  line-height: 1.3;
+.video-reels-page .error-state h2,
+.video-reels-page .empty-reels h2 {
+  margin: 0 0 8px;
+  font-family: var(--vr-serif);
+  font-size: 21px;
+  line-height: 1.25;
   font-weight: 700;
-
-  color: #7f1d1d;
+  color: var(--vr-ink);
 }
 
-.video-reels-page .error-state p {
-  margin: 8px auto 20px;
-
-  max-width: 460px;
-
-  font-size: 14px;
-  line-height: 1.6;
-
-  color: #991b1b;
+.video-reels-page .error-state p,
+.video-reels-page .empty-reels p {
+  max-width: 40ch;
+  margin: 0 auto 24px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--vr-text-2);
 }
 
 /* =========================================================
-   RETRY BUTTON
+   BUTTONS — hitam + sheen sweep
    ========================================================= */
 
 .video-reels-page .retry-button,
@@ -359,33 +548,87 @@
   appearance: none;
   -webkit-appearance: none;
 
-  min-height: 42px;
+  position: relative;
+  overflow: hidden;
 
-  padding: 10px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 
+  height: 44px;
+  padding: 0 24px;
+
+  background: var(--vr-ink);
+  color: #ffffff;
   border: 0;
   border-radius: 8px;
 
-  background: #111827;
-  color: #ffffff;
-
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 
   cursor: pointer;
+  box-sizing: border-box;
+
+  box-shadow: 0 4px 14px rgba(17, 17, 17, 0.16);
 
   transition:
-    background-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    background-color 0.25s var(--vr-ease),
+    transform 0.25s var(--vr-ease),
+    box-shadow 0.25s var(--vr-ease);
+}
+
+.video-reels-page .retry-button::before,
+.video-reels-page .empty-reels-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    115deg,
+    transparent 32%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 68%
+  );
+
+  transform: translateX(-130%);
+  transition: transform 0.65s var(--vr-ease);
+}
+
+.video-reels-page .retry-button:hover::before,
+.video-reels-page .empty-reels-button:hover::before {
+  transform: translateX(130%);
 }
 
 .video-reels-page .retry-button:hover,
 .video-reels-page .empty-reels-button:hover {
-  background: #1f2937;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.15);
+  background: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(17, 17, 17, 0.24);
+}
+
+.video-reels-page .retry-button:active,
+.video-reels-page .empty-reels-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(17, 17, 17, 0.16);
+}
+
+.video-reels-page .retry-button svg {
+  transition: transform 0.5s var(--vr-ease);
+}
+
+.video-reels-page .retry-button:hover svg {
+  transform: rotate(360deg);
+}
+
+.video-reels-page .empty-reels-button svg {
+  transition: transform 0.3s var(--vr-ease);
+}
+
+.video-reels-page .empty-reels-button:hover svg {
+  transform: translateX(4px);
 }
 
 .video-reels-page .retry-button:focus,
@@ -395,186 +638,435 @@
 
 .video-reels-page .retry-button:focus-visible,
 .video-reels-page .empty-reels-button:focus-visible {
-  outline: 3px solid #667eea;
+  outline: 2px solid var(--vr-ink);
   outline-offset: 3px;
 }
 
 /* =========================================================
-   REELS SECTION
+   REELS CAROUSEL — display:contents
+   ---------------------------------------------------------
+   - .reels-display = wadah SCROLL horizontal utama.
+   - Wrapper internal VideoReels (level 1 & 2) transparan
+     layout → kartu (level 3) naik jadi item flex langsung.
+   - Desktop: TEPAT 5 kartu (200px) dalam baris max 1064px
+     yang dirata-tengah — tidak ada kartu terpotong.
    ========================================================= */
 
 .video-reels-page .reels-section {
   width: 100%;
   min-width: 0;
-}
 
-/* =========================================================
-   TOOLBAR
-   ========================================================= */
-
-.video-reels-page .reels-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-
-  min-height: 28px;
-
-  margin: 0 0 20px;
-}
-
-.video-reels-page .reels-count {
-  margin: 0;
-
-  font-size: 14px;
-  line-height: 1.5;
-
-  color: #667085;
-}
-
-.video-reels-page .reels-count strong {
-  color: #667eea;
-  font-weight: 700;
-}
-
-.video-reels-page .reels-platform-label {
-  display: inline-flex;
-  align-items: center;
-
-  min-height: 28px;
-  padding: 5px 10px;
-
+  padding-top: 24px;
   box-sizing: border-box;
-
-  border-radius: 999px;
-
-  background: #f2f4f7;
-  color: #475467;
-
-  font-size: 12px;
-  line-height: 1.2;
-  font-weight: 600;
 }
 
-.video-reels-page .reels-refreshing {
-  font-size: 12px;
-  color: #667eea;
+.video-reels-page .reels-carousel {
+  position: relative;
+  width: 100%;
+  max-width: var(--vr-max);
+  margin-inline: auto;
+  min-width: 0;
+
+  animation: vrFadeUp 0.5s var(--vr-ease) both;
 }
 
-/* =========================================================
-   REELS DISPLAY
-   ========================================================= */
+/* Wadah utama — scroller horizontal */
 
 .video-reels-page .reels-display {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: safe center; /* ≤5 kartu: rata tengah;
+                                    lebih: rata kiri (bisa scroll) */
+  gap: var(--vr-gap);
+
   width: 100%;
   min-width: 0;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+
+  /* scrollbar disembunyikan — geser pakai panah/drag/swipe */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  /* ruang napas buat bayangan kartu */
+  padding-block: 10px;
+  margin-block: -10px;
+}
+
+.video-reels-page .reels-display::-webkit-scrollbar {
+  display: none;
+}
+
+/* Drag pakai mouse */
+
+.video-reels-page .reels-display.has-overflow {
+  cursor: grab;
+}
+
+.video-reels-page .reels-display.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+}
+
+.video-reels-page .reels-display.is-dragging,
+.video-reels-page .reels-display.is-dragging * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Fokus keyboard (arrow keys bisa menggeser) */
+
+.video-reels-page .reels-display:focus {
+  outline: none;
+}
+
+.video-reels-page .reels-display:focus-visible {
+  outline: 2px solid var(--vr-ink);
+  outline-offset: -3px;
+  border-radius: 8px;
+}
+
+/* Level 1 & 2 — wrapper internal VideoReels jadi
+   transparan layout (semua scroll/snap internal mati sendiri) */
+
+.video-reels-page .reels-display > *,
+.video-reels-page .reels-display > * > * {
+  display: contents !important;
+}
+
+/* Level 3 — KARTU VIDEO: lebar seragam, snap rapih,
+   flex !important menang dari lebar fixed internal */
+
+.video-reels-page .reels-display > * > * > * {
+  flex: 0 0 var(--vr-card-w) !important;
+  width: var(--vr-card-w) !important;
+  max-width: var(--vr-card-w) !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+
+  scroll-snap-align: start !important;
+}
+
+/* Kartu terakhir boleh nempel ujung kanan →
+   video paling belakang tetap bisa dilihat penuh */
+
+.video-reels-page .reels-display > * > * > *:last-child {
+  scroll-snap-align: end !important;
+}
+
+/* Level 4 — jaring pengaman kalau kartu punya wrapper lagi */
+
+.video-reels-page .reels-display > * > * > * > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Media di dalam kartu tidak boleh melebihi lebar kartu */
+
+.video-reels-page .reels-display img,
+.video-reels-page .reels-display iframe,
+.video-reels-page .reels-display video {
+  max-width: 100% !important;
 }
 
 /* =========================================================
-   EMPTY STATE
+   MONOKROM TOTAL — tombol play merah → HITAM
+   ---------------------------------------------------------
+   Tombol merah itu milik pemutar TikTok yang jalan di
+   dalam IFRAME. Isi iframe tidak bisa di-edit CSS dari
+   luar (seperti TV di balik kaca) — jadi pemutarnya
+   dipaksa monokrom lewat filter di "kaca"-nya.
+   Ditambah lapisan cadangan untuk tombol play buatan.
    ========================================================= */
 
-.video-reels-page .empty-reels {
-  width: 100%;
-  max-width: 680px;
+/* 1 — SEMUA pemutar iframe (TikTok / YouTube) dipaksa
+   monokrom, di mana pun dia muncul — termasuk pemutar
+   yang terbuka setelah kartu ditekan.
+   HAPUS blok ini kalau mau video tetap berwarna saat
+   diputar. */
 
-  margin: 0 auto;
-  padding: 56px 24px;
-
-  box-sizing: border-box;
-
-  text-align: center;
-
-  background: #f8fafc;
-
-  border: 1px dashed #d0d5dd;
-  border-radius: 14px;
+iframe[src*="tiktok"],
+iframe[src*="youtube.com"],
+iframe[src*="youtu.be"],
+iframe[src*="youtube-nocookie"],
+.video-reels-page iframe {
+  filter: grayscale(1);
 }
 
-.video-reels-page .empty-reels-icon {
-  width: 48px;
-  height: 48px;
+/* 2 — Tombol play buatan (bukan iframe) → HITAM + ikon
+   putih. Nama class yang terindikasi wrapper/overlay
+   besar sengaja di-skip biar thumbnail tidak tertimpa
+   hitam. Huruf besar/kecil tidak masalah (play/Play). */
+
+.video-reels-page .reels-display
+  [class*="play" i]:not([class*="overlay" i]):not([class*="wrap" i]):not(
+    [class*="container" i]
+  ):not([class*="area" i]):not([class*="cover" i]):not([class*="holder" i]):not(
+    [class*="parent" i]
+  ):not([class*="card" i]):not([class*="icon" i]):not([class*="img" i]):not(
+    [class*="thumb" i]
+  ):not([class*="media" i]):not([class*="inner" i]):not([class*="content" i]) {
+  background: var(--vr-ink) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border-color: var(--vr-ink) !important;
+}
+
+/* Ikon play (svg) di dalam tombol → dipaksa putih */
+
+.video-reels-page .reels-display [class*="play" i] svg,
+.video-reels-page .reels-display svg[class*="play" i],
+.video-reels-page .reels-display [class*="play" i] svg * {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* 3 — Cadangan aman: elemen "play" apapun yang masih
+   menyisakan warna merah → diredam jadi gelap monokrom.
+   Filter hanya menutupi elemen itu sendiri + isinya;
+   thumbnail di belakangnya tidak ikut tersentuh. */
+
+.video-reels-page .reels-display [class*="play" i] {
+  filter: grayscale(1) contrast(2.2) brightness(0.9);
+}
+
+/* 4 — Ikon svg lain di dalam kartu (YouTube merah dsb.)
+   → monokrom. HAPUS blok ini kalau mau ikon platform
+   tetap berwarna. */
+
+.video-reels-page .reels-display svg {
+  filter: grayscale(1);
+}
+
+/* 5 — Link di dalam kartu (mis. "Tonton di TikTok") →
+   dipaksa gelap, bukan merah/pink. */
+
+.video-reels-page .reels-display a,
+.video-reels-page .reels-display a * {
+  color: var(--vr-ink);
+}
+
+/* =========================================================
+   PANAH CAROUSEL — tampil di desktop (ada mouse) saja
+   ========================================================= */
+
+.video-reels-page .vr-carousel-nav {
+  position: absolute;
+  top: 44%;
+  z-index: 6;
+
+  width: 44px;
+  height: 44px;
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--vr-ink);
+  color: #ffffff;
+  border: 0;
+  border-radius: 50%;
+
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(17, 17, 17, 0.3);
+
+  transform: translateY(-50%);
+  pointer-events: auto;
+
+  transition:
+    opacity 0.25s var(--vr-ease),
+    transform 0.25s var(--vr-ease),
+    background-color 0.2s var(--vr-ease),
+    box-shadow 0.3s var(--vr-ease);
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 769px) {
+  .video-reels-page .vr-carousel-nav {
+    display: flex;
+  }
+}
+
+.video-reels-page .vr-carousel-nav--prev {
+  left: 6px;
+}
+
+.video-reels-page .vr-carousel-nav--next {
+  right: 6px;
+}
+
+.video-reels-page .vr-carousel-nav svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Ujung kiri/kanan → panah hilang halus */
+
+.video-reels-page .vr-carousel-nav:disabled {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) scale(0.85);
+}
+
+.video-reels-page .vr-carousel-nav:hover:not(:disabled) {
+  background: #000000;
+  transform: translateY(-50%) scale(1.07);
+  box-shadow: 0 12px 28px rgba(17, 17, 17, 0.38);
+}
+
+.video-reels-page .vr-carousel-nav:active:not(:disabled) {
+  transform: translateY(-50%) scale(0.96);
+}
+
+.video-reels-page .vr-carousel-nav:focus {
+  outline: none;
+}
+
+.video-reels-page .vr-carousel-nav:focus-visible {
+  outline: 2px solid var(--vr-ink);
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   BACK TO TOP
+   ========================================================= */
+
+.video-reels-page .vr-to-top {
+  position: fixed;
+  right: clamp(16px, 3vw, 28px);
+  bottom: clamp(16px, 3vw, 28px);
+  z-index: 50;
+
+  width: 46px;
+  height: 46px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  margin: 0 auto 16px;
-
+  background: var(--vr-ink);
+  color: #ffffff;
+  border: 0;
   border-radius: 50%;
 
-  background: #eef2ff;
-  color: #667eea;
+  cursor: pointer;
 
-  font-size: 18px;
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.25);
+
+  opacity: 0;
+  transform: translateY(12px) scale(0.9);
+  pointer-events: none;
+
+  transition:
+    opacity 0.3s var(--vr-ease),
+    transform 0.3s var(--vr-ease),
+    background-color 0.2s var(--vr-ease),
+    box-shadow 0.3s var(--vr-ease);
 }
 
-.video-reels-page .empty-reels h2 {
-  margin: 0;
-
-  font-size: 20px;
-  line-height: 1.35;
-  font-weight: 700;
-
-  color: #344054;
+.video-reels-page .vr-to-top.is-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 
-.video-reels-page .empty-reels p {
-  max-width: 480px;
+.video-reels-page .vr-to-top:hover {
+  background: #000000;
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(17, 17, 17, 0.32);
+}
 
-  margin: 8px auto 20px;
+.video-reels-page .vr-to-top:focus {
+  outline: none;
+}
 
-  font-size: 14px;
-  line-height: 1.6;
+.video-reels-page .vr-to-top:focus-visible {
+  outline: 2px solid var(--vr-ink);
+  outline-offset: 3px;
+}
 
-  color: #667085;
+.video-reels-page .vr-to-top svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* =========================================================
-   MOBILE
+   SHARED KEYFRAMES
+   ========================================================= */
+
+@keyframes vrFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* =========================================================
+   LAPTOP KECIL / TABLET — 4 kartu pas
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .video-reels-page {
+    --vr-cols: 4;
+    --vr-max: 880px; /* 4 kartu x 208px + 3 gap = pas */
+  }
+}
+
+/* =========================================================
+   MOBILE — 3 kartu pas, tinggal swipe
    ========================================================= */
 
 @media (max-width: 768px) {
   .video-reels-page {
-    padding: 32px 16px 48px;
+    --vr-cols: 3;
+    --vr-gap: 12px;
+    --vr-max: none;
+
+    padding-top: 18px;
+    padding-bottom: 72px;
+  }
+
+  .video-reels-page .vr-breadcrumb {
+    margin-bottom: 14px;
   }
 
   .video-reels-page .video-reels-header {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
 
-  .video-reels-page .video-reels-description {
-    margin-top: 10px;
-    font-size: 14px;
-  }
-
-  .video-reels-page .platform-filters {
-    margin-bottom: 28px;
-  }
-
-  .video-reels-page .platform-filters-inner {
-    justify-content: stretch;
-    gap: 8px;
-    padding: 10px;
+  .video-reels-page .video-reels-header::after {
+    margin-top: 16px;
   }
 
   .video-reels-page .platform-filter-btn {
-    flex: 1 1 calc(50% - 8px);
-
-    min-height: 42px;
-
-    padding: 9px 10px;
-
+    height: 48px;
+    padding: 0 15px;
     font-size: 13px;
   }
 
-  .video-reels-page .reels-toolbar {
-    align-items: flex-start;
+  .video-reels-page .platform-icon-filter {
+    width: 14px;
+    height: 14px;
   }
 
-  .video-reels-page .loading-state {
-    min-height: 260px;
+  .video-reels-page .reels-section {
+    padding-top: 16px;
+  }
+
+  .video-reels-page .error-state,
+  .video-reels-page .empty-reels {
+    margin: 12px auto 0;
+    padding: 32px 20px;
   }
 }
 
@@ -583,83 +1075,9 @@
    ========================================================= */
 
 @media (max-width: 480px) {
-  .video-reels-page {
-    padding: 24px 12px 40px;
-  }
-
-  .video-reels-page .video-reels-header {
-    margin-bottom: 24px;
-  }
-
-  .video-reels-page .video-reels-eyebrow {
-    font-size: 10px;
-  }
-
-  .video-reels-page .video-reels-title {
-    font-size: 26px;
-  }
-
-  .video-reels-page .video-reels-description {
-    font-size: 13px;
-  }
-
-  .video-reels-page .platform-filters-inner {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .video-reels-page .platform-filter-btn {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .video-reels-page .platform-filter-btn:first-child {
-    grid-column: 1 / -1;
-  }
-
-  .video-reels-page .reels-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .video-reels-page .reels-count {
-    font-size: 13px;
-  }
-
-  .video-reels-page .empty-reels {
-    padding: 44px 18px;
-  }
-
-  .video-reels-page .empty-reels h2 {
-    font-size: 18px;
-  }
-
-  .video-reels-page .empty-reels p {
-    font-size: 13px;
-  }
-}
-
-/* =========================================================
-   VERY SMALL DEVICES
-   ========================================================= */
-
-@media (max-width: 360px) {
-  .video-reels-page {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-
-  .video-reels-page .platform-filters-inner {
-    grid-template-columns: 1fr;
-  }
-
-  .video-reels-page .platform-filter-btn:first-child {
-    grid-column: auto;
-  }
-
-  .video-reels-page .platform-filter-btn {
-    flex: none;
+  .video-reels-page .vr-to-top {
+    width: 42px;
+    height: 42px;
   }
 }
 
@@ -668,71 +1086,12 @@
    ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  .video-reels-page .platform-filter-btn,
-  .video-reels-page .retry-button,
-  .video-reels-page .empty-reels-button {
-    transition: none !important;
-  }
-
-  .video-reels-page .spinner {
-    animation: none !important;
-  }
-}
-
-/* =========================================================
-   DARK MODE SUPPORT
-   ========================================================= */
-
-@media (prefers-color-scheme: dark) {
-  .video-reels-page .video-reels-title {
-    color: #f9fafb;
-  }
-
-  .video-reels-page .video-reels-description,
-  .video-reels-page .reels-count {
-    color: #98a2b3;
-  }
-
-  .video-reels-page .platform-filters-inner {
-    background: #111827;
-    border-color: #1f2937;
-  }
-
-  .video-reels-page .platform-filter-btn {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-  }
-
-  .video-reels-page .platform-filter-btn:hover {
-    border-color: #667085;
-  }
-
-  .video-reels-page .platform-filter-btn.platform-tiktok.active {
-    background: #ffffff;
-    border-color: #ffffff;
-    color: #111111;
-  }
-
-  .video-reels-page .reels-platform-label {
-    background: #1f2937;
-    color: #d1d5db;
-  }
-
-  .video-reels-page .empty-reels {
-    background: #111827;
-    border-color: #374151;
-  }
-
-  .video-reels-page .empty-reels h2 {
-    color: #f3f4f6;
-  }
-
-  .video-reels-page .empty-reels p {
-    color: #98a2b3;
-  }
-
-  .video-reels-page .empty-reels-icon {
-    background: #1e1b4b;
+  .video-reels-page *,
+  .video-reels-page *::before,
+  .video-reels-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

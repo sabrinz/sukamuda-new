@@ -414,7 +414,8 @@
 
   padding-top: 1px;
 
-  color: #d4d4d4;
+  /* PERBAIKAN KONTRAS: #d4d4d4 (1.4:1) -> #666666 (5.7:1) */
+  color: #666666;
 
   font-size: 30px;
   line-height: 1;
@@ -561,6 +562,7 @@
   text-align: left;
 
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 
   transition: color var(--transition-fast);
@@ -581,7 +583,8 @@
 
   gap: 7px;
 
-  color: #888888;
+  /* PERBAIKAN KONTRAS: #888888 (3.4:1) -> #555555 (7.1:1) */
+  color: #555555;
 
   font-size: 12px;
   line-height: 1.3;
@@ -610,7 +613,8 @@
 
   background: #e8e8e8;
 
-  color: #999999;
+  /* PERBAIKAN KONTRAS: #999999 di atas #e8e8e8 (2.3:1) -> #595959 (5.7:1) */
+  color: #595959;
 
   font-size: 8px;
   font-weight: 700;
@@ -790,7 +794,8 @@
 }
 
 .card-author-initials {
-  color: #999999;
+  /* PERBAIKAN KONTRAS: #999999 di atas #e8e8e8 (2.3:1) -> #595959 (5.7:1) */
+  color: #595959;
 
   font-size: 8px;
   font-weight: 700;
@@ -889,6 +894,7 @@
   font-weight: 700;
 
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
@@ -1011,7 +1017,8 @@
 .empty-state {
   padding: 80px 20px;
 
-  color: #888888;
+  /* PERBAIKAN KONTRAS: #888888 (3.4:1) -> #555555 (7.1:1) */
+  color: #555555;
 
   text-align: center;
 }
@@ -1263,6 +1270,7 @@
   text-align: left !important;
 
   -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
 
   transition: color var(--transition-fast) !important;
@@ -1385,6 +1393,8 @@
   font-size: 14px !important;
 
   -webkit-line-clamp: 2 !important;
+
+  line-clamp: 2 !important;
 }
 
 
@@ -1478,6 +1488,7 @@
   text-align: left !important;
 
   -webkit-line-clamp: 3 !important;
+  line-clamp: 3 !important;
   -webkit-box-orient: vertical;
 
   transition: color var(--transition-fast);
@@ -1823,6 +1834,7 @@
     line-height: 1.45;
 
     -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .tag-category {
@@ -1885,6 +1897,7 @@
     font-size: 14px !important;
 
     -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
 
     text-align: left !important;
   }
@@ -1970,6 +1983,7 @@
 
     line-height: 1.4;
 
+    line-clamp: 2;
     -webkit-line-clamp: 2;
   }
 

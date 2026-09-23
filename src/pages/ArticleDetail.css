@@ -2228,3 +2228,36 @@
   pointer-events: none;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 85%);
 }
+
+
+/* =========================================================
+   CONTINUOUS ORDERED LIST NUMBERING
+   Menampilkan nomor yang disimpan dari editor secara konsisten.
+   ========================================================= */
+
+.article-detail-page
+  .text-render
+  li[data-list="ordered"][data-continuous-number] {
+  position: relative;
+  list-style: none !important;
+}
+
+.article-detail-page
+  .text-render
+  li[data-list="ordered"][data-continuous-number]::before {
+  content: attr(data-continuous-number) ".";
+  position: absolute;
+  right: calc(100% + 0.5em);
+  top: 0;
+  min-width: 1.5em;
+  color: currentColor;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.article-detail-page
+  .text-render
+  li[data-list="ordered"]
+  > .ql-ui {
+  display: none !important;
+}

@@ -46,6 +46,13 @@ const MIN_TAGS = 2;
 const MAX_TAGS = 10;
 
 /* =========================================================
+   AUTOSAVE
+   ========================================================= */
+
+const AUTOSAVE_DELAY = 500;
+const AUTOSAVE_STORAGE_PREFIX = "sukamuda_write_autosave";
+
+/* =========================================================
    ALLOWED IMAGE TYPES
    ========================================================= */
 
@@ -174,6 +181,64 @@ const getPlainTextFromHtml = (html) => {
   });
 
   return clean.replace(/\s+/g, " ").trim();
+};
+
+/* =========================================================
+   CONTINUOUS ORDERED LIST NUMBERING
+   ========================================================= */
+
+const syncOrderedListNumbers = (root) => {
+  if (!root) return;
+
+  let nextNumber = 1;
+
+  Array.from(root.children).forEach((block) => {
+    if (block.tagName !== "OL") return;
+
+    const orderedItems = Array.from(block.children).filter((item) => {
+      if (item.tagName !== "LI") return false;
+
+      const listType = item.getAttribute("data-list");
+      const isIndented = Array.from(item.classList).some((className) =>
+        /^ql-indent-\d+$/.test(className),
+      );
+
+      return !isIndented && (!listType || listType === "ordered");
+    });
+
+    if (orderedItems.length === 0) return;
+
+    const start = nextNumber;
+
+    if (block.getAttribute("start") !== String(start)) {
+      block.setAttribute("start", String(start));
+    }
+
+    const counterReset = `list-0 ${Math.max(0, start - 1)}`;
+
+    if (block.style.counterReset !== counterReset) {
+      block.style.counterReset = counterReset;
+    }
+
+    orderedItems.forEach((item) => {
+      const number = String(nextNumber);
+
+      if (item.getAttribute("data-continuous-number") !== number) {
+        item.setAttribute("data-continuous-number", number);
+      }
+
+      const listUi = item.querySelector(":scope > .ql-ui");
+
+      if (
+        listUi &&
+        listUi.getAttribute("data-continuous-number") !== number
+      ) {
+        listUi.setAttribute("data-continuous-number", number);
+      }
+
+      nextNumber += 1;
+    });
+  });
 };
 
 const sanitizeArticleHtml = (html) =>
@@ -626,6 +691,11 @@ function Write() {
 
   const [form, dispatch] = useReducer(formReducer, initialState);
 
+  const autosaveTimerRef = useRef(null);
+  const restoringAutosaveRef = useRef(false);
+  const autosaveRestoredRef = useRef(false);
+  const autosaveStorageKey = `${AUTOSAVE_STORAGE_PREFIX}_${user?.id || user?.email || "guest"}`;
+
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
 
   const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -637,7 +707,7 @@ function Write() {
   const [showModal, setShowModal] = useState(false);
 
   const [modalType, setModalType] = useState("publish");
-
+  
   const [relatedModalOpen, setRelatedModalOpen] = useState(false);
 
   const [relatedArticles, setRelatedArticles] = useState([]);
@@ -681,6 +751,145 @@ function Write() {
       mountedRef.current = false;
     };
   }, []);
+
+  /* =======================================================
+     RESTORE AUTOSAVE
+     ======================================================= */
+
+  useEffect(() => {
+    if (editData?.id || autosaveRestoredRef.current) {
+      return undefined;
+    }
+
+    autosaveRestoredRef.current = true;
+    restoringAutosaveRef.current = true;
+
+    try {
+      const raw = window.localStorage.getItem(autosaveStorageKey);
+
+      if (!raw) {
+        restoringAutosaveRef.current = false;
+        return undefined;
+      }
+
+      const saved = JSON.parse(raw);
+
+      if (saved?.form && typeof saved.form === "object") {
+        dispatch({
+          type: "SET_FORM",
+          value: {
+            title: String(saved.form.title ?? ""),
+            category: String(saved.form.category ?? ""),
+            teaser: String(saved.form.teaser ?? ""),
+            tags: String(saved.form.tags ?? ""),
+            thumbnailCaption: String(saved.form.thumbnailCaption ?? ""),
+            audioLink: String(saved.form.audioLink ?? ""),
+            videoLink: String(saved.form.videoLink ?? ""),
+          },
+        });
+      }
+
+      if (saved?.thumbnailPreview) {
+        setThumbnailPreview(saved.thumbnailPreview);
+      }
+
+      if (saved?.content && typeof saved.content === "string") {
+        const restoreContent = () => {
+          if (!quillRef.current) return false;
+          const cleanContent = sanitizeArticleHtml(saved.content);
+          if (cleanContent) {
+            quillRef.current.clipboard.dangerouslyPasteHTML(cleanContent, "silent");
+            quillRef.current.setSelection(
+              Math.max(0, quillRef.current.getLength() - 1),
+              0,
+              "silent",
+            );
+          }
+          return true;
+        };
+
+        if (!restoreContent()) {
+          requestAnimationFrame(restoreContent);
+        }
+      }
+    } catch (error) {
+      console.warn("Gagal memulihkan autosave artikel:", error);
+    } finally {
+      restoringAutosaveRef.current = false;
+    }
+
+    return undefined;
+  }, [autosaveStorageKey, editData?.id]);
+
+  /* =======================================================
+     AUTOSAVE FORM + QUILL
+     ======================================================= */
+
+  const saveAutosave = useCallback(() => {
+    if (editData?.id || restoringAutosaveRef.current) return;
+
+    try {
+      const content = sanitizeArticleHtml(
+        quillRef.current?.root?.innerHTML || "",
+      );
+
+      window.localStorage.setItem(
+        autosaveStorageKey,
+        JSON.stringify({
+          version: 1,
+          savedAt: new Date().toISOString(),
+          form: { ...form },
+          content,
+          thumbnailPreview: thumbnailPreview || null,
+        }),
+      );
+    } catch (error) {
+      console.warn("Autosave artikel tidak dapat disimpan:", error);
+    }
+  }, [autosaveStorageKey, editData?.id, form, thumbnailPreview]);
+
+  useEffect(() => {
+    if (editData?.id || restoringAutosaveRef.current) return undefined;
+
+    if (autosaveTimerRef.current) {
+      window.clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = window.setTimeout(saveAutosave, AUTOSAVE_DELAY);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        window.clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [form, thumbnailPreview, saveAutosave, editData?.id]);
+
+  useEffect(() => {
+    const quill = quillRef.current;
+    if (!quill || editData?.id) return undefined;
+
+    const handleQuillChange = () => {
+      if (restoringAutosaveRef.current) return;
+
+      if (autosaveTimerRef.current) {
+        window.clearTimeout(autosaveTimerRef.current);
+      }
+
+      autosaveTimerRef.current = window.setTimeout(saveAutosave, AUTOSAVE_DELAY);
+    };
+
+    quill.on("text-change", handleQuillChange);
+    return () => quill.off("text-change", handleQuillChange);
+  }, [saveAutosave, editData?.id]);
+
+  const clearAutosave = useCallback(() => {
+    try {
+      window.localStorage.removeItem(autosaveStorageKey);
+    } catch (error) {
+      console.warn("Gagal menghapus autosave artikel:", error);
+    }
+  }, [autosaveStorageKey]);
 
   /* =======================================================
      RESET IMAGE MODAL
@@ -1033,6 +1242,109 @@ function Write() {
     insertImageAlign,
     resetImageModal,
   ]);
+  
+  /* =======================================================
+     RELATED MODAL
+     ======================================================= */
+
+  const openRelatedModal = useCallback(async () => {
+    if (!form.category) {
+      setErrors((previous) => ({
+        ...previous,
+        category: "Pilih kategori terlebih dahulu.",
+      }));
+
+      return;
+    }
+
+    setRelatedError(null);
+
+    setRelatedLoading(true);
+
+    setRelatedModalOpen(true);
+
+    try {
+      const response = await axios.get(
+        `/api/articles/list/${encodeURIComponent(form.category)}`,
+      );
+
+      const source = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.data?.data)
+          ? response.data.data
+          : [];
+
+      const filtered = source.filter(
+        (item) => String(item?.id) !== String(editData?.id),
+      );
+
+      if (mountedRef.current) {
+        setRelatedArticles(filtered);
+      }
+    } catch (error) {
+      console.error("Gagal memuat artikel terkait:", error);
+
+      if (mountedRef.current) {
+        setRelatedError("Tidak dapat memuat daftar artikel. Coba lagi.");
+
+        setRelatedArticles([]);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setRelatedLoading(false);
+      }
+    }
+  }, [editData?.id, form.category]);
+
+  /* =======================================================
+     INSERT RELATED SHORTCODE
+     ======================================================= */
+
+  const insertRelatedShortcode = useCallback(
+    (articleId, articleTitle, articleSlug) => {
+      const quill = quillRef.current;
+
+      if (!quill || !articleId) {
+        return;
+      }
+
+      const range = quill.getSelection(true) || {
+        index: Math.max(0, quill.getLength() - 1),
+        length: 0,
+      };
+
+      const safeTitle = normalizeText(articleTitle);
+
+      const safeSlug = normalizeText(articleSlug);
+
+      if (!safeTitle) {
+        return;
+      }
+
+      const href = safeSlug ? `/article/${encodeURIComponent(safeSlug)}` : "#";
+
+      const visibleText = `Baca Juga: ${safeTitle}`;
+
+      // DI SINI LETAK PERBAIKANNYA
+      // Hanya memasukkan link saja, menghapus teks "[related:xxx]" sepenuhnya
+      const html = `<p><strong><a href="${escapeHtml(
+        href,
+      )}" rel="noopener noreferrer">${escapeHtml(
+        visibleText,
+      )}</a></strong></p>`;
+
+      quill.clipboard.dangerouslyPasteHTML(range.index, html, "user");
+
+      quill.setSelection(
+        Math.min(range.index + visibleText.length + 1, quill.getLength()),
+        0,
+        "silent",
+      );
+
+      setRelatedModalOpen(false);
+    },
+    [],
+  );
 
   /* =======================================================
      QUILL INIT
@@ -1078,6 +1390,36 @@ function Write() {
             imageLarger() {
               resizeSelectedImage(50);
             },
+            
+            bold() {
+              const range = this.quill.getSelection(true);
+              const format = this.quill.getFormat(range);
+              this.quill.format("bold", !format.bold, "user");
+            },
+            
+            italic() {
+              const range = this.quill.getSelection(true);
+              const format = this.quill.getFormat(range);
+              this.quill.format("italic", !format.italic, "user");
+            },
+            
+            strike() {
+              const range = this.quill.getSelection(true);
+              const format = this.quill.getFormat(range);
+              this.quill.format("strike", !format.strike, "user");
+            },
+            
+            underline() {
+              const range = this.quill.getSelection(true);
+              const format = this.quill.getFormat(range);
+              this.quill.format("underline", !format.underline, "user");
+            },
+            
+            blockquote() {
+              const range = this.quill.getSelection(true);
+              const format = this.quill.getFormat(range);
+              this.quill.format("blockquote", !format.blockquote, "user");
+            },
           },
         },
 
@@ -1091,12 +1433,57 @@ function Write() {
 
     quillRef.current = quill;
 
+    let orderedListFrame = null;
+
+    const scheduleOrderedListSync = () => {
+      if (orderedListFrame !== null) {
+        window.cancelAnimationFrame(orderedListFrame);
+      }
+
+      orderedListFrame = window.requestAnimationFrame(() => {
+        orderedListFrame = null;
+        syncOrderedListNumbers(quill.root);
+      });
+    };
+
+    quill.on("text-change", scheduleOrderedListSync);
+
+    if (!editData?.id) {
+      try {
+        const raw = window.localStorage.getItem(autosaveStorageKey);
+        const saved = raw ? JSON.parse(raw) : null;
+        const cleanAutosaveContent = sanitizeArticleHtml(saved?.content || "");
+
+        if (cleanAutosaveContent) {
+          restoringAutosaveRef.current = true;
+          quill.clipboard.dangerouslyPasteHTML(cleanAutosaveContent, "silent");
+          quill.setSelection(
+            Math.max(0, quill.getLength() - 1),
+            0,
+            "silent",
+          );
+          restoringAutosaveRef.current = false;
+        }
+      } catch (error) {
+        restoringAutosaveRef.current = false;
+        console.warn("Gagal memulihkan isi editor autosave:", error);
+      }
+    }
+
     quill.setSelection(0, 0, "silent");
 
     quill.formatLine(0, 1, "align", false, "silent");
 
-    return undefined;
-  }, [resizeSelectedImage]);
+    scheduleOrderedListSync();
+
+    return () => {
+      quill.off("text-change", scheduleOrderedListSync);
+
+      if (orderedListFrame !== null) {
+        window.cancelAnimationFrame(orderedListFrame);
+      }
+    };
+  }, [resizeSelectedImage, editData?.id, autosaveStorageKey]);
 
   /* =======================================================
      LOAD EDIT DATA
@@ -1197,111 +1584,6 @@ function Write() {
       controller.abort();
     };
   }, [editData]);
-
-  /* =======================================================
-     RELATED MODAL
-     ======================================================= */
-
-  const openRelatedModal = useCallback(async () => {
-    if (!form.category) {
-      setErrors((previous) => ({
-        ...previous,
-        category: "Pilih kategori terlebih dahulu.",
-      }));
-
-      return;
-    }
-
-    setRelatedError(null);
-
-    setRelatedLoading(true);
-
-    setRelatedModalOpen(true);
-
-    try {
-      const response = await axios.get(
-        `/api/articles/list/${encodeURIComponent(form.category)}`,
-      );
-
-      const source = Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response?.data?.data)
-          ? response.data.data
-          : [];
-
-      const filtered = source.filter(
-        (item) => String(item?.id) !== String(editData?.id),
-      );
-
-      if (mountedRef.current) {
-        setRelatedArticles(filtered);
-      }
-    } catch (error) {
-      console.error("Gagal memuat artikel terkait:", error);
-
-      if (mountedRef.current) {
-        setRelatedError("Tidak dapat memuat daftar artikel. Coba lagi.");
-
-        setRelatedArticles([]);
-      }
-    } finally {
-      if (mountedRef.current) {
-        setRelatedLoading(false);
-      }
-    }
-  }, [editData?.id, form.category]);
-
-  /* =======================================================
-     INSERT RELATED SHORTCODE
-     ======================================================= */
-
-  const insertRelatedShortcode = useCallback(
-    (articleId, articleTitle, articleSlug) => {
-      const quill = quillRef.current;
-
-      if (!quill || !articleId) {
-        return;
-      }
-
-      const range = quill.getSelection(true) || {
-        index: Math.max(0, quill.getLength() - 1),
-        length: 0,
-      };
-
-      const safeTitle = normalizeText(articleTitle);
-
-      const safeSlug = normalizeText(articleSlug);
-
-      if (!safeTitle) {
-        return;
-      }
-
-      const href = safeSlug ? `/article/${encodeURIComponent(safeSlug)}` : "#";
-
-      const visibleText = `Baca Juga: ${safeTitle}`;
-
-      const shortcode = `[related:${String(articleId)}]`;
-
-      const html = `<p><strong><a href="${escapeHtml(
-        href,
-      )}" rel="noopener noreferrer">${escapeHtml(
-        visibleText,
-      )}</a><span style="display:none">${escapeHtml(
-        shortcode,
-      )}</span></strong></p>`;
-
-      quill.clipboard.dangerouslyPasteHTML(range.index, html, "user");
-
-      quill.setSelection(
-        Math.min(range.index + visibleText.length + 1, quill.getLength()),
-        0,
-        "silent",
-      );
-
-      setRelatedModalOpen(false);
-    },
-    [],
-  );
 
   /* =======================================================
      VALIDATE FORM
@@ -1544,6 +1826,8 @@ function Write() {
         throw new Error("Gagal menyimpan artikel.");
       }
 
+      clearAutosave();
+
       /*
        * REFRESH CACHE
        */
@@ -1621,6 +1905,7 @@ function Write() {
     navigate,
     queryClient,
     downloadThumbnailAsFile,
+    clearAutosave,
   ]);
 
   /* =======================================================
@@ -1688,7 +1973,7 @@ function Write() {
 
         return;
       }
-
+      
       if (relatedModalOpen) {
         setRelatedModalOpen(false);
 
@@ -2330,7 +2615,7 @@ function Write() {
                   >
                     + Img
                   </button>
-
+                  
                   <button
                     className="related-button"
                     type="button"
@@ -2532,7 +2817,7 @@ function Write() {
 
       {insertImageModalOpen && (
         <div
-          className="modal-overlay"
+          className="modal-overlay image-modal-overlay"
           role="presentation"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
@@ -2541,7 +2826,7 @@ function Write() {
           }}
         >
           <div
-            className="modal-container"
+            className="modal-container image-modal-container"
             role="dialog"
             aria-modal="true"
             aria-labelledby="insert-image-title"
@@ -2737,7 +3022,7 @@ function Write() {
           </div>
         </div>
       )}
-
+      
       {/* =====================================================
           RELATED MODAL
           ===================================================== */}
@@ -2821,11 +3106,6 @@ function Write() {
                     }
                   >
                     <span>{item.title}</span>
-
-                    <strong>
-                      [related:
-                      {item.id}]
-                    </strong>
                   </button>
                 ))}
               </div>
